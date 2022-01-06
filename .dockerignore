@@ -1,0 +1,4 @@
+solidity/build
+.git
+Dockerfile
+.dockerignore
