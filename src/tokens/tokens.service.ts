@@ -345,7 +345,6 @@ class TokenListener implements EventListener {
       data: <TokenPoolEvent>{
         standard: TOKEN_STANDARD,
         poolId: unpackedId.poolId,
-        type: 'fungible',
         operator: data.operator,
         data: decodedData,
         transaction: {
