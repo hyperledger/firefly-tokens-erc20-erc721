@@ -1,0 +1,8 @@
+{
+  "name": "@hyperledger/firefly-tokens-erc20-contracts",
+  "version": "0.0.1",
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.2.0",
+    "truffle": "^5.1.61"
+  }
+}
