@@ -18,51 +18,13 @@ import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/com
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import {
-  AsyncResponse,
-  TokenBalance,
-  TokenBalanceQuery,
-  TokenBurn,
-  TokenMint,
-  TokenPool,
-  TokenPoolActivate,
-  TokenTransfer,
+  AsyncResponse, TokenBalance, TokenBalanceQuery, TokenBurn, TokenMint, TokenTransfer
 } from './tokens.interfaces';
 import { TokensService } from './tokens.service';
 
 @Controller()
 export class TokensController {
   constructor(private readonly service: TokensService) {}
-
-  @Post('init')
-  @HttpCode(204)
-  @ApiOperation({ summary: 'Perform one-time initialization (if not auto-initialized)' })
-  async init() {
-    await this.service.init();
-  }
-
-  @Post('createpool')
-  @HttpCode(202)
-  @ApiOperation({
-    summary: 'Create a new token pool',
-    description:
-      'Will be followed by a websocket notification with event=token-pool and data=TokenPoolEvent',
-  })
-  @ApiBody({ type: TokenPool })
-  @ApiResponse({ status: 202, type: AsyncResponse })
-  createPool(@Body() dto: TokenPool) {
-    return this.service.createPool(dto);
-  }
-
-  @Post('activatepool')
-  @HttpCode(204)
-  @ApiOperation({
-    summary: 'Activate a token pool to begin receiving transfer events',
-    description: 'Will retrigger the token-pool event for this pool as a side-effect',
-  })
-  @ApiBody({ type: TokenPoolActivate })
-  async activatePool(@Body() dto: TokenPoolActivate) {
-    await this.service.activatePool(dto);
-  }
 
   @Post('mint')
   @HttpCode(202)
@@ -77,19 +39,6 @@ export class TokensController {
     return this.service.mint(dto);
   }
 
-  @Post('burn')
-  @HttpCode(202)
-  @ApiOperation({
-    summary: 'Burn tokens',
-    description:
-      'Will be followed by a websocket notification with event=token-burn and data=TokenBurnEvent',
-  })
-  @ApiBody({ type: TokenBurn })
-  @ApiResponse({ status: 202, type: AsyncResponse })
-  burn(@Body() dto: TokenBurn) {
-    return this.service.burn(dto);
-  }
-
   @Post('transfer')
   @HttpCode(202)
   @ApiOperation({
@@ -101,6 +50,19 @@ export class TokensController {
   @ApiResponse({ status: 202, type: AsyncResponse })
   transfer(@Body() dto: TokenTransfer) {
     return this.service.transfer(dto);
+  }
+
+  @Post('burn')
+  @HttpCode(202)
+  @ApiOperation({
+    summary: 'Burn tokens',
+    description:
+      'Will be followed by a websocket notification with event=token-burn and data=TokenBurnEvent',
+  })
+  @ApiBody({ type: TokenBurn })
+  @ApiResponse({ status: 202, type: AsyncResponse })
+  burn(@Body() dto: TokenBurn) {
+    return this.service.burn(dto);
   }
 
   @Get('balance')

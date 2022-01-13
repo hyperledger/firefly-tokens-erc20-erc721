@@ -132,8 +132,7 @@ describe('AppController (e2e)', () => {
     expect(http.post).toHaveBeenCalledWith(
       `${BASE_URL}${INSTANCE_PATH}/create`,
       {
-        data: '0x747831',
-        is_fungible: true,
+        data: '0x747831'
       },
       {
         ...OPTIONS,
@@ -164,7 +163,7 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${INSTANCE_PATH}/mintFungible`,
+      `${BASE_URL}${INSTANCE_PATH}/mint`,
       {
         type_id: FUNG_TYPE_ID,
         to: ['1'],
@@ -197,10 +196,8 @@ describe('AppController (e2e)', () => {
     expect(http.post).toHaveBeenCalledWith(
       `${BASE_URL}${INSTANCE_PATH}/burn`,
       {
-        id: '340282366920938463463374607431768211457',
         from: 'A',
         amount: '1',
-        data: '0x747831',
       },
       OPTIONS,
     );

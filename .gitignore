@@ -1,6 +1,6 @@
 # compiled output
 /dist
-/node_modules
+node_modules
 
 # Logs
 logs
@@ -9,6 +9,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+
+# Solidity Build
+solidity/build
 
 # OS
 .DS_Store

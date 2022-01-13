@@ -46,26 +46,11 @@ export function encodeHexIDForURI(id: string) {
   return encoded;
 }
 
-export function packTokenId(poolId: string, tokenIndex = '0') {
-  return (
-    (BigInt(poolId.substring(1)) << BigInt(128)) |
-    BigInt(tokenIndex)
-  ).toString();
-}
-
-export function unpackTokenId(id: string) {
-  return {
-    isFungible: true,
-    poolId: 'F' + (BigInt.asUintN(255, BigInt(id)) >> BigInt(128)),
-    tokenIndex: undefined,
-  };
-}
-
-export function packSubscriptionName(prefix: string, poolId: string, event?: string) {
+export function packSubscriptionName(prefix: string, contractAddress: string, event?: string) {
   if (event === undefined) {
-    return [prefix, poolId].join(':');
+    return [prefix, contractAddress].join(':');
   }
-  return [prefix, poolId, event].join(':');
+  return [prefix, contractAddress, event].join(':');
 }
 
 export function unpackSubscriptionName(prefix: string, data: string) {

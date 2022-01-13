@@ -18,10 +18,7 @@ import {
   decodeHex,
   encodeHex,
   encodeHexIDForURI,
-  packSubscriptionName,
-  packTokenId,
-  unpackSubscriptionName,
-  unpackTokenId,
+  packSubscriptionName, unpackSubscriptionName
 } from './tokens.util';
 
 describe('Util', () => {
@@ -42,17 +39,6 @@ describe('Util', () => {
     expect(decodeHex('0x')).toEqual('');
     expect(decodeHex('0x0')).toEqual('');
     expect(decodeHex('0x00')).toEqual('');
-  });
-
-  it('packTokenId', () => {
-    expect(packTokenId('F1', '0')).toEqual('340282366920938463463374607431768211456');
-  });
-
-  it('unpackTokenId', () => {
-    expect(unpackTokenId('340282366920938463463374607431768211456')).toEqual({
-      isFungible: true,
-      poolId: 'F1',
-    });
   });
 
   it('packSubscriptionName', () => {
