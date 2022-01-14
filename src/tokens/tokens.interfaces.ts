@@ -16,7 +16,6 @@
 
 import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional } from 'class-validator';
-import { Event } from '../event-stream/event-stream.interfaces';
 
 // Ethconnect interfaces
 export interface EthConnectAsyncResponse {
@@ -28,25 +27,47 @@ export interface EthConnectReturn {
   output: string;
 }
 
-export interface TransferEvent extends Event {
-  data: {
-    from: string;
-    to: string;
-    operator: string;
-    id: string;
-    value: string;
-  };
-}
-
 // REST API requests and responses
 export class AsyncResponse {
   @ApiProperty()
   id: string;
 }
 
+export enum TokenType {
+  FUNGIBLE = 'fungible',
+}
+
+const contractConfigDescription =
+  'Optional configuration info for the token pool. Reserved for future use.';
 const requestIdDescription =
   'Optional ID to identify this request. Must be unique for every request. ' +
   'If none is provided, one will be assigned and returned in the 202 response.';
+
+export class TokenPool {
+  @ApiProperty()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  operator: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  symbol: string;
+
+  @ApiProperty({ description: contractConfigDescription })
+  @IsOptional()
+  config?: any;
+
+  @ApiProperty()
+  @IsOptional()
+  data?: string;
+
+  @ApiProperty({ description: requestIdDescription })
+  @IsOptional()
+  requestId?: string;
+}
 
 export class BlockchainTransaction {
   @ApiProperty()
@@ -55,17 +76,43 @@ export class BlockchainTransaction {
 
   @ApiProperty()
   @IsNotEmpty()
-  transactionIndex: string;
+  transactionHash: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  transactionHash: string;
+  transactionIndex: string;
+
+  @ApiProperty()
+  @IsOptional() // only optional to support activating very old pools - TODO: remove eventually
+  logIndex: string;
+
+  @ApiProperty()
+  @IsOptional()
+  signature: string;
+}
+
+export class TokenPoolActivate {
+  @ApiProperty()
+  @IsNotEmpty()
+  poolId: string;
+
+  @ApiProperty({ description: requestIdDescription })
+  @IsOptional()
+  requestId?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  transaction?: BlockchainTransaction;
 }
 
 export class TokenBalanceQuery {
   @ApiProperty()
   @IsNotEmpty()
   account: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  poolId: string;
 }
 
 export class TokenBalance {
@@ -76,7 +123,7 @@ export class TokenBalance {
 export class TokenTransfer {
   @ApiProperty()
   @IsNotEmpty()
-  operator: string;
+  amount: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -84,19 +131,23 @@ export class TokenTransfer {
 
   @ApiProperty()
   @IsNotEmpty()
-  to: string;
+  operator: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  amount: string;
+  poolId: string;
 
-  @ApiProperty({ description: requestIdDescription })
-  @IsOptional()
-  requestId?: string;
+  @ApiProperty()
+  @IsNotEmpty()
+  to: string;
 
   @ApiProperty()
   @IsOptional()
   data?: string;
+
+  @ApiProperty({ description: requestIdDescription })
+  @IsOptional()
+  requestId?: string;
 }
 
 export class TokenMint extends OmitType(TokenTransfer, ['from']) {}
@@ -109,35 +160,41 @@ class tokenEventBase {
   data?: string;
 
   @ApiProperty()
+  operator: string;
+
+  @ApiProperty()
+  rawOutput: any;
+
+  @ApiProperty()
+  poolId: string;
+
+  @ApiProperty()
+  timestamp: string;
+
+  @ApiProperty()
   transaction: BlockchainTransaction;
+
+  @ApiProperty()
+  type: TokenType;
 }
 
-export class ContractEvent extends tokenEventBase {
-  @ApiProperty()
-  contractAddress: string;
-
+export class TokenPoolEvent extends tokenEventBase {
   @ApiProperty()
   standard: string;
 }
 
 export class TokenTransferEvent extends tokenEventBase {
   @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  tokenIndex?: string;
-
-  @ApiProperty()
-  uri: string;
+  amount: string;
 
   @ApiProperty()
   from: string;
 
   @ApiProperty()
-  to: string;
+  id: string;
 
   @ApiProperty()
-  amount: string;
+  to: string;
 }
 
 export class TokenMintEvent extends OmitType(TokenTransferEvent, ['from']) {}

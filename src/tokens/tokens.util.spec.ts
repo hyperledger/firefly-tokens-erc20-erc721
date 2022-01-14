@@ -14,23 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {
-  decodeHex,
-  encodeHex,
-  encodeHexIDForURI,
-  packSubscriptionName, unpackSubscriptionName
-} from './tokens.util';
+import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
 
 describe('Util', () => {
   it('encodeHex', () => {
     expect(encodeHex('hello')).toEqual('0x68656c6c6f');
     expect(encodeHex('')).toEqual('0x00');
-  });
-
-  it('encodeHexIDForURI', () => {
-    expect(encodeHexIDForURI('314592')).toEqual(
-      '000000000000000000000000000000000000000000000000000000000004cce0',
-    );
   });
 
   it('decodeHex', () => {
@@ -42,28 +31,25 @@ describe('Util', () => {
   });
 
   it('packSubscriptionName', () => {
-    expect(packSubscriptionName('token', 'F1')).toEqual('token:F1');
-    expect(packSubscriptionName('token', 'F1', 'create')).toEqual('token:F1:create');
-    expect(packSubscriptionName('tok:en', 'F1', 'create')).toEqual('tok:en:F1:create');
+    expect(packSubscriptionName('token', '0x123456')).toEqual('token:0x123456');
+    expect(packSubscriptionName('token', '0x123456', 'create')).toEqual('token:0x123456:create');
+    expect(packSubscriptionName('tok:en', '0x123456', 'create')).toEqual('tok:en:0x123456:create');
   });
 
   it('unpackSubscriptionName', () => {
-    expect(unpackSubscriptionName('token', 'token:F1')).toEqual({
+    expect(unpackSubscriptionName('token', 'token:0x123456')).toEqual({
       prefix: 'token',
-      poolId: 'F1',
+      poolId: '0x123456',
     });
-    expect(unpackSubscriptionName('token', 'token:F1:create')).toEqual({
+    expect(unpackSubscriptionName('token', 'token:0x123456:create')).toEqual({
       prefix: 'token',
-      poolId: 'F1',
+      poolId: '0x123456',
       event: 'create',
     });
-    expect(unpackSubscriptionName('tok:en', 'tok:en:F1:create')).toEqual({
+    expect(unpackSubscriptionName('tok:en', 'tok:en:0x123456:create')).toEqual({
       prefix: 'tok:en',
-      poolId: 'F1',
+      poolId: '0x123456',
       event: 'create',
-    });
-    expect(unpackSubscriptionName('token', 'bad:F1:create')).toEqual({
-      prefix: 'token',
     });
   });
 });

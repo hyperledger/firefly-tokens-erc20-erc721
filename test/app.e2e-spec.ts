@@ -25,20 +25,24 @@ import request from 'superwstest';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import {
+  AsyncResponse,
   EthConnectAsyncResponse,
   EthConnectReturn,
   TokenBalance,
   TokenBalanceQuery,
-  TokenBurn, TokenMint, TokenPool, TokenTransfer
+  TokenBurn,
+  TokenMint,
+  TokenPool,
+  TokenTransfer,
 } from '../src/tokens/tokens.interfaces';
 import { TokensService } from '../src/tokens/tokens.service';
 import { AppModule } from './../src/app.module';
 
 const BASE_URL = 'http://eth';
-const INSTANCE_PATH = '/tokens';
-const F1_POOL_ID = 'F1';
-const FUNG_TYPE_ID = '340282366920938463463374607431768211456';
+const CONTRACT_ABI = '123';
+const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
+const INSTANCE_PATH = '/tokens';
 const OPTIONS = {
   params: {
     'fly-from': IDENTITY,
@@ -103,7 +107,7 @@ describe('AppController (e2e)', () => {
     await app.init();
 
     app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    app.get(TokensService).configure(BASE_URL, INSTANCE_PATH, TOPIC, PREFIX, '', '');
+    app.get(TokensService).configure(BASE_URL, INSTANCE_PATH, TOPIC, PREFIX, CONTRACT_ABI, '', '');
 
     (app.getHttpServer() as Server).listen();
     server = request(app.getHttpServer());
@@ -113,11 +117,13 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('Create fungible pool', async () => {
+  it('Create new ERC20 contract instance', async () => {
     const request: TokenPool = {
-      requestId: 'op1',
       data: 'tx1',
+      name: 'testName',
       operator: IDENTITY,
+      requestId: 'op1',
+      symbol: 'testSymbol',
     };
     const response: EthConnectAsyncResponse = {
       id: 'op1',
@@ -125,14 +131,15 @@ describe('AppController (e2e)', () => {
     };
 
     http.post = jest.fn(() => new FakeObservable(response));
-
     await server.post('/createpool').send(request).expect(202).expect({ id: 'op1' });
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
       `${BASE_URL}${INSTANCE_PATH}/create`,
       {
-        data: '0x747831'
+        data: '0x747831',
+        name: 'testName',
+        symbol: 'testSymbol',
       },
       {
         ...OPTIONS,
@@ -144,17 +151,16 @@ describe('AppController (e2e)', () => {
     );
   });
 
-  it('Mint fungible token', async () => {
+  it('Mint ERC20 token', async () => {
     const request: TokenMint = {
-      poolId: F1_POOL_ID,
-      to: '1',
       amount: '2',
       data: 'test',
       operator: IDENTITY,
+      poolId: CONTRACT_ADDRESS,
+      to: '1',
     };
-    const response: EthConnectAsyncResponse = {
+    const response: AsyncResponse = {
       id: '1',
-      sent: true,
     };
 
     http.post = jest.fn(() => new FakeObservable(response));
@@ -163,41 +169,11 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${INSTANCE_PATH}/mint`,
+      `${BASE_URL}/abis/${CONTRACT_ABI}/${CONTRACT_ADDRESS}/mintWithData`,
       {
-        type_id: FUNG_TYPE_ID,
-        to: ['1'],
-        amounts: ['2'],
+        amount: '2',
         data: '0x74657374',
-      },
-      OPTIONS,
-    );
-  });
-
-  it('Burn token', async () => {
-    const request: TokenBurn = {
-      poolId: 'F1',
-      tokenIndex: '1',
-      from: 'A',
-      amount: '1',
-      data: 'tx1',
-      operator: IDENTITY,
-    };
-    const response: EthConnectAsyncResponse = {
-      id: '1',
-      sent: true,
-    };
-
-    http.post = jest.fn(() => new FakeObservable(response));
-
-    await server.post('/burn').send(request).expect(202).expect({ id: '1' });
-
-    expect(http.post).toHaveBeenCalledTimes(1);
-    expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${INSTANCE_PATH}/burn`,
-      {
-        from: 'A',
-        amount: '1',
+        to: '1',
       },
       OPTIONS,
     );
@@ -205,11 +181,11 @@ describe('AppController (e2e)', () => {
 
   it('Transfer token', async () => {
     const request: TokenTransfer = {
-      poolId: F1_POOL_ID,
-      from: '1',
-      to: '2',
       amount: '2',
+      from: '1',
       operator: IDENTITY,
+      poolId: CONTRACT_ADDRESS,
+      to: '2',
     };
     const response: EthConnectAsyncResponse = {
       id: '1',
@@ -222,13 +198,40 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${INSTANCE_PATH}/safeTransferFrom`,
+      `${BASE_URL}/abis/${CONTRACT_ABI}/${CONTRACT_ADDRESS}/transferWithData`,
       {
-        id: FUNG_TYPE_ID,
-        from: '1',
-        to: '2',
         amount: '2',
         data: '0x00',
+        from: '1',
+        to: '2',
+      },
+      OPTIONS,
+    );
+  });
+
+  it('Burn token', async () => {
+    const request: TokenBurn = {
+      amount: '2',
+      data: 'tx1',
+      from: 'A',
+      operator: IDENTITY,
+      poolId: CONTRACT_ADDRESS,
+    };
+    const response: AsyncResponse = {
+      id: '1',
+    };
+
+    http.post = jest.fn(() => new FakeObservable(response));
+
+    await server.post('/burn').send(request).expect(202).expect({ id: '1' });
+
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(
+      `${BASE_URL}/abis/${CONTRACT_ABI}/${CONTRACT_ADDRESS}/burnWithData`,
+      {
+        data: '0x747831',
+        from: 'A',
+        amount: '2',
       },
       OPTIONS,
     );
@@ -237,8 +240,7 @@ describe('AppController (e2e)', () => {
   it('Query balance', async () => {
     const request: TokenBalanceQuery = {
       account: '1',
-      poolId: F1_POOL_ID,
-      tokenIndex: '0',
+      poolId: CONTRACT_ADDRESS,
     };
     const response: EthConnectReturn = {
       output: '1',
@@ -255,11 +257,13 @@ describe('AppController (e2e)', () => {
       });
 
     expect(http.get).toHaveBeenCalledTimes(1);
-    expect(http.get).toHaveBeenCalledWith(`${BASE_URL}${INSTANCE_PATH}/balanceOf`, {
-      params: {
-        account: '1',
-        id: FUNG_TYPE_ID,
+    expect(http.get).toHaveBeenCalledWith(
+      `${BASE_URL}/abis/${CONTRACT_ABI}/${CONTRACT_ADDRESS}/balanceOf`,
+      {
+        params: {
+          account: '1',
+        },
       },
-    });
+    );
   });
 });
