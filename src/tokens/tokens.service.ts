@@ -200,14 +200,14 @@ export class TokensService {
         this.stream.id,
         tokenCreateEvent,
         packSubscriptionName(this.topic, dto.poolId, tokenCreateEvent),
-        dto.transaction?.blockNumber ?? '0'
+        dto.transaction?.blockNumber ?? '0',
       ),
       this.eventstream.getOrCreateSubscription(
         `${this.contractInstanceUrl}/${dto.poolId}`,
         this.stream.id,
         transferEvent,
         packSubscriptionName(this.topic, dto.poolId, transferEvent),
-        dto.transaction?.blockNumber ?? '0'
+        dto.transaction?.blockNumber ?? '0',
       ),
     ]);
   }
