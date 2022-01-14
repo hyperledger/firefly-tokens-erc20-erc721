@@ -67,6 +67,10 @@ export class TokenPool {
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
   requestId?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  type?: string;
 }
 
 export class BlockchainTransaction {
@@ -76,15 +80,15 @@ export class BlockchainTransaction {
 
   @ApiProperty()
   @IsNotEmpty()
+  logIndex: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
   transactionHash: string;
 
   @ApiProperty()
   @IsNotEmpty()
   transactionIndex: string;
-
-  @ApiProperty()
-  @IsOptional() // only optional to support activating very old pools - TODO: remove eventually
-  logIndex: string;
 
   @ApiProperty()
   @IsOptional()

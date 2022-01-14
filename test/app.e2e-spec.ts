@@ -34,6 +34,7 @@ import {
   TokenMint,
   TokenPool,
   TokenTransfer,
+  TokenType,
 } from '../src/tokens/tokens.interfaces';
 import { TokensService } from '../src/tokens/tokens.service';
 import { AppModule } from './../src/app.module';
@@ -149,6 +150,61 @@ describe('AppController (e2e)', () => {
         },
       },
     );
+  });
+
+  it('Create new ERC20 contract instance - valid type', async () => {
+    const request: TokenPool = {
+      data: 'tx1',
+      name: 'testName',
+      operator: IDENTITY,
+      requestId: 'op1',
+      symbol: 'testSymbol',
+      type: TokenType.FUNGIBLE,
+    };
+    const response: EthConnectAsyncResponse = {
+      id: 'op1',
+      sent: true,
+    };
+
+    http.post = jest.fn(() => new FakeObservable(response));
+    await server.post('/createpool').send(request).expect(202).expect({ id: 'op1' });
+
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(
+      `${BASE_URL}${INSTANCE_PATH}/create`,
+      {
+        data: '0x747831',
+        name: 'testName',
+        symbol: 'testSymbol',
+      },
+      {
+        ...OPTIONS,
+        params: {
+          ...OPTIONS.params,
+          'fly-id': 'op1',
+        },
+      },
+    );
+  });
+
+  it('Create new ERC20 contract instance - invalid type', async () => {
+    const request: TokenPool = {
+      data: 'tx1',
+      name: 'testName',
+      operator: IDENTITY,
+      requestId: 'op1',
+      symbol: 'testSymbol',
+      type: 'nonfungible',
+    };
+    const response: EthConnectAsyncResponse = {
+      id: 'op1',
+      sent: true,
+    };
+
+    http.post = jest.fn(() => new FakeObservable(response));
+    await server.post('/createpool').send(request).expect(400);
+
+    expect(http.post).toHaveBeenCalledTimes(0);
   });
 
   it('Mint ERC20 token', async () => {

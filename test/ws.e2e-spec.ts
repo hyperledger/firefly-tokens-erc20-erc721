@@ -19,8 +19,6 @@ import { HttpService } from '@nestjs/axios';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { Test, TestingModule } from '@nestjs/testing';
-import { AxiosResponse } from 'axios';
-import { Observer } from 'rxjs';
 import request from 'superwstest';
 import { AppModule } from '../src/app.module';
 import {
@@ -34,7 +32,6 @@ import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import { ReceiptEvent } from '../src/eventstream-proxy/eventstream-proxy.interfaces';
 import {
-  EthConnectReturn,
   TokenBurnEvent,
   TokenMintEvent,
   TokenPoolEvent,
@@ -53,7 +50,7 @@ const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const tokenCreateEventSignature = 'TokenCreate(address,bytes)';
+const tokenCreateEventSignature = 'TokenCreate(address,string,string,bytes)';
 const transferEventSignature = 'Transfer(address,address,uint256)';
 
 const mockTokenCreateEvent: TokenCreateEvent = {
@@ -67,8 +64,10 @@ const mockTokenCreateEvent: TokenCreateEvent = {
   timestamp: '2020-01-01 00:00:00Z',
   data: {
     contract_address: '0x123456',
-    operator: 'bob',
     data: '0x00',
+    name: 'testName',
+    operator: 'bob',
+    symbol: 'testSymbol',
   },
 };
 
@@ -84,7 +83,9 @@ const mockTokenCreateWebSocketMessage: WebSocketMessage = {
     rawOutput: {
       contract_address: '0x123456',
       data: '0x00',
+      name: 'testName',
       operator: 'bob',
+      symbol: 'testSymbol',
     },
     transaction: {
       logIndex: '1',
@@ -95,22 +96,6 @@ const mockTokenCreateWebSocketMessage: WebSocketMessage = {
     },
   },
 };
-
-class FakeObservable<T> {
-  constructor(public data: T) {}
-
-  subscribe(observer?: Partial<Observer<AxiosResponse<T>>>) {
-    observer?.next &&
-      observer?.next({
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {},
-        data: this.data,
-      });
-    observer?.complete && observer?.complete();
-  }
-}
 
 describe('WebSocket AppController (e2e)', () => {
   let app: INestApplication;
@@ -216,13 +201,6 @@ describe('WebSocket AppController (e2e)', () => {
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
-    http.get = jest.fn(
-      () =>
-        new FakeObservable(<EthConnectReturn>{
-          output: 'firefly://token/{id}',
-        }),
-    );
-
     const mockMintTransferEvent: TransferEvent = {
       subId: 'sb-123',
       signature: transferEventSignature,
@@ -291,13 +269,6 @@ describe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
-
-    http.get = jest.fn(
-      () =>
-        new FakeObservable(<EthConnectReturn>{
-          output: 'firefly://token/{id}',
-        }),
-    );
 
     const mockTransferEvent: TransferEvent = {
       subId: 'sb-123',
@@ -369,13 +340,6 @@ describe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
-
-    http.get = jest.fn(
-      () =>
-        new FakeObservable(<EthConnectReturn>{
-          output: 'firefly://token/{id}',
-        }),
-    );
 
     const mockBurnEvent: TransferEvent = {
       subId: 'sb-123',

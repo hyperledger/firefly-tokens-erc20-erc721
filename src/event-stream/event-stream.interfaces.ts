@@ -29,9 +29,11 @@ export interface EventStreamSubscription {
 
 export interface TokenCreateEvent extends Event {
   data: {
-    operator: string;
-    contract_address: string;
     data: string;
+    contract_address: string;
+    name: string;
+    operator: string;
+    symbol: string;
   };
 }
 

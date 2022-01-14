@@ -77,12 +77,6 @@ async function bootstrap() {
     .get(TokensService)
     .configure(ethConnectUrl, instancePath, topic, shortPrefix, contractABI, username, password);
 
-  try {
-    await app.get(TokensService).migrate();
-  } catch (err) {
-    // do nothing
-  }
-
   if (autoInit !== 'false') {
     await app.get(TokensService).init();
   }

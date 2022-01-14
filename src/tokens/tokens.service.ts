@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import {
@@ -54,10 +54,9 @@ const BASE_SUBSCRIPTION_NAME = 'base';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const tokenCreateEvent = 'TokenCreate';
-const tokenCreateEventSignature = 'TokenCreate(address,bytes)';
+const tokenCreateEventSignature = 'TokenCreate(address,string,string,bytes)';
 const transferEvent = 'Transfer';
 const transferEventSignature = 'Transfer(address,address,uint256)';
-const ALL_SUBSCRIBED_EVENTS = [tokenCreateEvent, transferEvent];
 
 @Injectable()
 export class TokensService {
@@ -116,50 +115,6 @@ export class TokensService {
     );
   }
 
-  /**
-   * If there is an existing event stream whose subscriptions don't match the current
-   * events and naming format, delete the stream so we'll start over.
-   * This will cause redelivery of all token events, which will poke FireFly to
-   * (re)activate pools and (re)process all transfers.
-   *
-   * TODO: eventually this migration logic can be pruned
-   */
-  async migrate() {
-    const streams = await this.eventstream.getStreams();
-    const existingStream = streams.find(s => s.name === this.topic);
-    if (existingStream === undefined) {
-      return;
-    }
-    const subscriptions = await this.eventstream.getSubscriptions();
-    if (subscriptions.length === 0) {
-      return;
-    }
-
-    const foundEvents = new Set<string>();
-    for (const sub of subscriptions.filter(s => s.stream === existingStream.id)) {
-      const parts = unpackSubscriptionName(this.topic, sub.name);
-      if (parts.event !== undefined && parts.event !== '') {
-        foundEvents.add(parts.event);
-      }
-    }
-
-    if (foundEvents.size === 1 && foundEvents.has(BASE_SUBSCRIPTION_NAME)) {
-      // Special case - only the base subscription exists (with the correct name),
-      // but no pools have been activated. This is ok.
-      return;
-    }
-
-    // Otherwise, expect to have found subscriptions for each of the events.
-    for (const event of ALL_SUBSCRIBED_EVENTS) {
-      if (!foundEvents.has(event)) {
-        this.logger.warn('Incorrect event stream subscriptions found - deleting and recreating');
-        await this.eventstream.deleteStream(existingStream.id);
-        await this.init();
-        break;
-      }
-    }
-  }
-
   private postOptions(operator: string, requestId?: string) {
     const from = `${this.shortPrefix}-from`;
     const sync = `${this.shortPrefix}-sync`;
@@ -178,6 +133,10 @@ export class TokensService {
   }
 
   async createPool(dto: TokenPool): Promise<AsyncResponse> {
+    if (dto.type !== undefined && dto.type !== TokenType.FUNGIBLE) {
+      throw new BadRequestException();
+    }
+
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.instanceUrl}/create`,
@@ -317,7 +276,15 @@ class TokenListener implements EventListener {
     event: TokenCreateEvent,
   ): WebSocketMessage | undefined {
     const { data } = event;
+    const unpackedSub = unpackSubscriptionName(this.topic, subName);
     const decodedData = decodeHex(data.data ?? '');
+
+    if (
+      unpackedSub.poolId !== BASE_SUBSCRIPTION_NAME &&
+      unpackedSub.poolId !== data.contract_address
+    ) {
+      return undefined;
+    }
 
     return {
       event: 'token-pool',
@@ -343,7 +310,6 @@ class TokenListener implements EventListener {
   private transformTransferEvent(
     subName: string,
     event: TransferEvent,
-    eventIndex?: number,
   ): WebSocketMessage | undefined {
     const { data } = event;
     const unpackedSub = unpackSubscriptionName(this.topic, subName);
@@ -355,10 +321,7 @@ class TokenListener implements EventListener {
     }
 
     const txIndex = BigInt(event.transactionIndex).toString(10);
-    let transferId = [event.blockNumber, txIndex, event.logIndex].join('.');
-    if (eventIndex !== undefined) {
-      transferId += `.${eventIndex}`;
-    }
+    const transferId = [event.blockNumber, txIndex, event.logIndex].join('.');
 
     const commonData = <TokenTransferEvent>{
       id: transferId,
