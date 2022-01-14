@@ -109,7 +109,7 @@ export class TokensService {
   async init() {
     this.stream = await this.eventstream.createOrUpdateStream(this.topic);
     await this.eventstream.getOrCreateSubscription(
-      this.instancePath,
+      this.instanceUrl,
       this.stream.id,
       tokenCreateEvent,
       packSubscriptionName(this.topic, BASE_SUBSCRIPTION_NAME),
