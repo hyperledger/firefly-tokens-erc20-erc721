@@ -27,6 +27,23 @@ export interface EventStreamSubscription {
   stream: string;
 }
 
+export interface TokenCreateEvent extends Event {
+  data: {
+    operator: string;
+    contract_address: string;
+    data: string;
+  };
+}
+
+export interface TransferEvent extends Event {
+  data: {
+    from: string;
+    to: string;
+    operator: string;
+    value: string;
+  };
+}
+
 export interface Event {
   subId: string;
   signature: string;
@@ -35,6 +52,7 @@ export interface Event {
   transactionIndex: string;
   transactionHash: string;
   logIndex: string;
+  timestamp: string;
   data: any;
   inputMethod?: string;
   inputArgs?: Record<string, any>;

@@ -18,31 +18,46 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
-import { Event, EventStream, EventStreamReply } from '../event-stream/event-stream.interfaces';
+import {
+  Event,
+  EventStream,
+  EventStreamReply,
+  TokenCreateEvent,
+  TransferEvent,
+} from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
 import { EventListener, EventProcessor } from '../eventstream-proxy/eventstream-proxy.interfaces';
 import { basicAuth } from '../utils';
 import { WebSocketMessage } from '../websocket-events/websocket-events.base';
 import {
-  AsyncResponse, EthConnectAsyncResponse,
-  EthConnectReturn, TokenBalance, TokenBalanceQuery, TokenBurn, TokenBurnEvent, TokenMint, TokenMintEvent, TokenTransfer, TokenTransferEvent,
-  TransferEvent
+  AsyncResponse,
+  EthConnectAsyncResponse,
+  EthConnectReturn,
+  TokenBalance,
+  TokenBalanceQuery,
+  TokenBurn,
+  TokenBurnEvent,
+  TokenMint,
+  TokenMintEvent,
+  TokenPool,
+  TokenPoolActivate,
+  TokenPoolEvent,
+  TokenTransfer,
+  TokenTransferEvent,
+  TokenType,
 } from './tokens.interfaces';
-import {
-  decodeHex,
-  encodeHex,
-  encodeHexIDForURI, packSubscriptionName,
-  unpackSubscriptionName
-} from './tokens.util';
+import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const TOKEN_STANDARD = 'ERC20';
 const BASE_SUBSCRIPTION_NAME = 'base';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const transferWithDataEvent = 'TransferWithData';
-const transferWithDataEventSignature = 'TransferWithData(address,address,uint256,bytes)';
-
-const ALL_SUBSCRIBED_EVENTS = [transferWithDataEvent];
+const tokenCreateEvent = 'TokenCreate';
+const tokenCreateEventSignature = 'TokenCreate(address,bytes)';
+const transferEvent = 'Transfer';
+const transferEventSignature = 'Transfer(address,address,uint256)';
+const ALL_SUBSCRIBED_EVENTS = [tokenCreateEvent, transferEvent];
 
 @Injectable()
 export class TokensService {
@@ -53,6 +68,8 @@ export class TokensService {
   instanceUrl: string;
   topic: string;
   shortPrefix: string;
+  contractABI: string;
+  contractInstanceUrl: string;
   stream: EventStream;
   username: string;
   password: string;
@@ -68,14 +85,17 @@ export class TokensService {
     instancePath: string,
     topic: string,
     shortPrefix: string,
+    contractABI: string,
     username: string,
     password: string,
   ) {
     this.baseUrl = baseUrl;
     this.instancePath = instancePath;
-    this.instanceUrl = baseUrl + instancePath;
+    this.instanceUrl = `${baseUrl}${instancePath}`;
     this.topic = topic;
     this.shortPrefix = shortPrefix;
+    this.contractABI = contractABI;
+    this.contractInstanceUrl = `${this.baseUrl}/abis/${contractABI}`;
     this.username = username;
     this.password = password;
     this.proxy.addListener(
@@ -91,7 +111,7 @@ export class TokensService {
     await this.eventstream.getOrCreateSubscription(
       this.instancePath,
       this.stream.id,
-      transferWithDataEvent,
+      tokenCreateEvent,
       packSubscriptionName(this.topic, BASE_SUBSCRIPTION_NAME),
     );
   }
@@ -157,26 +177,62 @@ export class TokensService {
     return requestOptions;
   }
 
+  async createPool(dto: TokenPool): Promise<AsyncResponse> {
+    const response = await lastValueFrom(
+      this.http.post<EthConnectAsyncResponse>(
+        `${this.instanceUrl}/create`,
+        {
+          data: encodeHex(dto.data ?? ''),
+          name: dto.name,
+          symbol: dto.symbol,
+        },
+        this.postOptions(dto.operator, dto.requestId),
+      ),
+    );
+
+    return { id: response.data.id };
+  }
+
+  async activatePool(dto: TokenPoolActivate) {
+    await Promise.all([
+      this.eventstream.getOrCreateSubscription(
+        `${this.baseUrl}/${this.instancePath}`,
+        this.stream.id,
+        tokenCreateEvent,
+        packSubscriptionName(this.topic, dto.poolId, tokenCreateEvent),
+        dto.transaction?.blockNumber ?? '0'
+      ),
+      this.eventstream.getOrCreateSubscription(
+        `${this.contractInstanceUrl}/${dto.poolId}`,
+        this.stream.id,
+        transferEvent,
+        packSubscriptionName(this.topic, dto.poolId, transferEvent),
+        dto.transaction?.blockNumber ?? '0'
+      ),
+    ]);
+  }
+
   async mint(dto: TokenMint): Promise<AsyncResponse> {
-      const response = await lastValueFrom(
-        this.http.post<EthConnectAsyncResponse>(
-          `${this.instanceUrl}/mintWithData`,
-          {
-            amount: dto.amount,
-            data: encodeHex(dto.data ?? ''),
-            to: dto.to
-          },
-          this.postOptions(dto.operator, dto.requestId),
-        ),
-      );
-      return { id: response.data.id };
+    const response = await lastValueFrom(
+      this.http.post<EthConnectAsyncResponse>(
+        `${this.contractInstanceUrl}/${dto.poolId}/mintWithData`,
+        {
+          amount: dto.amount,
+          data: encodeHex(dto.data ?? ''),
+          to: dto.to,
+        },
+        this.postOptions(dto.operator, dto.requestId),
+      ),
+    );
+    return { id: response.data.id };
   }
 
   async transfer(dto: TokenTransfer): Promise<AsyncResponse> {
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
-        `${this.instanceUrl}/transferWithData`,
+        `${this.contractInstanceUrl}/${dto.poolId}/transferWithData`,
         {
+          from: dto.from,
           to: dto.to,
           amount: dto.amount,
           data: encodeHex(dto.data ?? ''),
@@ -190,10 +246,11 @@ export class TokensService {
   async burn(dto: TokenBurn): Promise<AsyncResponse> {
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
-        `${this.instanceUrl}/burnWithData`,
+        `${this.contractInstanceUrl}/${dto.poolId}/burnWithData`,
         {
           data: encodeHex(dto.data ?? ''),
-          amount: dto.amount
+          from: dto.from,
+          amount: dto.amount,
         },
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -203,13 +260,14 @@ export class TokensService {
 
   async balance(dto: TokenBalanceQuery): Promise<TokenBalance> {
     const response = await lastValueFrom(
-      this.http.get<EthConnectReturn>(`${this.instanceUrl}/balanceOf`, {
+      this.http.get<EthConnectReturn>(`${this.contractInstanceUrl}/${dto.poolId}/balanceOf`, {
         params: {
           account: dto.account,
         },
         ...basicAuth(this.username, this.password),
       }),
     );
+
     return { balance: response.data.output };
   }
 
@@ -242,7 +300,10 @@ class TokenListener implements EventListener {
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     switch (event.signature) {
-      case transferWithDataEventSignature:
+      case tokenCreateEventSignature:
+        process(this.transformTokenCreateEvent(subName, event));
+        break;
+      case transferEventSignature:
         process(await this.transformTransferEvent(subName, event));
         break;
       default:
@@ -251,11 +312,39 @@ class TokenListener implements EventListener {
     }
   }
 
-  private async transformTransferEvent(
+  private transformTokenCreateEvent(
+    subName: string,
+    event: TokenCreateEvent,
+  ): WebSocketMessage | undefined {
+    const { data } = event;
+    const decodedData = decodeHex(data.data ?? '');
+
+    return {
+      event: 'token-pool',
+      data: <TokenPoolEvent>{
+        standard: TOKEN_STANDARD,
+        poolId: event.data.contract_address,
+        type: TokenType.FUNGIBLE,
+        operator: data.operator,
+        data: decodedData,
+        timestamp: event.timestamp,
+        rawOutput: data,
+        transaction: {
+          blockNumber: event.blockNumber,
+          transactionIndex: event.transactionIndex,
+          transactionHash: event.transactionHash,
+          logIndex: event.logIndex,
+          signature: event.signature,
+        },
+      },
+    };
+  }
+
+  private transformTransferEvent(
     subName: string,
     event: TransferEvent,
     eventIndex?: number,
-  ): Promise<WebSocketMessage | undefined> {
+  ): WebSocketMessage | undefined {
     const { data } = event;
     const unpackedSub = unpackSubscriptionName(this.topic, subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
@@ -271,53 +360,39 @@ class TokenListener implements EventListener {
       transferId += `.${eventIndex}`;
     }
 
-    const commonData = {
+    const commonData = <TokenTransferEvent>{
       id: transferId,
+      type: TokenType.FUNGIBLE,
       poolId: unpackedSub.poolId,
-      uri: await this.getTokenUri(data.id),
       amount: data.value,
       operator: data.operator,
       data: decodedData,
+      timestamp: event.timestamp,
+      rawOutput: data,
       transaction: {
         blockNumber: event.blockNumber,
         transactionIndex: event.transactionIndex,
         transactionHash: event.transactionHash,
         logIndex: event.logIndex,
+        signature: event.signature,
       },
     };
 
     if (data.from === ZERO_ADDRESS) {
       return {
         event: 'token-mint',
-        data: <TokenMintEvent>{ ...commonData, to: data.to },
+        data: { ...commonData, to: data.to } as TokenMintEvent,
       };
     } else if (data.to === ZERO_ADDRESS) {
       return {
         event: 'token-burn',
-        data: <TokenBurnEvent>{ ...commonData, from: data.from },
+        data: { ...commonData, from: data.from } as TokenBurnEvent,
       };
     } else {
       return {
         event: 'token-transfer',
-        data: <TokenTransferEvent>{ ...commonData, from: data.from, to: data.to },
+        data: { ...commonData, from: data.from, to: data.to } as TokenTransferEvent,
       };
     }
-  }
-
-  private async getTokenUri(id: string) {
-    if (this.uriPattern === undefined) {
-      // Fetch and cache the URI pattern (assume it is the same for all tokens)
-      try {
-        const response = await lastValueFrom(
-          this.http.get<EthConnectReturn>(`${this.instanceUrl}/uri?input=0`, {
-            ...basicAuth(this.username, this.password),
-          }),
-        );
-        this.uriPattern = response.data.output;
-      } catch (err) {
-        return '';
-      }
-    }
-    return this.uriPattern.replace('{id}', encodeHexIDForURI(id));
   }
 }

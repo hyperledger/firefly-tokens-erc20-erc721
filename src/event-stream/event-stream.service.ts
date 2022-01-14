@@ -166,6 +166,7 @@ export class EventStreamService {
       websocket: { topic },
       blockedReryDelaySec: 30, // intentional due to spelling error in ethconnect
       inputs: true,
+      timestamps: true,
     };
 
     const existingStreams = await this.getStreams();
@@ -239,7 +240,7 @@ export class EventStreamService {
   ): Promise<EventStreamSubscription> {
     const response = await lastValueFrom(
       this.http.post<EventStreamSubscription>(
-        `${this.baseUrl}/${instancePath}/${event}`,
+        `${instancePath}/${event}`,
         {
           name,
           stream: streamId,
@@ -259,7 +260,7 @@ export class EventStreamService {
     streamId: string,
     event: string,
     name: string,
-    fromBlock = '0', // subscribe from the start of the chain by default
+    fromBlock = '0' // subscribe from the start of the chain by default
   ): Promise<EventStreamSubscription> {
     const existingSubscriptions = await this.getSubscriptions();
     const sub = existingSubscriptions.find(s => s.name === name && s.stream === streamId);
@@ -267,7 +268,13 @@ export class EventStreamService {
       this.logger.log(`Existing subscription for ${event}: ${sub.id}`);
       return sub;
     }
-    return this.createSubscription(instancePath, streamId, event, name, fromBlock);
+    return this.createSubscription(
+      instancePath,
+      streamId,
+      event,
+      name,
+      fromBlock
+    );
   }
 
   connect(

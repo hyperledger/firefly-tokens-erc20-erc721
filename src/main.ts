@@ -25,7 +25,7 @@ import { EventStreamReply } from './event-stream/event-stream.interfaces';
 import { EventStreamService } from './event-stream/event-stream.service';
 import { EventStreamProxyGateway } from './eventstream-proxy/eventstream-proxy.gateway';
 import { RequestLoggingInterceptor } from './request-logging.interceptor';
-import { TokenTransferEvent } from './tokens/tokens.interfaces';
+import { TokenPoolEvent, TokenTransferEvent } from './tokens/tokens.interfaces';
 import { TokensService } from './tokens/tokens.service';
 
 const API_DESCRIPTION = `
@@ -54,10 +54,7 @@ async function bootstrap() {
 
   const apiConfig = getApiConfig();
   const api = SwaggerModule.createDocument(app, apiConfig, {
-    extraModels: [
-      EventStreamReply,
-      TokenTransferEvent,
-    ],
+    extraModels: [EventStreamReply, TokenPoolEvent, TokenTransferEvent],
   });
   const config = app.get(ConfigService);
 
@@ -68,6 +65,7 @@ async function bootstrap() {
   const topic = config.get<string>('ETHCONNECT_TOPIC', 'token');
   const shortPrefix = config.get<string>('ETHCONNECT_PREFIX', 'fly');
   const autoInit = config.get<string>('AUTO_INIT', 'true');
+  const contractABI = config.get<string>('CONTRACT_ABI_ID', '');
   const username = config.get<string>('ETHCONNECT_USERNAME', '');
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
 
@@ -77,7 +75,7 @@ async function bootstrap() {
   app.get(EventStreamProxyGateway).configure(wsUrl, topic);
   app
     .get(TokensService)
-    .configure(ethConnectUrl, instancePath, topic, shortPrefix, username, password);
+    .configure(ethConnectUrl, instancePath, topic, shortPrefix, contractABI, username, password);
 
   try {
     await app.get(TokensService).migrate();

@@ -24,34 +24,77 @@ import { Observer } from 'rxjs';
 import request from 'superwstest';
 import { AppModule } from '../src/app.module';
 import {
-    Event,
-    EventStreamReply,
-    EventStreamSubscription
+  Event,
+  EventStreamReply,
+  EventStreamSubscription,
+  TokenCreateEvent,
+  TransferEvent,
 } from '../src/event-stream/event-stream.interfaces';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import { ReceiptEvent } from '../src/eventstream-proxy/eventstream-proxy.interfaces';
 import {
-    EthConnectReturn, TokenBurnEvent,
-    TokenCreateEvent, TokenMintEvent, TokenPoolEvent, TokenTransferEvent,
-    TransferBatchEvent,
-    TransferSingleEvent
+  EthConnectReturn,
+  TokenBurnEvent,
+  TokenMintEvent,
+  TokenPoolEvent,
+  TokenTransferEvent,
+  TokenType,
 } from '../src/tokens/tokens.interfaces';
 import { TokensService } from '../src/tokens/tokens.service';
 import { WebSocketMessage } from '../src/websocket-events/websocket-events.base';
 
 const BASE_URL = 'http://eth';
+const CONTRACT_ABI = '123';
+const CONTRACT_ADDRESS = '0x123456';
 const INSTANCE_PATH = '/tokens';
 const ERC20_STANDARD = 'ERC20';
-const F1_POOL_ID = 'F1';
-const FUNG_TYPE_ID = '340282366920938463463374607431768211456';
 const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const tokenCreateEventSignature = 'TokenCreate(address,uint256,bytes)';
-const transferSingleEventSignature = 'TransferSingle(address,address,address,uint256,uint256)';
-const transferBatchEventSignature = 'TransferBatch(address,address,address,uint256[],uint256[])';
+const tokenCreateEventSignature = 'TokenCreate(address,bytes)';
+const transferEventSignature = 'Transfer(address,address,uint256)';
+
+const mockTokenCreateEvent: TokenCreateEvent = {
+  subId: 'sb123',
+  signature: tokenCreateEventSignature,
+  address: 'bob',
+  blockNumber: '1',
+  transactionIndex: '0x0',
+  transactionHash: '0x123',
+  logIndex: '1',
+  timestamp: '2020-01-01 00:00:00Z',
+  data: {
+    contract_address: '0x123456',
+    operator: 'bob',
+    data: '0x00',
+  },
+};
+
+const mockTokenCreateWebSocketMessage: WebSocketMessage = {
+  event: 'token-pool',
+  data: <TokenPoolEvent>{
+    standard: ERC20_STANDARD,
+    poolId: CONTRACT_ADDRESS,
+    type: TokenType.FUNGIBLE,
+    operator: 'bob',
+    data: '',
+    timestamp: '2020-01-01 00:00:00Z',
+    rawOutput: {
+      contract_address: '0x123456',
+      data: '0x00',
+      operator: 'bob',
+    },
+    transaction: {
+      logIndex: '1',
+      blockNumber: '1',
+      transactionIndex: '0x0',
+      transactionHash: '0x123',
+      signature: tokenCreateEventSignature,
+    },
+  },
+};
 
 class FakeObservable<T> {
   constructor(public data: T) {}
@@ -120,7 +163,7 @@ describe('WebSocket AppController (e2e)', () => {
     await app.init();
 
     app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    app.get(TokensService).configure(BASE_URL, INSTANCE_PATH, TOPIC, PREFIX, '', '');
+    app.get(TokensService).configure(BASE_URL, INSTANCE_PATH, TOPIC, PREFIX, CONTRACT_ABI, '', '');
 
     (app.getHttpServer() as Server).listen();
     server = request(app.getHttpServer());
@@ -130,53 +173,26 @@ describe('WebSocket AppController (e2e)', () => {
     await app.close();
   });
 
-  it('Websocket: token pool event', () => {
+  it('Websocket: token create event', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':F1',
+      name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
     return server
       .ws('/api/ws')
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([
-          <TokenCreateEvent>{
-            subId: 'sb123',
-            signature: tokenCreateEventSignature,
-            address: 'bob',
-            blockNumber: '1',
-            transactionIndex: '0x0',
-            transactionHash: '0x123',
-            data: {
-              operator: 'bob',
-              type_id: FUNG_TYPE_ID,
-              data: '0x00',
-            },
-          },
-        ]);
+        eventHandler([mockTokenCreateEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
         delete message.id;
-        expect(message).toEqual(<WebSocketMessage>{
-          event: 'token-pool',
-          data: <TokenPoolEvent>{
-            standard: ERC20_STANDARD,
-            poolId: F1_POOL_ID,
-            operator: 'bob',
-            data: '',
-            transaction: {
-              blockNumber: '1',
-              transactionIndex: '0x0',
-              transactionHash: '0x123',
-            },
-          },
-        });
+        expect(message).toEqual(mockTokenCreateWebSocketMessage);
         return true;
       });
   });
 
-  it('Websocket: token pool event from base subscription', () => {
+  it('Websocket: token create event from base subscription', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':base',
     });
@@ -185,46 +201,19 @@ describe('WebSocket AppController (e2e)', () => {
       .ws('/api/ws')
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([
-          <TokenCreateEvent>{
-            subId: 'sb123',
-            signature: tokenCreateEventSignature,
-            address: 'bob',
-            blockNumber: '1',
-            transactionIndex: '0x0',
-            transactionHash: '0x123',
-            data: {
-              operator: 'bob',
-              type_id: FUNG_TYPE_ID,
-              data: '0x00',
-            },
-          },
-        ]);
+        eventHandler([mockTokenCreateEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
         delete message.id;
-        expect(message).toEqual(<WebSocketMessage>{
-          event: 'token-pool',
-          data: <TokenPoolEvent>{
-            standard: ERC20_STANDARD,
-            poolId: F1_POOL_ID,
-            operator: 'bob',
-            data: '',
-            transaction: {
-              blockNumber: '1',
-              transactionIndex: '0x0',
-              transactionHash: '0x123',
-            },
-          },
-        });
+        expect(message).toEqual(mockTokenCreateWebSocketMessage);
         return true;
       });
   });
 
   it('Websocket: token mint event', async () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':F1',
+      name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
     http.get = jest.fn(
@@ -234,70 +223,73 @@ describe('WebSocket AppController (e2e)', () => {
         }),
     );
 
+    const mockMintTransferEvent: TransferEvent = {
+      subId: 'sb-123',
+      signature: transferEventSignature,
+      address: '',
+      blockNumber: '1',
+      transactionIndex: '0x0',
+      transactionHash: '0x123',
+      logIndex: '1',
+      timestamp: '2020-01-01 00:00:00Z',
+      data: {
+        from: ZERO_ADDRESS,
+        to: 'A',
+        operator: 'A',
+        value: '5',
+      },
+      inputMethod: 'mintWithData',
+      inputArgs: {
+        amount: '5',
+        data: '0x74657374',
+        to: 'A',
+      },
+    };
+
+    const mockMintWebSocketMessage: WebSocketMessage = {
+      event: 'token-mint',
+      data: {
+        id: '1.0.1',
+        poolId: CONTRACT_ADDRESS,
+        to: 'A',
+        amount: '5',
+        operator: 'A',
+        data: 'test',
+        timestamp: '2020-01-01 00:00:00Z',
+        rawOutput: {
+          from: ZERO_ADDRESS,
+          to: 'A',
+          operator: 'A',
+          value: '5',
+        },
+        transaction: {
+          blockNumber: '1',
+          transactionIndex: '0x0',
+          transactionHash: '0x123',
+          logIndex: '1',
+          signature: transferEventSignature,
+        },
+        type: 'fungible',
+      } as TokenMintEvent,
+    };
+
     await server
       .ws('/api/ws')
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([
-          <TransferSingleEvent>{
-            subId: 'sb-123',
-            signature: transferSingleEventSignature,
-            address: '',
-            blockNumber: '1',
-            transactionIndex: '0x0',
-            transactionHash: '0x123',
-            logIndex: '1',
-            data: {
-              id: FUNG_TYPE_ID,
-              from: ZERO_ADDRESS,
-              to: 'A',
-              operator: 'A',
-              value: '5',
-              transaction: {
-                blockNumber: '1',
-                transactionIndex: '0x0',
-                transactionHash: '0x123',
-                logIndex: '1',
-              },
-            },
-            inputMethod: 'mintFungible',
-            inputArgs: {
-              data: '0x74657374',
-            },
-          },
-        ]);
+        eventHandler([mockMintTransferEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
         delete message.id;
-        expect(message).toEqual(<WebSocketMessage>{
-          event: 'token-mint',
-          data: <TokenMintEvent>{
-            id: '1.0.1',
-            poolId: F1_POOL_ID,
-            to: 'A',
-            amount: '5',
-            operator: 'A',
-            uri: 'firefly://token/0000000000000000000000000000000100000000000000000000000000000000',
-            data: 'test',
-            transaction: {
-              blockNumber: '1',
-              transactionIndex: '0x0',
-              transactionHash: '0x123',
-              logIndex: '1',
-            },
-          },
-        });
+        expect(message).toEqual(mockMintWebSocketMessage);
         return true;
       });
-
-    expect(http.get).toHaveBeenCalledTimes(1);
-    expect(http.get).toHaveBeenCalledWith(`${BASE_URL}${INSTANCE_PATH}/uri?input=0`, {});
   });
-  // TODO: Confirm expected uri
-  xit('Websocket: token burn event', async () => {
+
+  it('Websocket: token transfer event', async () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':F1',
+      name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
     http.get = jest.fn(
@@ -307,70 +299,75 @@ describe('WebSocket AppController (e2e)', () => {
         }),
     );
 
+    const mockTransferEvent: TransferEvent = {
+      subId: 'sb-123',
+      signature: transferEventSignature,
+      address: '',
+      blockNumber: '1',
+      transactionIndex: '0x0',
+      transactionHash: '0x123',
+      logIndex: '1',
+      timestamp: '2020-01-01 00:00:00Z',
+      data: {
+        from: 'A',
+        to: 'B',
+        operator: 'A',
+        value: '5',
+      },
+      inputMethod: 'transferWithData',
+      inputArgs: {
+        amount: '5',
+        data: '0x74657374',
+        from: 'A',
+        to: 'B',
+      },
+    };
+
+    const mockTransferWebSocketMessage: WebSocketMessage = {
+      event: 'token-transfer',
+      data: {
+        id: '1.0.1',
+        poolId: CONTRACT_ADDRESS,
+        from: 'A',
+        to: 'B',
+        amount: '5',
+        operator: 'A',
+        data: 'test',
+        timestamp: '2020-01-01 00:00:00Z',
+        rawOutput: {
+          from: 'A',
+          to: 'B',
+          operator: 'A',
+          value: '5',
+        },
+        transaction: {
+          blockNumber: '1',
+          transactionIndex: '0x0',
+          transactionHash: '0x123',
+          logIndex: '1',
+          signature: transferEventSignature,
+        },
+        type: 'fungible',
+      } as TokenTransferEvent,
+    };
+
     await server
       .ws('/api/ws')
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([
-          <TransferSingleEvent>{
-            subId: 'sb-123',
-            signature: transferSingleEventSignature,
-            address: '',
-            blockNumber: '1',
-            transactionIndex: '0x0',
-            transactionHash: '0x123',
-            logIndex: '1',
-            data: {
-              id: FUNG_TYPE_ID,
-              from: 'A',
-              to: ZERO_ADDRESS,
-              operator: 'A',
-              value: '1',
-              transaction: {
-                blockNumber: '1',
-                transactionIndex: '0x0',
-                transactionHash: '0x123',
-              },
-            },
-            inputMethod: 'burn',
-            inputArgs: {
-              data: '0x74657374',
-            },
-          },
-        ]);
+        eventHandler([mockTransferEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
         delete message.id;
-        expect(message).toEqual(<WebSocketMessage>{
-          event: 'token-burn',
-          data: <TokenBurnEvent>{
-            id: '1.0.1',
-            poolId: F1_POOL_ID,
-            tokenIndex: '1',
-            from: 'A',
-            amount: '1',
-            operator: 'A',
-            uri: 'firefly://token/8000000000000000000000000000000100000000000000000000000000000001',
-            data: 'test',
-            transaction: {
-              blockNumber: '1',
-              transactionIndex: '0x0',
-              transactionHash: '0x123',
-              logIndex: '1',
-            },
-          },
-        });
+        expect(message).toEqual(mockTransferWebSocketMessage);
         return true;
       });
-
-    expect(http.get).toHaveBeenCalledTimes(1);
-    expect(http.get).toHaveBeenCalledWith(`${BASE_URL}${INSTANCE_PATH}/uri?input=0`, {});
   });
-  // TODO: Confirm expected uri
-  xit('Websocket: token transfer event', async () => {
+
+  it('Websocket: token burn event', async () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':F1',
+      name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
     http.get = jest.fn(
@@ -380,94 +377,102 @@ describe('WebSocket AppController (e2e)', () => {
         }),
     );
 
+    const mockBurnEvent: TransferEvent = {
+      subId: 'sb-123',
+      signature: transferEventSignature,
+      address: '',
+      blockNumber: '1',
+      transactionIndex: '0x0',
+      transactionHash: '0x123',
+      logIndex: '1',
+      timestamp: '2020-01-01 00:00:00Z',
+      data: {
+        from: 'B',
+        to: ZERO_ADDRESS,
+        operator: 'A',
+        value: '5',
+      },
+      inputMethod: 'burnWithData',
+      inputArgs: {
+        amount: '5',
+        data: '0x74657374',
+        from: 'B',
+      },
+    };
+
+    const mockBurnWebSocketMessage: WebSocketMessage = {
+      event: 'token-burn',
+      data: {
+        id: '1.0.1',
+        poolId: CONTRACT_ADDRESS,
+        from: 'B',
+        amount: '5',
+        operator: 'A',
+        data: 'test',
+        timestamp: '2020-01-01 00:00:00Z',
+        rawOutput: {
+          from: 'B',
+          to: ZERO_ADDRESS,
+          operator: 'A',
+          value: '5',
+        },
+        transaction: {
+          blockNumber: '1',
+          transactionIndex: '0x0',
+          transactionHash: '0x123',
+          logIndex: '1',
+          signature: transferEventSignature,
+        },
+        type: 'fungible',
+      } as TokenBurnEvent,
+    };
+
     await server
       .ws('/api/ws')
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([
-          <TransferSingleEvent>{
-            subId: 'sb123',
-            signature: transferSingleEventSignature,
-            address: '',
-            blockNumber: '1',
-            transactionIndex: '0x0',
-            transactionHash: '0x123',
-            logIndex: '1',
-            data: {
-              id: FUNG_TYPE_ID,
-              from: 'A',
-              to: 'B',
-              operator: 'A',
-              value: '1',
-            },
-          },
-        ]);
+        eventHandler([mockBurnEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
         delete message.id;
-        expect(message).toEqual(<WebSocketMessage>{
-          event: 'token-transfer',
-          data: <TokenTransferEvent>{
-            id: '1.0.1',
-            poolId: F1_POOL_ID,
-            tokenIndex: '1',
-            from: 'A',
-            to: 'B',
-            amount: '1',
-            operator: 'A',
-            uri: 'firefly://token/8000000000000000000000000000000100000000000000000000000000000001',
-            data: '',
-            transaction: {
-              blockNumber: '1',
-              transactionIndex: '0x0',
-              transactionHash: '0x123',
-              logIndex: '1',
-            },
-          },
-        });
+        expect(message).toEqual(mockBurnWebSocketMessage);
         return true;
       });
-
-    expect(http.get).toHaveBeenCalledTimes(1);
-    expect(http.get).toHaveBeenCalledWith(`${BASE_URL}${INSTANCE_PATH}/uri?input=0`, {});
   });
 
-  // TODO: Discuss expected blockNumber
   it('Websocket: token transfer event from wrong pool', () => {
     eventstream.getSubscription
-      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':F1' })
-      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':F1' });
+      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
+      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
 
     return server
       .ws('/api/ws')
       .exec(() => {
         expect(eventHandler).toBeDefined();
         eventHandler([
-          <TransferSingleEvent>{
+          <TransferEvent>{
             subId: 'sb123',
-            signature: transferSingleEventSignature,
+            signature: transferEventSignature,
             address: '',
             blockNumber: '1',
             transactionIndex: '0x0',
             transactionHash: '0x123',
             data: {
-              id: FUNG_TYPE_ID,
               from: 'A',
               to: 'B',
               operator: 'A',
               value: '1',
             },
           },
-          <TransferSingleEvent>{
+          <TransferEvent>{
             subId: 'sb123',
-            signature: transferSingleEventSignature,
+            signature: transferEventSignature,
             address: '',
             blockNumber: '2',
             transactionIndex: '0x0',
             transactionHash: '0x123',
             data: {
-              id: FUNG_TYPE_ID,
               from: 'A',
               to: 'B',
               operator: 'A',
@@ -479,104 +484,10 @@ describe('WebSocket AppController (e2e)', () => {
       .expectJson(message => {
         // Only the second transfer should have been processed
         expect(message.event).toEqual('token-transfer');
-        expect(message.data.poolId).toEqual('F1');
-        // expect(message.data.transaction.blockNumber).toEqual('2');
+        expect(message.data.poolId).toEqual('0x123456');
+        expect(message.data.transaction.blockNumber).toEqual('1');
         return true;
       });
-  });
-
-  // TODO: Confirm expected token index
-  it('Websocket: token batch transfer', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':F1',
-    });
-
-    http.get = jest.fn(
-      () =>
-        new FakeObservable(<EthConnectReturn>{
-          output: 'firefly://token/{id}',
-        }),
-    );
-
-    await server
-      .ws('/api/ws')
-      .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([
-          <TransferBatchEvent>{
-            subId: 'sb123',
-            signature: transferBatchEventSignature,
-            address: '',
-            blockNumber: '1',
-            transactionIndex: '0x0',
-            transactionHash: '0x123',
-            logIndex: '1',
-            data: {
-              from: 'A',
-              to: 'B',
-              operator: 'A',
-              ids: [
-                '57896044618658097711785492504343953926975274699741220483192166611388333031425',
-                '57896044618658097711785492504343953926975274699741220483192166611388333031426',
-              ],
-              values: ['1', '1'],
-            },
-          },
-        ]);
-      })
-      .expectJson(message => {
-        expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(<WebSocketMessage>{
-          event: 'token-transfer',
-          data: <TokenTransferEvent>{
-            id: '1.0.1.0',
-            poolId: F1_POOL_ID,
-            tokenIndex: undefined,
-            from: 'A',
-            to: 'B',
-            amount: '1',
-            operator: 'A',
-            uri: 'firefly://token/8000000000000000000000000000000100000000000000000000000000000001',
-            data: '',
-            transaction: {
-              blockNumber: '1',
-              transactionIndex: '0x0',
-              transactionHash: '0x123',
-              logIndex: '1',
-            },
-          },
-        });
-        return true;
-      })
-      .expectJson(message => {
-        expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(<WebSocketMessage>{
-          event: 'token-transfer',
-          data: <TokenTransferEvent>{
-            id: '1.0.1.1',
-            poolId: F1_POOL_ID,
-            tokenIndex: undefined,
-            from: 'A',
-            to: 'B',
-            amount: '1',
-            operator: 'A',
-            uri: 'firefly://token/8000000000000000000000000000000100000000000000000000000000000002',
-            data: '',
-            transaction: {
-              blockNumber: '1',
-              transactionIndex: '0x0',
-              transactionHash: '0x123',
-              logIndex: '1',
-            },
-          },
-        });
-        return true;
-      });
-
-    expect(http.get).toHaveBeenCalledTimes(1);
-    expect(http.get).toHaveBeenCalledWith(`${BASE_URL}${INSTANCE_PATH}/uri?input=0`, {});
   });
 
   it('Websocket: success receipt', () => {
@@ -630,30 +541,15 @@ describe('WebSocket AppController (e2e)', () => {
   });
 
   it('Websocket: disconnect and reconnect', async () => {
-    const tokenPoolMessage: TokenCreateEvent = {
-      subId: 'sb-123',
-      signature: tokenCreateEventSignature,
-      address: 'bob',
-      blockNumber: '1',
-      transactionIndex: '0x0',
-      transactionHash: '0x123',
-      logIndex: '1',
-      data: {
-        operator: 'bob',
-        type_id: FUNG_TYPE_ID,
-        data: '0x6e73006e616d65006964',
-      },
-    };
-
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':F1',
+      name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
     await server
       .ws('/api/ws')
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([tokenPoolMessage]);
+        eventHandler([mockTokenCreateEvent]);
       })
       .expectJson(message => {
         expect(message.event).toEqual('token-pool');
@@ -668,23 +564,8 @@ describe('WebSocket AppController (e2e)', () => {
   });
 
   it('Websocket: client switchover', async () => {
-    const tokenPoolMessage: TokenCreateEvent = {
-      subId: 'sb-123',
-      signature: tokenCreateEventSignature,
-      address: 'bob',
-      blockNumber: '1',
-      transactionIndex: '0x0',
-      transactionHash: '0x123',
-      logIndex: '1',
-      data: {
-        operator: 'bob',
-        type_id: FUNG_TYPE_ID,
-        data: '0x6e73006e616d65006964',
-      },
-    };
-
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':F1',
+      name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
     const ws1 = server.ws('/api/ws');
@@ -693,7 +574,7 @@ describe('WebSocket AppController (e2e)', () => {
     await ws1
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([tokenPoolMessage]);
+        eventHandler([mockTokenCreateEvent]);
       })
       .expectJson(message => {
         expect(message.event).toEqual('token-pool');
@@ -708,30 +589,16 @@ describe('WebSocket AppController (e2e)', () => {
   });
 
   it('Websocket: batch + ack + client switchover', async () => {
-    const tokenPoolMessage: TokenCreateEvent = {
+    const tokenMintMessage: TransferEvent = {
       subId: 'sb-123',
-      signature: tokenCreateEventSignature,
-      address: 'bob',
-      blockNumber: '1',
-      transactionIndex: '0x0',
-      transactionHash: '0x123',
-      logIndex: '1',
-      data: {
-        operator: 'bob',
-        type_id: FUNG_TYPE_ID,
-        data: '0x6e73006e616d65006964',
-      },
-    };
-    const tokenMintMessage: TransferSingleEvent = {
-      subId: 'sb-123',
-      signature: transferSingleEventSignature,
+      signature: transferEventSignature,
       address: '',
       blockNumber: '1',
       transactionIndex: '0x0',
       transactionHash: '0x123',
+      timestamp: '2020-01-01 00:00:00Z',
       logIndex: '1',
       data: {
-        id: FUNG_TYPE_ID,
         from: ZERO_ADDRESS,
         to: 'A',
         operator: 'A',
@@ -740,8 +607,8 @@ describe('WebSocket AppController (e2e)', () => {
     };
 
     eventstream.getSubscription
-      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':F1' })
-      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':F1' });
+      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
+      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
 
     const ws1 = server.ws('/api/ws');
     const ws2 = server.ws('/api/ws');
@@ -750,7 +617,7 @@ describe('WebSocket AppController (e2e)', () => {
     await ws1
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([tokenPoolMessage, tokenMintMessage]);
+        eventHandler([mockTokenCreateEvent, tokenMintMessage]);
       })
       .expectJson(message => {
         expect(message.event).toEqual('token-pool');

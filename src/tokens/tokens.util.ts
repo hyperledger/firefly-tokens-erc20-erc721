@@ -33,19 +33,6 @@ export function decodeHex(data: string) {
   return decoded === '\x00' ? '' : decoded;
 }
 
-/**
- * Encode a number into hex, zero-padded to 64 characters (no leading 0x)
- * See https://eips.ethereum.org/EIPS/eip-1155#metadata
- */
-export function encodeHexIDForURI(id: string) {
-  const encoded = BigInt(id).toString(16);
-  const remainingLength = 64 - encoded.length;
-  if (remainingLength > 0) {
-    return '0'.repeat(remainingLength) + encoded;
-  }
-  return encoded;
-}
-
 export function packSubscriptionName(prefix: string, contractAddress: string, event?: string) {
   if (event === undefined) {
     return [prefix, contractAddress].join(':');
@@ -54,9 +41,7 @@ export function packSubscriptionName(prefix: string, contractAddress: string, ev
 }
 
 export function unpackSubscriptionName(prefix: string, data: string) {
-  const parts = data.startsWith(prefix + ':')
-    ? data.slice(prefix.length + 1).split(':', 2)
-    : undefined;
+  const parts = data.slice(prefix.length + 1).split(':', 2);
   return {
     prefix,
     poolId: parts?.[0],
