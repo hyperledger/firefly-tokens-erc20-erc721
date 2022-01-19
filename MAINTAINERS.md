@@ -7,6 +7,7 @@ The following is the list of current maintainers this repo:
 | Andrew Richardson | awrichar        | andrew.richardson@kaleido.io | Andrew.Richardson |
 | Peter Broadhurst  | peterbroadhurst | peter.broadhurst@kaleido.io  | peterbroadhurst   |
 | Nicko Guyer       | nguyer          | nicko.guyer@kaleido.io       | nguyer            |
+| David Echelberger | eberger727      | david.echelberger@kaleido.io | dech727           |
 
 
 This list is to be kept up to date as maintainers are added or removed.
