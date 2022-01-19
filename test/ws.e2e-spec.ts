@@ -403,7 +403,7 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  fit('Websocket: ignore token creation event from another pool', () => {
+  it('Websocket: ignore token creation event from another pool', () => {
     eventstream.getSubscription
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
