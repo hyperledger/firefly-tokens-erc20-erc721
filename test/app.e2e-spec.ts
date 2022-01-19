@@ -99,12 +99,7 @@ describe('AppController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.useWebSocketAdapter(new WsAdapter(app));
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-      }),
-    );
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     await app.init();
 
     app.get(EventStreamProxyGateway).configure('url', TOPIC);
@@ -116,6 +111,24 @@ describe('AppController (e2e)', () => {
 
   afterEach(async () => {
     await app.close();
+  });
+
+  it('Create pool - unrecognized fields', async () => {
+    const request = {
+      type: TokenType.FUNGIBLE,
+      operator: IDENTITY,
+      name: 'name',
+      symbol: 'symbol',
+      isBestPool: true, // will be stripped but will not cause an error
+    };
+    const response: EthConnectAsyncResponse = {
+      id: 'op1',
+      sent: true,
+    };
+
+    http.post = jest.fn(() => new FakeObservable(response));
+
+    await server.post('/createpool').send(request).expect(202).expect({ id: 'op1' });
   });
 
   it('Create new ERC20 contract instance', async () => {

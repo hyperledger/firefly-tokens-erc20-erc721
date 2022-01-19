@@ -240,7 +240,7 @@ export class TokensService {
     return response.data;
   }
 
-  async getOperator(poolId: string, txId: string, inputMethod: string): Promise<string> {
+  public async getOperator(poolId: string, txId: string, inputMethod: string): Promise<string> {
     const response = await lastValueFrom(
       this.http.get<TransactionDetails>(
         `${this.contractInstanceUrl}/${poolId}/${inputMethod}?fly-transaction=${txId}&stream=${this.stream.id}`,

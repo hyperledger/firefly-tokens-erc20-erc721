@@ -105,6 +105,7 @@ describe('WebSocket AppController (e2e)', () => {
     get: ReturnType<typeof jest.fn>;
     post: ReturnType<typeof jest.fn>;
   };
+  let tokensService: TokensService;
   let eventHandler: (events: Event[]) => void;
   let receiptHandler: (receipt: EventStreamReply) => void;
 
@@ -140,12 +141,8 @@ describe('WebSocket AppController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.useWebSocketAdapter(new WsAdapter(app));
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-      }),
-    );
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+    tokensService = moduleFixture.get<TokensService>(TokensService);
     await app.init();
 
     app.get(EventStreamProxyGateway).configure('url', TOPIC);
@@ -201,6 +198,7 @@ describe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
+    jest.spyOn(tokensService, 'getOperator').mockResolvedValueOnce('A');
 
     const mockMintTransferEvent: TransferEvent = {
       subId: 'sb-123',
@@ -269,6 +267,7 @@ describe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
+    jest.spyOn(tokensService, 'getOperator').mockResolvedValueOnce('A');
 
     const mockTransferEvent: TransferEvent = {
       operator: 'A',
@@ -308,7 +307,6 @@ describe('WebSocket AppController (e2e)', () => {
         rawOutput: {
           from: 'A',
           to: 'B',
-          operator: 'A',
           value: '5',
         },
         transaction: {
@@ -340,6 +338,7 @@ describe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
+    jest.spyOn(tokensService, 'getOperator').mockResolvedValueOnce('A');
 
     const mockBurnEvent: TransferEvent = {
       subId: 'sb-123',
@@ -408,7 +407,7 @@ describe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
-
+    jest.spyOn(tokensService, 'getOperator').mockResolvedValue('A');
     return server
       .ws('/api/ws')
       .exec(() => {
@@ -572,6 +571,7 @@ describe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
+    jest.spyOn(tokensService, 'getOperator').mockResolvedValueOnce('A');
 
     const ws1 = server.ws('/api/ws');
     const ws2 = server.ws('/api/ws');
