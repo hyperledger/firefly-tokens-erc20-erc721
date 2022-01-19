@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import {
@@ -130,10 +130,6 @@ export class TokensService {
   }
 
   async createPool(dto: TokenPool): Promise<AsyncResponse> {
-    if (dto.type !== undefined && dto.type !== TokenType.FUNGIBLE) {
-      throw new BadRequestException();
-    }
-
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.instanceUrl}/create`,
