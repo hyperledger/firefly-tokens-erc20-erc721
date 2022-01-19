@@ -50,7 +50,7 @@ const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const tokenCreateEventSignature = 'TokenCreate(address,string,string,bytes)';
+const tokenCreateEventSignature = 'TokenCreate(address,address,string,string,bytes)';
 const transferEventSignature = 'Transfer(address,address,uint256)';
 
 const mockTokenCreateEvent: TokenCreateEvent = {
@@ -59,6 +59,7 @@ const mockTokenCreateEvent: TokenCreateEvent = {
   address: 'bob',
   blockNumber: '1',
   transactionIndex: '0x0',
+  operator: 'bob',
   transactionHash: '0x123',
   logIndex: '1',
   timestamp: '2020-01-01 00:00:00Z',
@@ -204,6 +205,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockMintTransferEvent: TransferEvent = {
       subId: 'sb-123',
       signature: transferEventSignature,
+      operator: 'A',
       address: '',
       blockNumber: '1',
       transactionIndex: '0x0',
@@ -213,7 +215,6 @@ describe('WebSocket AppController (e2e)', () => {
       data: {
         from: ZERO_ADDRESS,
         to: 'A',
-        operator: 'A',
         value: '5',
       },
       inputMethod: 'mintWithData',
@@ -237,7 +238,6 @@ describe('WebSocket AppController (e2e)', () => {
         rawOutput: {
           from: ZERO_ADDRESS,
           to: 'A',
-          operator: 'A',
           value: '5',
         },
         transaction: {
@@ -271,6 +271,7 @@ describe('WebSocket AppController (e2e)', () => {
     });
 
     const mockTransferEvent: TransferEvent = {
+      operator: 'A',
       subId: 'sb-123',
       signature: transferEventSignature,
       address: '',
@@ -282,7 +283,6 @@ describe('WebSocket AppController (e2e)', () => {
       data: {
         from: 'A',
         to: 'B',
-        operator: 'A',
         value: '5',
       },
       inputMethod: 'transferWithData',
@@ -345,6 +345,7 @@ describe('WebSocket AppController (e2e)', () => {
       subId: 'sb-123',
       signature: transferEventSignature,
       address: '',
+      operator: 'A',
       blockNumber: '1',
       transactionIndex: '0x0',
       transactionHash: '0x123',
@@ -353,7 +354,6 @@ describe('WebSocket AppController (e2e)', () => {
       data: {
         from: 'B',
         to: ZERO_ADDRESS,
-        operator: 'A',
         value: '5',
       },
       inputMethod: 'burnWithData',
@@ -377,7 +377,6 @@ describe('WebSocket AppController (e2e)', () => {
         rawOutput: {
           from: 'B',
           to: ZERO_ADDRESS,
-          operator: 'A',
           value: '5',
         },
         transaction: {
@@ -421,11 +420,11 @@ describe('WebSocket AppController (e2e)', () => {
             address: '',
             blockNumber: '1',
             transactionIndex: '0x0',
+            operator: 'A',
             transactionHash: '0x123',
             data: {
               from: 'A',
               to: 'B',
-              operator: 'A',
               value: '1',
             },
           },
@@ -434,12 +433,12 @@ describe('WebSocket AppController (e2e)', () => {
             signature: transferEventSignature,
             address: '',
             blockNumber: '2',
+            operator: 'A',
             transactionIndex: '0x0',
             transactionHash: '0x123',
             data: {
               from: 'A',
               to: 'B',
-              operator: 'A',
               value: '1',
             },
           },
@@ -561,11 +560,11 @@ describe('WebSocket AppController (e2e)', () => {
       transactionIndex: '0x0',
       transactionHash: '0x123',
       timestamp: '2020-01-01 00:00:00Z',
+      operator: 'A',
       logIndex: '1',
       data: {
         from: ZERO_ADDRESS,
         to: 'A',
-        operator: 'A',
         value: '5',
       },
     };

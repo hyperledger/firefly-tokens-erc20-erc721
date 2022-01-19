@@ -62,7 +62,7 @@ async function bootstrap() {
 
   const ethConnectUrl = config.get<string>('ETHCONNECT_URL', '');
   const instancePath = config.get<string>('ETHCONNECT_INSTANCE', '');
-  const topic = config.get<string>('ETHCONNECT_TOPIC', 'token');
+  const topic = config.get<string>('ETHCONNECT_TOPIC', 'token20');
   const shortPrefix = config.get<string>('ETHCONNECT_PREFIX', 'fly');
   const autoInit = config.get<string>('AUTO_INIT', 'true');
   const contractABI = config.get<string>('CONTRACT_ABI_ID', '');

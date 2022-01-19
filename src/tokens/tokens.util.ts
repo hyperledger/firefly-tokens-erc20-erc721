@@ -41,7 +41,9 @@ export function packSubscriptionName(prefix: string, contractAddress: string, ev
 }
 
 export function unpackSubscriptionName(prefix: string, data: string) {
-  const parts = data.slice(prefix.length + 1).split(':', 2);
+  const parts = data.startsWith(prefix + ':')
+    ? data.slice(prefix.length + 1).split(':', 2)
+    : undefined;
   return {
     prefix,
     poolId: parts?.[0],
