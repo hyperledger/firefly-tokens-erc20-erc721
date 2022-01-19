@@ -203,3 +203,24 @@ export class TokenTransferEvent extends tokenEventBase {
 
 export class TokenMintEvent extends OmitType(TokenTransferEvent, ['from']) {}
 export class TokenBurnEvent extends OmitType(TokenTransferEvent, ['to']) {}
+
+export interface TransactionDetails {
+  blockHash: string;
+  blockNumber: string;
+  blockNumberHex: string;
+  from: string;
+  to: string;
+  gas: string;
+  gasHex: string;
+  gasPrice: string;
+  gasPriceHex: string;
+  hash: string;
+  nonce: string;
+  nonceHex: string;
+  transactionIndex: string;
+  transactionIndexHex: string;
+  value: string;
+  valueHex: string;
+  input: string;
+  inputArgs: any;
+}

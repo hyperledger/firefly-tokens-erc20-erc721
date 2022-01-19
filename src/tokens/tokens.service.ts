@@ -46,6 +46,7 @@ import {
   TokenTransfer,
   TokenTransferEvent,
   TokenType,
+  TransactionDetails,
 } from './tokens.interfaces';
 import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
 
@@ -54,14 +55,12 @@ const BASE_SUBSCRIPTION_NAME = 'base';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const tokenCreateEvent = 'TokenCreate';
-const tokenCreateEventSignature = 'TokenCreate(address,string,string,bytes)';
+const tokenCreateEventSignature = 'TokenCreate(address,address,string,string,bytes)';
 const transferEvent = 'Transfer';
 const transferEventSignature = 'Transfer(address,address,uint256)';
 
 @Injectable()
 export class TokensService {
-  private readonly logger = new Logger(TokensService.name);
-
   baseUrl: string;
   instancePath: string;
   instanceUrl: string;
@@ -97,9 +96,7 @@ export class TokensService {
     this.contractInstanceUrl = `${this.baseUrl}/abis/${contractABI}`;
     this.username = username;
     this.password = password;
-    this.proxy.addListener(
-      new TokenListener(this.http, this.instanceUrl, this.topic, this.username, this.password),
-    );
+    this.proxy.addListener(new TokenListener(this, this.topic));
   }
 
   /**
@@ -242,29 +239,35 @@ export class TokensService {
     }
     return response.data;
   }
+
+  async getOperator(poolId: string, txId: string, inputMethod: string): Promise<string> {
+    const response = await lastValueFrom(
+      this.http.get<TransactionDetails>(
+        `${this.contractInstanceUrl}/${poolId}/${inputMethod}?fly-transaction=${txId}&stream=${this.stream.id}`,
+        {
+          ...basicAuth(this.username, this.password),
+        },
+      ),
+    );
+    return response.data.from;
+  }
 }
 
 class TokenListener implements EventListener {
   private readonly logger = new Logger(TokenListener.name);
 
-  private uriPattern: string | undefined;
-
-  constructor(
-    private http: HttpService,
-    private instanceUrl: string,
-    private topic: string,
-    private username: string,
-    private password: string,
-  ) {}
+  constructor(private readonly service: TokensService, private topic: string) {}
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     switch (event.signature) {
       case tokenCreateEventSignature:
         process(this.transformTokenCreateEvent(subName, event));
         break;
-      case transferEventSignature:
-        process(await this.transformTransferEvent(subName, event));
+      case transferEventSignature: {
+        const transformedEvent = await this.transformTransferEvent(subName, event);
+        process(transformedEvent);
         break;
+      }
       default:
         this.logger.error(`Unknown event signature: ${event.signature}`);
         return undefined;
@@ -307,10 +310,10 @@ class TokenListener implements EventListener {
     };
   }
 
-  private transformTransferEvent(
+  private async transformTransferEvent(
     subName: string,
     event: TransferEvent,
-  ): WebSocketMessage | undefined {
+  ): Promise<WebSocketMessage | undefined> {
     const { data } = event;
     const unpackedSub = unpackSubscriptionName(this.topic, subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
@@ -322,13 +325,19 @@ class TokenListener implements EventListener {
 
     const txIndex = BigInt(event.transactionIndex).toString(10);
     const transferId = [event.blockNumber, txIndex, event.logIndex].join('.');
+    // TODO: Have ethconnect fetch this
+    const operator: string = await this.service.getOperator(
+      event.address,
+      event.transactionHash,
+      event.inputMethod ?? '',
+    );
 
     const commonData = <TokenTransferEvent>{
       id: transferId,
       type: TokenType.FUNGIBLE,
       poolId: unpackedSub.poolId,
       amount: data.value,
-      operator: data.operator,
+      operator,
       data: decodedData,
       timestamp: event.timestamp,
       rawOutput: data,

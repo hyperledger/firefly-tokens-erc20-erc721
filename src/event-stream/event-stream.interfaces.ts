@@ -41,7 +41,6 @@ export interface TransferEvent extends Event {
   data: {
     from: string;
     to: string;
-    operator: string;
     value: string;
   };
 }
@@ -50,6 +49,7 @@ export interface Event {
   subId: string;
   signature: string;
   address: string;
+  operator: string;
   blockNumber: string;
   transactionIndex: string;
   transactionHash: string;
