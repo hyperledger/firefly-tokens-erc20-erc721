@@ -215,9 +215,24 @@ describe('AppController (e2e)', () => {
     };
 
     http.post = jest.fn(() => new FakeObservable(response));
-    await server.post('/createpool').send(request).expect(400);
+    await server.post('/createpool').send(request).expect(202).expect({ id: 'op1' });
 
-    expect(http.post).toHaveBeenCalledTimes(0);
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(
+      `${BASE_URL}${INSTANCE_PATH}/create`,
+      {
+        data: '0x747831',
+        name: 'testName',
+        symbol: 'testSymbol',
+      },
+      {
+        ...OPTIONS,
+        params: {
+          ...OPTIONS.params,
+          'fly-id': 'op1',
+        },
+      },
+    );
   });
 
   it('Mint ERC20 token', async () => {

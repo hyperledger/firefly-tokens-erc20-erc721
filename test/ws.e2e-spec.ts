@@ -403,7 +403,7 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: token transfer event from wrong pool', () => {
+  fit('Websocket: ignore token creation event from another pool', () => {
     eventstream.getSubscription
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
@@ -413,34 +413,47 @@ describe('WebSocket AppController (e2e)', () => {
       .exec(() => {
         expect(eventHandler).toBeDefined();
         eventHandler([
-          <TransferEvent>{
+          {
             subId: 'sb123',
+            signature: tokenCreateEventSignature,
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            operator: 'bob',
+            transactionHash: '0x123',
+            logIndex: '1',
+            timestamp: '2020-01-01 00:00:00Z',
+            data: {
+              contract_address: '0x1234560',
+              data: '0x00',
+              name: 'testName',
+              operator: 'bob',
+              symbol: 'testSymbol',
+            },
+          } as TokenCreateEvent,
+          {
+            operator: 'A',
+            subId: 'sb-123',
             signature: transferEventSignature,
             address: '',
             blockNumber: '1',
             transactionIndex: '0x0',
-            operator: 'A',
             transactionHash: '0x123',
+            logIndex: '1',
+            timestamp: '2020-01-01 00:00:00Z',
             data: {
               from: 'A',
               to: 'B',
-              value: '1',
+              value: '5',
             },
-          },
-          <TransferEvent>{
-            subId: 'sb123',
-            signature: transferEventSignature,
-            address: '',
-            blockNumber: '2',
-            operator: 'A',
-            transactionIndex: '0x0',
-            transactionHash: '0x123',
-            data: {
+            inputMethod: 'transferWithData',
+            inputArgs: {
+              amount: '5',
+              data: '0x74657374',
               from: 'A',
               to: 'B',
-              value: '1',
             },
-          },
+          } as TransferEvent,
         ]);
       })
       .expectJson(message => {
