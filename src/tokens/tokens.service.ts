@@ -104,9 +104,6 @@ export class TokensService {
    */
   async init() {
     this.stream = await this.eventstream.createOrUpdateStream(this.topic);
-    console.log('init');
-    console.log(this.topic);
-    console.log(this.stream);
     await this.eventstream.getOrCreateSubscription(
       this.instanceUrl,
       this.stream.id,
