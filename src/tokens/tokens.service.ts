@@ -146,7 +146,9 @@ export class TokensService {
   }
 
   async activatePool(dto: TokenPoolActivate) {
-    this.stream = await this.eventstream.createOrUpdateStream(this.topic);
+    if(this.stream === undefined) {
+      this.stream = await this.eventstream.createOrUpdateStream(this.topic);
+    }
     await Promise.all([
       this.eventstream.getOrCreateSubscription(
         `${this.baseUrl}/${this.instancePath}`,
