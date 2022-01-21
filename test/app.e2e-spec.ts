@@ -40,7 +40,7 @@ import { TokensService } from '../src/tokens/tokens.service';
 import { AppModule } from './../src/app.module';
 
 const BASE_URL = 'http://eth';
-const CONTRACT_URI = 'abis/123';
+const CONTRACT_URI = '/abis/123';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
 const INSTANCE_PATH = '/tokens';
@@ -253,7 +253,7 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}/${CONTRACT_URI}/${CONTRACT_ADDRESS}/mintWithData`,
+      `${BASE_URL}${CONTRACT_URI}/${CONTRACT_ADDRESS}/mintWithData`,
       {
         amount: '2',
         data: '0x74657374',
@@ -282,7 +282,7 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}/${CONTRACT_URI}/${CONTRACT_ADDRESS}/transferWithData`,
+      `${BASE_URL}${CONTRACT_URI}/${CONTRACT_ADDRESS}/transferWithData`,
       {
         amount: '2',
         data: '0x00',
@@ -311,7 +311,7 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}/${CONTRACT_URI}/${CONTRACT_ADDRESS}/burnWithData`,
+      `${BASE_URL}${CONTRACT_URI}/${CONTRACT_ADDRESS}/burnWithData`,
       {
         data: '0x747831',
         from: 'A',
@@ -342,7 +342,7 @@ describe('AppController (e2e)', () => {
 
     expect(http.get).toHaveBeenCalledTimes(1);
     expect(http.get).toHaveBeenCalledWith(
-      `${BASE_URL}/${CONTRACT_URI}/${CONTRACT_ADDRESS}/balanceOf`,
+      `${BASE_URL}${CONTRACT_URI}/${CONTRACT_ADDRESS}/balanceOf`,
       {
         params: {
           account: '1',

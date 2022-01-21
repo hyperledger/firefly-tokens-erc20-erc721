@@ -42,7 +42,7 @@ import { TokensService } from '../src/tokens/tokens.service';
 import { WebSocketMessage } from '../src/websocket-events/websocket-events.base';
 
 const BASE_URL = 'http://eth';
-const CONTRACT_URI = 'abis/123';
+const CONTRACT_URI = '/abis/123';
 const CONTRACT_ADDRESS = '0x123456';
 const INSTANCE_PATH = '/tokens';
 const ERC20_STANDARD = 'ERC20';

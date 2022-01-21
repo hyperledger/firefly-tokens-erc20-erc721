@@ -89,11 +89,11 @@ export class TokensService {
   ) {
     this.baseUrl = baseUrl;
     this.instancePath = instancePath;
-    this.instanceUrl = `${baseUrl}${instancePath}`;
+    this.instanceUrl = `${this.baseUrl}${this.instancePath}`;
     this.topic = topic;
     this.shortPrefix = shortPrefix;
     this.contractUri = contractUri;
-    this.contractInstanceUrl = `${this.baseUrl}/${this.contractUri}`;
+    this.contractInstanceUrl = `${this.baseUrl}${this.contractUri}`;
     this.username = username;
     this.password = password;
     this.proxy.addListener(new TokenListener(this, this.topic));
