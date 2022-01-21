@@ -66,7 +66,7 @@ export class TokensService {
   instanceUrl: string;
   topic: string;
   shortPrefix: string;
-  contractABI: string;
+  contractUri: string;
   contractInstanceUrl: string;
   stream: EventStream;
   username: string;
@@ -83,7 +83,7 @@ export class TokensService {
     instancePath: string,
     topic: string,
     shortPrefix: string,
-    contractABI: string,
+    contractUri: string,
     username: string,
     password: string,
   ) {
@@ -92,8 +92,8 @@ export class TokensService {
     this.instanceUrl = `${baseUrl}${instancePath}`;
     this.topic = topic;
     this.shortPrefix = shortPrefix;
-    this.contractABI = contractABI;
-    this.contractInstanceUrl = `${this.baseUrl}/abis/${contractABI}`;
+    this.contractUri = contractUri;
+    this.contractInstanceUrl = `${this.baseUrl}/${this.contractUri}`;
     this.username = username;
     this.password = password;
     this.proxy.addListener(new TokenListener(this, this.topic));

@@ -61,7 +61,7 @@ async function bootstrap() {
   const topic = config.get<string>('ETHCONNECT_TOPIC', 'token20');
   const shortPrefix = config.get<string>('ETHCONNECT_PREFIX', 'fly');
   const autoInit = config.get<string>('AUTO_INIT', 'true');
-  const contractABI = config.get<string>('CONTRACT_ABI_ID', '');
+  const contractUri = config.get<string>('ETHCONNECT_CONTRACT_URI', '');
   const username = config.get<string>('ETHCONNECT_USERNAME', '');
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
 
@@ -71,7 +71,7 @@ async function bootstrap() {
   app.get(EventStreamProxyGateway).configure(wsUrl, topic);
   app
     .get(TokensService)
-    .configure(ethConnectUrl, instancePath, topic, shortPrefix, contractABI, username, password);
+    .configure(ethConnectUrl, instancePath, topic, shortPrefix, contractUri, username, password);
 
   if (autoInit !== 'false') {
     await app.get(TokensService).init();
