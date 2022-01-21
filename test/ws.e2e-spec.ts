@@ -42,7 +42,7 @@ import { TokensService } from '../src/tokens/tokens.service';
 import { WebSocketMessage } from '../src/websocket-events/websocket-events.base';
 
 const BASE_URL = 'http://eth';
-const CONTRACT_ABI = '123';
+const CONTRACT_URI = '/abis/123';
 const CONTRACT_ADDRESS = '0x123456';
 const INSTANCE_PATH = '/tokens';
 const ERC20_STANDARD = 'ERC20';
@@ -146,7 +146,7 @@ describe('WebSocket AppController (e2e)', () => {
     await app.init();
 
     app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    app.get(TokensService).configure(BASE_URL, INSTANCE_PATH, TOPIC, PREFIX, CONTRACT_ABI, '', '');
+    app.get(TokensService).configure(BASE_URL, INSTANCE_PATH, TOPIC, PREFIX, CONTRACT_URI, '', '');
 
     (app.getHttpServer() as Server).listen();
     server = request(app.getHttpServer());
