@@ -1,6 +1,6 @@
 import { Controller,Get } from '@nestjs/common';
 import { HealthCheckService, HealthCheck, HttpHealthIndicator } from '@nestjs/terminus';
-import { TokensService } from 'src/tokens/tokens.service';
+import { TokensService } from '../tokens/tokens.service';
 import { basicAuth } from '../utils';
 
 @Controller('health')
