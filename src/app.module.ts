@@ -26,9 +26,9 @@ import { HealthController } from './health/health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    TokensModule, 
-    EventStreamModule, 
-    EventStreamProxyModule, 
+    TokensModule,
+    EventStreamModule,
+    EventStreamProxyModule,
     TerminusModule,
     HealthModule,
   ],

@@ -11,8 +11,8 @@ describe('HealthController', () => {
       controllers: [HealthController],
       providers: [
         {
-          provide:HealthCheckService,
-          useValue: jest.fn()
+          provide: HealthCheckService,
+          useValue: jest.fn(),
         },
         {
           provide: HttpHealthIndicator,
