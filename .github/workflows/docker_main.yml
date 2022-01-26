@@ -14,7 +14,7 @@ jobs:
       - name: Set build tag
         id: build_tag_generator
         run: |
-          RELEASE_TAG=$(curl https://api.github.com/repos/hyperledger/firefly-tokens-erc20/releases/latest -s | jq .tag_name -r)
+          RELEASE_TAG=$(curl https://api.github.com/repos/hyperledger/firefly-tokens-erc20-erc721/releases/latest -s | jq .tag_name -r)
           BUILD_TAG=$RELEASE_TAG-$(date +"%Y%m%d")-$GITHUB_RUN_NUMBER
           echo ::set-output name=BUILD_TAG::$BUILD_TAG
 
