@@ -33,7 +33,7 @@
     "@nestjs/websockets": "^8.0.11",
     "class-transformer": "^0.4.0",
     "class-validator": "^0.13.1",
-    "nanoid": "^3.1.23",
+    "nanoid": "^3.1.31",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.4.0",
     "swagger-ui-express": "^4.1.6",
