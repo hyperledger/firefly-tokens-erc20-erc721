@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 repository:
-  name: firefly-tokens-erc20
-  description: ERC20 token integration
-  homepage: https://github.com/hyperledger/firefly-tokens-erc20
+  name: firefly-tokens-erc20-erc721
+  description: ERC20 and ERC721 token integration
+  homepage: https://github.com/hyperledger/firefly-tokens-erc20-erc721
   default_branch: main
   has_downloads: true
   has_issues: true
