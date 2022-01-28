@@ -36,3 +36,9 @@ solidity/build
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Solidity
+solidity/node_modules
+solidity/artifacts
+solidity/typechain
+solidity/cache
