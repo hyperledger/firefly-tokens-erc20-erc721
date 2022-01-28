@@ -1,10 +1,16 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
 import './ERC20WithData.sol';
 
 contract ERC20WithDataFactory is Context {
-    event TokenCreate(address indexed operator, address indexed contract_address, string name, string symbol, bytes data);
+    event TokenCreate(
+        address indexed operator,
+        address indexed contract_address,
+        string name,
+        string symbol,
+        bytes data
+    );
 
     function create(
         string memory name,

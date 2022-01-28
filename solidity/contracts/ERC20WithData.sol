@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/utils/Context.sol';
@@ -9,7 +9,25 @@ import '@openzeppelin/contracts/utils/Context.sol';
     @dev Mintable+burnable form of ERC20 with data event support.
 */
 contract ERC20WithData is Context, ERC20 {
-    constructor(string memory name, string memory symbol) public ERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+
+    event TokenCreate(
+        address operator,
+        address contract_address,
+        string name,
+        string symbol,
+        bytes data
+    );
+
+    function create(
+        address operator,
+        address contract_address,
+        string memory name,
+        string memory symbol,
+        bytes calldata data
+    ) external virtual {
+        emit TokenCreate(operator, contract_address, name, symbol, data);
+    }
 
     function mintWithData(
         address to,
@@ -25,10 +43,10 @@ contract ERC20WithData is Context, ERC20 {
         uint256 amount,
         bytes calldata data
     ) external virtual {
-        _transfer(from, to, amount);
+        _transfer(_msgSender(), to, amount);
     }
 
-    function burnWithData(address from, uint256 amount, bytes calldata data) external virtual {
-        _burn(from, amount);
+    function burnWithData(uint256 amount, bytes calldata data) external virtual {
+        _burn(_msgSender(), amount);
     }
 }
