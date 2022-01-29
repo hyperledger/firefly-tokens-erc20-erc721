@@ -11,24 +11,6 @@ import '@openzeppelin/contracts/utils/Context.sol';
 contract ERC20WithData is Context, ERC20 {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
-    event TokenCreate(
-        address operator,
-        address contract_address,
-        string name,
-        string symbol,
-        bytes data
-    );
-
-    function create(
-        address operator,
-        address contract_address,
-        string memory name,
-        string memory symbol,
-        bytes calldata data
-    ) external virtual {
-        emit TokenCreate(operator, contract_address, name, symbol, data);
-    }
-
     function mintWithData(
         address to,
         uint256 amount,

@@ -12,6 +12,7 @@
     "baseUrl": "./",
     "incremental": true,
     "resolveJsonModule": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "skipLibCheck": true
   }
 }
