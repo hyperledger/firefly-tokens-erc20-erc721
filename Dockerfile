@@ -1,9 +1,9 @@
 FROM node:14-alpine3.11 AS solidity-builder
-RUN apk add python make
+RUN apk add python make git
 WORKDIR /root
-ADD solidity/package*.json ./
-RUN npm install
-RUN npm config set user 0
+ADD solidity/package.json ./
+RUN npm install --only=prod \
+  && npm config set user 0
 ADD solidity/ ./
 RUN npx truffle compile
 

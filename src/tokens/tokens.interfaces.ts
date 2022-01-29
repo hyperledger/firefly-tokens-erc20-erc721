@@ -23,6 +23,15 @@ export interface EthConnectAsyncResponse {
   id: string;
 }
 
+export interface EthConnectContractsResponse {
+  created: string;
+  address: string;
+  path: string;
+  abi: string;
+  openapi: string;
+  registeredAs: string;
+}
+
 export interface EthConnectReturn {
   output: string;
 }
@@ -33,8 +42,35 @@ export class AsyncResponse {
   id: string;
 }
 
+export enum ContractStandardEnum {
+  ERC20 = 'ERC20',
+  ERC20WithData = 'ERC20WithData',
+  ERC721 = 'ERC721',
+  ERC721WithData = 'ERC721WithData',
+}
+
+export enum ContractMethodEnum {
+  ERC20WithDataCreate = 'create',
+  ERC20WithDataMintWithData = 'mintWithData',
+  ERC20WithDataTransferWithData = 'transferWithData',
+  ERC20WithDataBurnWithData = 'burnWithData',
+}
+
+export enum EncodedPoolIdEnum {
+  Address = 'address',
+  Standard = 'standard',
+  Type = 'type',
+}
+
 export enum TokenType {
   FUNGIBLE = 'fungible',
+  NONFUNGIBLE = 'nonfungible',
+}
+
+export interface TokenPool {
+  address: string;
+  standard: string;
+  type: TokenType;
 }
 
 const contractConfigDescription =
@@ -56,21 +92,23 @@ export class TokenPool {
   @IsNotEmpty()
   symbol: string;
 
+  @ApiProperty()
+  @IsNotEmpty()
+  type: TokenType;
+
   @ApiProperty({ description: contractConfigDescription })
   @IsOptional()
-  config?: any;
+  config: {
+    address: string;
+  };
 
   @ApiProperty()
   @IsOptional()
-  data?: string;
+  data: any;
 
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
   requestId?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  type?: string;
 }
 
 export class BlockchainTransaction {
@@ -100,13 +138,13 @@ export class TokenPoolActivate {
   @IsNotEmpty()
   poolId: string;
 
-  @ApiProperty({ description: requestIdDescription })
-  @IsOptional()
-  requestId?: string;
-
   @ApiProperty()
   @IsOptional()
   transaction?: BlockchainTransaction;
+
+  @ApiProperty({ description: requestIdDescription })
+  @IsOptional()
+  requestId?: string;
 }
 
 export class TokenBalanceQuery {
@@ -164,10 +202,10 @@ class tokenEventBase {
   data?: string;
 
   @ApiProperty()
-  operator: string;
+  operator?: string;
 
   @ApiProperty()
-  rawOutput: any;
+  rawOutput?: any;
 
   @ApiProperty()
   poolId: string;
@@ -176,10 +214,10 @@ class tokenEventBase {
   timestamp: string;
 
   @ApiProperty()
-  transaction: BlockchainTransaction;
+  transaction?: BlockchainTransaction;
 
   @ApiProperty()
-  type: TokenType;
+  type: string;
 }
 
 export class TokenPoolEvent extends tokenEventBase {
@@ -223,4 +261,29 @@ export interface TransactionDetails {
   valueHex: string;
   input: string;
   inputArgs: any;
+}
+
+export interface IAbiInput {
+  indexed?: boolean;
+  internalType: string;
+  name: string;
+  type: string;
+}
+
+export interface IAbiMethod {
+  anonymous?: boolean;
+  inputs: IAbiInput[];
+  stateMutability?: string;
+  name: string;
+  type: string;
+}
+
+export interface EthConnectMsgRequest {
+  headers: {
+    type: string;
+  };
+  from: string;
+  to: string;
+  method: IAbiMethod;
+  params: any[];
 }

@@ -15,9 +15,10 @@
 // limitations under the License.
 
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
+import { ERC20WithDataABI } from '../contractStandards/ERC20WithData';
 import {
   Event,
   EventStream,
@@ -32,8 +33,12 @@ import { basicAuth } from '../utils';
 import { WebSocketMessage } from '../websocket-events/websocket-events.base';
 import {
   AsyncResponse,
+  ContractStandardEnum,
+  EncodedPoolIdEnum,
   EthConnectAsyncResponse,
-  EthConnectReturn,
+  EthConnectContractsResponse,
+  EthConnectMsgRequest,
+  IAbiMethod,
   TokenBalance,
   TokenBalanceQuery,
   TokenBurn,
@@ -48,16 +53,30 @@ import {
   TokenType,
   TransactionDetails,
 } from './tokens.interfaces';
-import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
+import { decodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
+
+const standardAbiMap = {
+  ERC20WithData: ERC20WithDataABI,
+};
+
+const standardMethodMap = {
+  ERC20WithData: {
+    CREATE: 'create',
+    MINT: 'mintWithData',
+    TRANSFER: 'transferWithData',
+    BURN: 'burnWithData',
+    BALANCE: 'balanceOf',
+  },
+};
 
 const TOKEN_STANDARD = 'ERC20';
 const BASE_SUBSCRIPTION_NAME = 'base';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const tokenCreateEvent = 'TokenCreate';
-const tokenCreateEventSignature = 'TokenCreate(address,address,string,string,bytes)';
 const transferEvent = 'Transfer';
 const transferEventSignature = 'Transfer(address,address,uint256)';
+
+type ContractStandardStrings = keyof typeof ContractStandardEnum;
 
 @Injectable()
 export class TokensService {
@@ -99,17 +118,27 @@ export class TokensService {
     this.proxy.addListener(new TokenListener(this, this.topic));
   }
 
+  private getMethodAbi(
+    poolId: URLSearchParams,
+    operation: 'MINT' | 'TRANSFER' | 'BURN' | 'BALANCE',
+  ): IAbiMethod | undefined {
+    const standard = poolId.get('contractStandard') as ContractStandardStrings;
+    const standardAbi: IAbiMethod[] = standardAbiMap[standard];
+    const method = standardAbi.find(abi => abi.name === standardMethodMap[standard][operation]);
+    return method;
+  }
+
   /**
    * One-time initialization of event stream and base subscription.
    */
   async init() {
-    this.stream = await this.eventstream.createOrUpdateStream(this.topic);
-    await this.eventstream.getOrCreateSubscription(
-      this.instanceUrl,
-      this.stream.id,
-      tokenCreateEvent,
-      packSubscriptionName(this.topic, BASE_SUBSCRIPTION_NAME),
-    );
+    // this.stream = await this.eventstream.createOrUpdateStream(this.topic);
+    // await this.eventstream.getOrCreateSubscription(
+    //   this.instanceUrl,
+    //   this.stream.id,
+    //   tokenCreateEvent,
+    //   packSubscriptionName(this.topic, BASE_SUBSCRIPTION_NAME),
+    // );
   }
 
   private postOptions(operator: string, requestId?: string) {
@@ -129,53 +158,74 @@ export class TokensService {
     return requestOptions;
   }
 
-  async createPool(dto: TokenPool): Promise<AsyncResponse> {
-    const response = await lastValueFrom(
-      this.http.post<EthConnectAsyncResponse>(
-        `${this.instanceUrl}/create`,
-        {
-          data: encodeHex(dto.data ?? ''),
-          name: dto.name,
-          symbol: dto.symbol,
-        },
-        this.postOptions(dto.operator, dto.requestId),
-      ),
-    );
+  async createPool(dto: TokenPool): Promise<TokenPoolEvent> {
+    if (!Object.values(TokenType).includes(dto.type)) {
+      throw new HttpException('Address Not Found', HttpStatus.NOT_FOUND);
+    }
 
-    return { id: response.data.id };
+    const response = await lastValueFrom(
+      this.http.get<EthConnectContractsResponse>(`${this.baseUrl}/contracts/${dto.config.address}`),
+    );
+    if (response.status === 404) {
+      throw new HttpException('Address Not Found', HttpStatus.NOT_FOUND);
+    }
+
+    const poolId = new URLSearchParams({
+      address: dto.config.address,
+      standard: dto.type === TokenType.FUNGIBLE ? 'ERC20WithData' : 'ERC721WithData',
+      type: dto.type,
+    });
+
+    const tokenPoolEvent: TokenPoolEvent = {
+      data: dto.data,
+      poolId: poolId.toString(),
+      standard: poolId.get(EncodedPoolIdEnum.Standard)?.toString() ?? '',
+      timestamp: Date.now().toString(),
+      type: dto.type,
+    };
+
+    return tokenPoolEvent;
   }
 
   async activatePool(dto: TokenPoolActivate) {
     if (this.stream === undefined) {
       this.stream = await this.eventstream.createOrUpdateStream(this.topic);
     }
-    await Promise.all([
-      this.eventstream.getOrCreateSubscription(
-        `${this.baseUrl}/${this.instancePath}`,
-        this.stream.id,
-        tokenCreateEvent,
-        packSubscriptionName(this.topic, dto.poolId, tokenCreateEvent),
-        dto.transaction?.blockNumber ?? '0',
-      ),
-      this.eventstream.getOrCreateSubscription(
-        `${this.contractInstanceUrl}/${dto.poolId}`,
-        this.stream.id,
-        transferEvent,
-        packSubscriptionName(this.topic, dto.poolId, transferEvent),
-        dto.transaction?.blockNumber ?? '0',
-      ),
-    ]);
+    await this.eventstream.getOrCreateSubscription(
+      `${this.baseUrl}/${dto.poolId}`,
+      this.stream.id,
+      transferEvent,
+      packSubscriptionName(this.topic, dto.poolId, transferEvent),
+      dto.transaction?.blockNumber ?? '0',
+    );
+
+    const decodedPoolId = new URLSearchParams(dto.poolId);
+
+    const tokenPoolEvent: TokenPoolEvent = {
+      poolId: decodedPoolId.get(EncodedPoolIdEnum.Address)?.toString() ?? '',
+      standard: decodedPoolId.get(EncodedPoolIdEnum.Standard)?.toString() ?? '',
+      timestamp: Date.now().toString(),
+      type: decodedPoolId.get(EncodedPoolIdEnum.Type)?.toString() ?? '',
+    };
+
+    return tokenPoolEvent;
   }
 
   async mint(dto: TokenMint): Promise<AsyncResponse> {
+    const encodedPoolId = new URLSearchParams(dto.poolId);
+    const methodAbi = this.getMethodAbi(encodedPoolId, 'MINT');
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
-        `${this.contractInstanceUrl}/${dto.poolId}/mintWithData`,
+        `${this.baseUrl}`,
         {
-          amount: dto.amount,
-          data: encodeHex(dto.data ?? ''),
-          to: dto.to,
-        },
+          headers: {
+            type: 'SendTransaction',
+          },
+          from: dto.operator,
+          to: encodedPoolId.get(EncodedPoolIdEnum.Address),
+          method: methodAbi,
+          params: [dto.to, dto.amount, dto.data],
+        } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
     );
@@ -183,15 +233,20 @@ export class TokensService {
   }
 
   async transfer(dto: TokenTransfer): Promise<AsyncResponse> {
+    const encodedPoolId = new URLSearchParams(dto.poolId);
+    const methodAbi = this.getMethodAbi(new URLSearchParams(dto.poolId), 'TRANSFER');
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
-        `${this.contractInstanceUrl}/${dto.poolId}/transferWithData`,
+        `${this.baseUrl}`,
         {
-          from: dto.from,
-          to: dto.to,
-          amount: dto.amount,
-          data: encodeHex(dto.data ?? ''),
-        },
+          headers: {
+            type: 'SendTransaction',
+          },
+          from: dto.operator,
+          to: encodedPoolId.get(EncodedPoolIdEnum.Address),
+          method: methodAbi,
+          params: [dto.from, dto.to, dto.amount, dto.data],
+        } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
     );
@@ -199,14 +254,20 @@ export class TokensService {
   }
 
   async burn(dto: TokenBurn): Promise<AsyncResponse> {
+    const encodedPoolId = new URLSearchParams(dto.poolId);
+    const methodAbi = this.getMethodAbi(new URLSearchParams(dto.poolId), 'BURN');
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
-        `${this.contractInstanceUrl}/${dto.poolId}/burnWithData`,
+        `${this.baseUrl}`,
         {
-          data: encodeHex(dto.data ?? ''),
-          from: dto.from,
-          amount: dto.amount,
-        },
+          headers: {
+            type: 'SendTransaction',
+          },
+          from: dto.operator,
+          to: encodedPoolId.get(EncodedPoolIdEnum.Address),
+          method: methodAbi,
+          params: [dto.amount, dto.data],
+        } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
     );
@@ -214,16 +275,20 @@ export class TokensService {
   }
 
   async balance(dto: TokenBalanceQuery): Promise<TokenBalance> {
+    const encodedPoolId = new URLSearchParams(dto.poolId);
+    const methodAbi = this.getMethodAbi(new URLSearchParams(dto.poolId), 'BALANCE');
     const response = await lastValueFrom(
-      this.http.get<EthConnectReturn>(`${this.contractInstanceUrl}/${dto.poolId}/balanceOf`, {
-        params: {
-          account: dto.account,
+      this.http.post<EthConnectAsyncResponse>(`${this.baseUrl}`, {
+        headers: {
+          type: 'SendTransaction',
         },
-        ...basicAuth(this.username, this.password),
-      }),
+        to: encodedPoolId.get(EncodedPoolIdEnum.Address),
+        method: methodAbi,
+        params: [dto.account],
+      } as EthConnectMsgRequest),
     );
 
-    return { balance: response.data.output };
+    return { balance: '' };
   }
 
   async getReceipt(id: string): Promise<EventStreamReply> {
@@ -259,9 +324,6 @@ class TokenListener implements EventListener {
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     switch (event.signature) {
-      case tokenCreateEventSignature:
-        process(this.transformTokenCreateEvent(subName, event));
-        break;
       case transferEventSignature: {
         const transformedEvent = await this.transformTransferEvent(subName, event);
         process(transformedEvent);

@@ -41,7 +41,7 @@ export class TokensController {
   }
 
   @Post('createpool')
-  @HttpCode(202)
+  @HttpCode(200)
   @ApiOperation({
     summary: 'Create a new ERC20 token contract',
     description:
@@ -54,7 +54,7 @@ export class TokensController {
   }
 
   @Post('activatepool')
-  @HttpCode(204)
+  @HttpCode(200)
   @ApiOperation({
     summary: 'Activate a token pool to begin receiving transfer events',
     description: 'Will retrigger the token-pool event for this pool as a side-effect',
