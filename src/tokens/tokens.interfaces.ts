@@ -67,7 +67,7 @@ export enum TokenType {
   NONFUNGIBLE = 'nonfungible',
 }
 
-export interface TokenPool {
+export interface ITokenPool {
   address: string;
   standard: string;
   type: TokenType;
@@ -273,6 +273,7 @@ export interface IAbiInput {
 export interface IAbiMethod {
   anonymous?: boolean;
   inputs: IAbiInput[];
+  outputs?: any[];
   stateMutability?: string;
   name: string;
   type: string;

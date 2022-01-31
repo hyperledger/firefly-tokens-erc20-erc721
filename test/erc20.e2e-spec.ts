@@ -20,27 +20,34 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AxiosResponse } from 'axios';
-import { Observer } from 'rxjs';
+import { lastValueFrom, Observer } from 'rxjs';
 import request from 'superwstest';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import {
   AsyncResponse,
   EthConnectAsyncResponse,
+  EthConnectMsgRequest,
   EthConnectReturn,
   TokenBalance,
   TokenBalanceQuery,
   TokenBurn,
   TokenMint,
   TokenPool,
+  TokenPoolEvent,
   TokenTransfer,
   TokenType,
 } from '../src/tokens/tokens.interfaces';
 import { TokensService } from '../src/tokens/tokens.service';
 import { AppModule } from './../src/app.module';
+import {
+  mockBalanceOfABI,
+  mockBurnWithDataABI,
+  mockMintWithDataABI,
+  mockTransferWithDataABI,
+} from './constants';
 
 const BASE_URL = 'http://eth';
-const CONTRACT_URI = '/abis/123';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
 const INSTANCE_PATH = '/tokens';
@@ -52,6 +59,12 @@ const OPTIONS = {
 };
 const PREFIX = 'fly';
 const TOPIC = 'tokentest';
+const REQUEST = 'request123';
+const TX = 'tx123';
+const NAME = 'abcTest';
+const SYMBOL = 'abc';
+const STANDARD = 'ERC20WithData';
+const POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${STANDARD}&type=${TokenType.FUNGIBLE}`;
 
 class FakeObservable<T> {
   constructor(public data: T) {}
@@ -69,12 +82,13 @@ class FakeObservable<T> {
   }
 }
 
-describe('AppController (e2e)', () => {
+fdescribe('AppController - ERC20 (e2e)', () => {
   let app: INestApplication;
   let server: ReturnType<typeof request>;
   let http: {
     get: ReturnType<typeof jest.fn>;
     post: ReturnType<typeof jest.fn>;
+    subscribe: ReturnType<typeof jest.fn>;
   };
 
   const eventstream = {
@@ -85,6 +99,7 @@ describe('AppController (e2e)', () => {
     http = {
       get: jest.fn(),
       post: jest.fn(),
+      subscribe: jest.fn(),
     };
     eventstream.getSubscription.mockReset();
 
@@ -103,7 +118,7 @@ describe('AppController (e2e)', () => {
     await app.init();
 
     app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    app.get(TokensService).configure(BASE_URL, INSTANCE_PATH, TOPIC, PREFIX, CONTRACT_URI, '', '');
+    app.get(TokensService).configure(BASE_URL, TOPIC, PREFIX, '', '');
 
     (app.getHttpServer() as Server).listen();
     server = request(app.getHttpServer());
@@ -116,131 +131,105 @@ describe('AppController (e2e)', () => {
   it('Create pool - unrecognized fields', async () => {
     const request = {
       type: TokenType.FUNGIBLE,
+      requestId: REQUEST,
       operator: IDENTITY,
-      name: 'name',
-      symbol: 'symbol',
+      data: `{"tx":${TX}}`,
+      config: { address: CONTRACT_ADDRESS },
+      name: NAME,
+      symbol: SYMBOL,
       isBestPool: true, // will be stripped but will not cause an error
     };
-    const response: EthConnectAsyncResponse = {
-      id: 'op1',
-      sent: true,
-    };
 
-    http.post = jest.fn(() => new FakeObservable(response));
-
-    await server.post('/createpool').send(request).expect(202).expect({ id: 'op1' });
-  });
-
-  it('Create new ERC20 contract instance', async () => {
-    const request: TokenPool = {
-      data: 'tx1',
-      name: 'testName',
-      operator: IDENTITY,
-      requestId: 'op1',
-      symbol: 'testSymbol',
-    };
-    const response: EthConnectAsyncResponse = {
-      id: 'op1',
-      sent: true,
-    };
-
-    http.post = jest.fn(() => new FakeObservable(response));
-    await server.post('/createpool').send(request).expect(202).expect({ id: 'op1' });
-
-    expect(http.post).toHaveBeenCalledTimes(1);
-    expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${INSTANCE_PATH}/create`,
-      {
-        data: '0x747831',
-        name: 'testName',
-        symbol: 'testSymbol',
-      },
-      {
-        ...OPTIONS,
-        params: {
-          ...OPTIONS.params,
-          'fly-id': 'op1',
-        },
-      },
-    );
-  });
-
-  it('Create new ERC20 contract instance - valid type', async () => {
-    const request: TokenPool = {
-      data: 'tx1',
-      name: 'testName',
-      operator: IDENTITY,
-      requestId: 'op1',
-      symbol: 'testSymbol',
+    const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      data: `{"tx":${TX}}`,
+      poolId: `address=${CONTRACT_ADDRESS}&standard=${STANDARD}&type=${TokenType.FUNGIBLE}`,
+      standard: STANDARD,
+      timestamp: expect.any(String),
       type: TokenType.FUNGIBLE,
-    };
-    const response: EthConnectAsyncResponse = {
-      id: 'op1',
-      sent: true,
+    });
+
+    http.get = jest.fn(() => new FakeObservable(expectedResponse));
+
+    const response = await server.post('/createpool').send(request).expect(200);
+    expect(response.body).toEqual(expectedResponse);
+  });
+
+  it('Create new ERC20 contract instance - correct fields', async () => {
+    const request: TokenPool = {
+      type: TokenType.FUNGIBLE,
+      requestId: REQUEST,
+      operator: IDENTITY,
+      data: `{"tx":${TX}}`,
+      config: { address: CONTRACT_ADDRESS },
+      name: NAME,
+      symbol: SYMBOL,
     };
 
-    http.post = jest.fn(() => new FakeObservable(response));
-    await server.post('/createpool').send(request).expect(202).expect({ id: 'op1' });
+    const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      data: `{"tx":${TX}}`,
+      poolId: `address=${CONTRACT_ADDRESS}&standard=${STANDARD}&type=${TokenType.FUNGIBLE}`,
+      standard: STANDARD,
+      timestamp: expect.any(String),
+      type: TokenType.FUNGIBLE,
+    });
 
-    expect(http.post).toHaveBeenCalledTimes(1);
-    expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${INSTANCE_PATH}/create`,
-      {
-        data: '0x747831',
-        name: 'testName',
-        symbol: 'testSymbol',
-      },
-      {
-        ...OPTIONS,
-        params: {
-          ...OPTIONS.params,
-          'fly-id': 'op1',
-        },
-      },
-    );
+    http.get = jest.fn(() => new FakeObservable(expectedResponse));
+
+    const response = await server.post('/createpool').send(request).expect(200);
+    expect(response.body).toEqual(expectedResponse);
   });
 
   it('Create new ERC20 contract instance - invalid type', async () => {
     const request: TokenPool = {
-      data: 'tx1',
-      name: 'testName',
+      type: 'funkible' as TokenType,
+      requestId: REQUEST,
       operator: IDENTITY,
-      requestId: 'op1',
-      symbol: 'testSymbol',
-      type: 'nonfungible',
+      data: `{"tx":${TX}}`,
+      config: { address: CONTRACT_ADDRESS },
+      name: NAME,
+      symbol: SYMBOL,
     };
-    const response: EthConnectAsyncResponse = {
-      id: 'op1',
-      sent: true,
+
+    const response = {
+      message: 'Type must be fungible or nonfungible',
+      statusCode: 404,
     };
 
     http.post = jest.fn(() => new FakeObservable(response));
-    await server.post('/createpool').send(request).expect(202).expect({ id: 'op1' });
-
-    expect(http.post).toHaveBeenCalledTimes(1);
-    expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${INSTANCE_PATH}/create`,
-      {
-        data: '0x747831',
-        name: 'testName',
-        symbol: 'testSymbol',
-      },
-      {
-        ...OPTIONS,
-        params: {
-          ...OPTIONS.params,
-          'fly-id': 'op1',
-        },
-      },
-    );
+    await server.post('/createpool').send(request).expect(404).expect(response);
+    expect(http.get).toHaveBeenCalledTimes(0);
   });
+
+  // it('Create new ERC20 contract instance - contract not found on chain', async () => {
+  //   const request: TokenPool = {
+  //     type: TokenType.FUNGIBLE,
+  //     requestId: REQUEST,
+  //     operator: IDENTITY,
+  //     data: `{"tx":${TX}}`,
+  //     config: { address: CONTRACT_ADDRESS },
+  //     name: NAME,
+  //     symbol: SYMBOL,
+  //   };
+
+  //   const response = {
+  //     message: 'Contract address not found',
+  //     statusCode: 404,
+  //   };
+
+  //   // jest.spyOn(http, 'get').mockReturnValue({ status: 404 });
+  //   http.get = jest.fn(() => new FakeObservable({ status: 404 }));
+  //   http.post = jest.fn(() => new FakeObservable(response));
+
+  //   await server.post('/createpool').send(request).expect(404).expect(response);
+  //   expect(http.get).toHaveBeenCalledTimes(1);
+  // });
 
   it('Mint ERC20 token', async () => {
     const request: TokenMint = {
       amount: '2',
       data: 'test',
       operator: IDENTITY,
-      poolId: CONTRACT_ADDRESS,
+      poolId: POOL_ID,
       to: '1',
     };
     const response: AsyncResponse = {
@@ -253,22 +242,27 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${CONTRACT_URI}/${CONTRACT_ADDRESS}/mintWithData`,
+      `${BASE_URL}`,
       {
-        amount: '2',
-        data: '0x74657374',
-        to: '1',
-      },
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: mockMintWithDataABI,
+        params: ['1', '2', 'test'],
+      } as EthConnectMsgRequest,
       OPTIONS,
     );
   });
 
   it('Transfer token', async () => {
     const request: TokenTransfer = {
-      amount: '2',
+      amount: '3',
+      data: 'test',
       from: '1',
       operator: IDENTITY,
-      poolId: CONTRACT_ADDRESS,
+      poolId: POOL_ID,
       to: '2',
     };
     const response: EthConnectAsyncResponse = {
@@ -282,13 +276,16 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${CONTRACT_URI}/${CONTRACT_ADDRESS}/transferWithData`,
+      `${BASE_URL}`,
       {
-        amount: '2',
-        data: '0x00',
-        from: '1',
-        to: '2',
-      },
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: mockTransferWithDataABI,
+        params: ['1', '2', '3', 'test'],
+      } as EthConnectMsgRequest,
       OPTIONS,
     );
   });
@@ -299,7 +296,7 @@ describe('AppController (e2e)', () => {
       data: 'tx1',
       from: 'A',
       operator: IDENTITY,
-      poolId: CONTRACT_ADDRESS,
+      poolId: POOL_ID,
     };
     const response: AsyncResponse = {
       id: '1',
@@ -311,43 +308,48 @@ describe('AppController (e2e)', () => {
 
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.post).toHaveBeenCalledWith(
-      `${BASE_URL}${CONTRACT_URI}/${CONTRACT_ADDRESS}/burnWithData`,
+      `${BASE_URL}`,
       {
-        data: '0x747831',
-        from: 'A',
-        amount: '2',
-      },
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: mockBurnWithDataABI,
+        params: ['2', 'tx1'],
+      } as EthConnectMsgRequest,
       OPTIONS,
     );
   });
 
-  it('Query balance', async () => {
-    const request: TokenBalanceQuery = {
-      account: '1',
-      poolId: CONTRACT_ADDRESS,
-    };
-    const response: EthConnectReturn = {
-      output: '1',
-    };
+  // it('Query balance', async () => {
+  //   const request: TokenBalanceQuery = {
+  //     account: '1',
+  //     poolId: POOL_ID,
+  //   };
+  //   const response: EthConnectReturn = {
+  //     output: '1',
+  //   };
 
-    http.get = jest.fn(() => new FakeObservable(response));
+  //   http.get = jest.fn(() => new FakeObservable(response));
 
-    await server
-      .get('/balance')
-      .query(request)
-      .expect(200)
-      .expect(<TokenBalance>{
-        balance: '1',
-      });
+  //   await server
+  //     .get('/balance')
+  //     .query(request)
+  //     .expect(200)
+  //     .expect(<TokenBalance>{
+  //       balance: '1',
+  //     });
 
-    expect(http.get).toHaveBeenCalledTimes(1);
-    expect(http.get).toHaveBeenCalledWith(
-      `${BASE_URL}${CONTRACT_URI}/${CONTRACT_ADDRESS}/balanceOf`,
-      {
-        params: {
-          account: '1',
-        },
-      },
-    );
-  });
+  //   expect(http.get).toHaveBeenCalledTimes(1);
+  //   expect(http.get).toHaveBeenCalledWith(`${BASE_URL}`, {
+  //     headers: {
+  //       type: 'SendTransaction',
+  //     },
+  //     from: IDENTITY,
+  //     to: CONTRACT_ADDRESS,
+  //     method: mockBalanceOfABI,
+  //     params: ['1'],
+  //   } as EthConnectMsgRequest);
+  // });
 });

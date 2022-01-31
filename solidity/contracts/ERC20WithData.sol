@@ -2,20 +2,26 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/utils/Context.sol';
+import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
+import '@openzeppelin/contracts/access/AccessControl.sol';
 
 /**
     @dev Mintable+burnable form of ERC20 with data event support.
 */
-contract ERC20WithData is Context, ERC20 {
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+contract ERC20WithData is ERC20Burnable, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256('MINTER_ROLE');
+
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(MINTER_ROLE, _msgSender());
+    }
 
     function mintWithData(
         address to,
         uint256 amount,
         bytes calldata data
-    ) external virtual {
+    ) public {
+        require(hasRole(MINTER_ROLE, _msgSender()), 'ERC20WithData: must have minter role to mint');
         _mint(to, amount);
     }
 
@@ -24,11 +30,11 @@ contract ERC20WithData is Context, ERC20 {
         address to,
         uint256 amount,
         bytes calldata data
-    ) external virtual {
+    ) public {
         _transfer(_msgSender(), to, amount);
     }
 
-    function burnWithData(uint256 amount, bytes calldata data) external virtual {
+    function burnWithData(uint256 amount, bytes calldata data) public {
         _burn(_msgSender(), amount);
     }
 }
