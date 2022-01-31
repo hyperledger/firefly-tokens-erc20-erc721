@@ -57,11 +57,9 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, api);
 
   const ethConnectUrl = config.get<string>('ETHCONNECT_URL', '');
-  const instancePath = config.get<string>('ETHCONNECT_INSTANCE', '');
-  const topic = config.get<string>('ETHCONNECT_TOPIC', 'token20');
+  const topic = config.get<string>('ETHCONNECT_TOPIC', 'tokenERC20ERC721');
   const shortPrefix = config.get<string>('ETHCONNECT_PREFIX', 'fly');
   const autoInit = config.get<string>('AUTO_INIT', 'true');
-  const contractUri = config.get<string>('ETHCONNECT_CONTRACT_URI', '');
   const username = config.get<string>('ETHCONNECT_USERNAME', '');
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
 
@@ -69,9 +67,7 @@ async function bootstrap() {
 
   app.get(EventStreamService).configure(ethConnectUrl, username, password);
   app.get(EventStreamProxyGateway).configure(wsUrl, topic);
-  app
-    .get(TokensService)
-    .configure(ethConnectUrl, instancePath, topic, shortPrefix, contractUri, username, password);
+  app.get(TokensService).configure(ethConnectUrl, topic, shortPrefix, username, password);
 
   if (autoInit !== 'false') {
     await app.get(TokensService).init();

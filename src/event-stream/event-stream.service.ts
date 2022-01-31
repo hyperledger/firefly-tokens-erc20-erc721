@@ -18,6 +18,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import * as WebSocket from 'ws';
+import { IAbiMethod } from '../tokens/tokens.interfaces';
 import { basicAuth } from '../utils';
 import {
   Event,
@@ -233,6 +234,7 @@ export class EventStreamService {
 
   async createSubscription(
     instancePath: string,
+    methodABI: IAbiMethod,
     streamId: string,
     event: string,
     name: string,
@@ -240,11 +242,12 @@ export class EventStreamService {
   ): Promise<EventStreamSubscription> {
     const response = await lastValueFrom(
       this.http.post<EventStreamSubscription>(
-        `${instancePath}/${event}`,
+        `${instancePath}/subscriptions`,
         {
           name,
           stream: streamId,
           fromBlock,
+          event: methodABI,
         },
         {
           ...basicAuth(this.username, this.password),
@@ -257,6 +260,7 @@ export class EventStreamService {
 
   async getOrCreateSubscription(
     instancePath: string,
+    methodABI: IAbiMethod,
     streamId: string,
     event: string,
     name: string,
@@ -268,7 +272,7 @@ export class EventStreamService {
       this.logger.log(`Existing subscription for ${event}: ${sub.id}`);
       return sub;
     }
-    return this.createSubscription(instancePath, streamId, event, name, fromBlock);
+    return this.createSubscription(instancePath, methodABI, streamId, event, name, fromBlock);
   }
 
   connect(

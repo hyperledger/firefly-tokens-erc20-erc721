@@ -53,7 +53,7 @@ import {
   TokenType,
   TransactionDetails,
 } from './tokens.interfaces';
-import { decodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
+import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
 
 const standardAbiMap = {
   ERC20WithData: ERC20WithDataABI,
@@ -66,6 +66,7 @@ const standardMethodMap = {
     TRANSFER: 'transferWithData',
     BURN: 'burnWithData',
     BALANCE: 'balanceOf',
+    TRANSFEREVENT: 'Transfer',
   },
 };
 
@@ -81,12 +82,8 @@ type ContractStandardStrings = keyof typeof ContractStandardEnum;
 @Injectable()
 export class TokensService {
   baseUrl: string;
-  instancePath: string;
-  instanceUrl: string;
   topic: string;
   shortPrefix: string;
-  contractUri: string;
-  contractInstanceUrl: string;
   stream: EventStream;
   username: string;
   password: string;
@@ -99,20 +96,14 @@ export class TokensService {
 
   configure(
     baseUrl: string,
-    instancePath: string,
     topic: string,
     shortPrefix: string,
-    contractUri: string,
     username: string,
     password: string,
   ) {
     this.baseUrl = baseUrl;
-    this.instancePath = instancePath;
-    this.instanceUrl = `${this.baseUrl}${this.instancePath}`;
     this.topic = topic;
     this.shortPrefix = shortPrefix;
-    this.contractUri = contractUri;
-    this.contractInstanceUrl = `${this.baseUrl}${this.contractUri}`;
     this.username = username;
     this.password = password;
     this.proxy.addListener(new TokenListener(this, this.topic));
@@ -120,9 +111,9 @@ export class TokensService {
 
   private getMethodAbi(
     poolId: URLSearchParams,
-    operation: 'MINT' | 'TRANSFER' | 'BURN' | 'BALANCE',
+    operation: 'MINT' | 'TRANSFER' | 'BURN' | 'BALANCE' | 'TRANSFEREVENT',
   ): IAbiMethod | undefined {
-    const standard = poolId.get('contractStandard') as ContractStandardStrings;
+    const standard = poolId.get(EncodedPoolIdEnum.Standard) as ContractStandardStrings;
     const standardAbi: IAbiMethod[] = standardAbiMap[standard];
     const method = standardAbi.find(abi => abi.name === standardMethodMap[standard][operation]);
     return method;
@@ -131,16 +122,9 @@ export class TokensService {
   /**
    * One-time initialization of event stream and base subscription.
    */
-  async init() {
-    // this.stream = await this.eventstream.createOrUpdateStream(this.topic);
-    // await this.eventstream.getOrCreateSubscription(
-    //   this.instanceUrl,
-    //   this.stream.id,
-    //   tokenCreateEvent,
-    //   packSubscriptionName(this.topic, BASE_SUBSCRIPTION_NAME),
-    // );
+  init() {
+    return;
   }
-
   private postOptions(operator: string, requestId?: string) {
     const from = `${this.shortPrefix}-from`;
     const sync = `${this.shortPrefix}-sync`;
@@ -159,15 +143,16 @@ export class TokensService {
   }
 
   async createPool(dto: TokenPool): Promise<TokenPoolEvent> {
+    // Type must be 'fungible' or 'nonfungible'
     if (!Object.values(TokenType).includes(dto.type)) {
-      throw new HttpException('Address Not Found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Type must be fungible or nonfungible', HttpStatus.NOT_FOUND);
     }
-
+    // Confirm that contract exists on chain
     const response = await lastValueFrom(
       this.http.get<EthConnectContractsResponse>(`${this.baseUrl}/contracts/${dto.config.address}`),
     );
     if (response.status === 404) {
-      throw new HttpException('Address Not Found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Contract address not found', HttpStatus.NOT_FOUND);
     }
 
     const poolId = new URLSearchParams({
@@ -191,18 +176,29 @@ export class TokensService {
     if (this.stream === undefined) {
       this.stream = await this.eventstream.createOrUpdateStream(this.topic);
     }
+    const encodedPoolId = new URLSearchParams(dto.poolId);
+    const methodAbi = this.getMethodAbi(encodedPoolId, 'TRANSFEREVENT');
+
+    if (!methodAbi) {
+      throw new HttpException('ABI event not found', HttpStatus.NOT_FOUND);
+    }
+
+    const decodedPoolId = new URLSearchParams(dto.poolId);
     await this.eventstream.getOrCreateSubscription(
-      `${this.baseUrl}/${dto.poolId}`,
+      `${this.baseUrl}`,
+      methodAbi,
       this.stream.id,
       transferEvent,
-      packSubscriptionName(this.topic, dto.poolId, transferEvent),
+      packSubscriptionName(
+        this.topic,
+        decodedPoolId.get(EncodedPoolIdEnum.Address)?.toString() ?? '',
+        transferEvent,
+      ),
       dto.transaction?.blockNumber ?? '0',
     );
 
-    const decodedPoolId = new URLSearchParams(dto.poolId);
-
     const tokenPoolEvent: TokenPoolEvent = {
-      poolId: decodedPoolId.get(EncodedPoolIdEnum.Address)?.toString() ?? '',
+      poolId: dto.poolId,
       standard: decodedPoolId.get(EncodedPoolIdEnum.Standard)?.toString() ?? '',
       timestamp: Date.now().toString(),
       type: decodedPoolId.get(EncodedPoolIdEnum.Type)?.toString() ?? '',
@@ -224,11 +220,12 @@ export class TokensService {
           from: dto.operator,
           to: encodedPoolId.get(EncodedPoolIdEnum.Address),
           method: methodAbi,
-          params: [dto.to, dto.amount, dto.data],
+          params: [dto.to, dto.amount, encodeHex(dto.data ?? '')],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
     );
+
     return { id: response.data.id };
   }
 
@@ -245,7 +242,7 @@ export class TokensService {
           from: dto.operator,
           to: encodedPoolId.get(EncodedPoolIdEnum.Address),
           method: methodAbi,
-          params: [dto.from, dto.to, dto.amount, dto.data],
+          params: [dto.from, dto.to, dto.amount, encodeHex(dto.data ?? '')],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -266,7 +263,7 @@ export class TokensService {
           from: dto.operator,
           to: encodedPoolId.get(EncodedPoolIdEnum.Address),
           method: methodAbi,
-          params: [dto.amount, dto.data],
+          params: [dto.amount, encodeHex(dto.data ?? '')],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -288,7 +285,7 @@ export class TokensService {
       } as EthConnectMsgRequest),
     );
 
-    return { balance: '' };
+    return { balance: response.data.id };
   }
 
   async getReceipt(id: string): Promise<EventStreamReply> {
@@ -307,7 +304,7 @@ export class TokensService {
   public async getOperator(poolId: string, txId: string, inputMethod: string): Promise<string> {
     const response = await lastValueFrom(
       this.http.get<TransactionDetails>(
-        `${this.contractInstanceUrl}/${poolId}/${inputMethod}?fly-transaction=${txId}&stream=${this.stream.id}`,
+        `${this.baseUrl}/${poolId}/${inputMethod}?fly-transaction=${txId}&stream=${this.stream.id}`,
         {
           ...basicAuth(this.username, this.password),
         },
@@ -333,42 +330,6 @@ class TokenListener implements EventListener {
         this.logger.error(`Unknown event signature: ${event.signature}`);
         return undefined;
     }
-  }
-
-  private transformTokenCreateEvent(
-    subName: string,
-    event: TokenCreateEvent,
-  ): WebSocketMessage | undefined {
-    const { data } = event;
-    const unpackedSub = unpackSubscriptionName(this.topic, subName);
-    const decodedData = decodeHex(data.data ?? '');
-
-    if (
-      unpackedSub.poolId !== BASE_SUBSCRIPTION_NAME &&
-      unpackedSub.poolId !== data.contract_address
-    ) {
-      return undefined;
-    }
-
-    return {
-      event: 'token-pool',
-      data: <TokenPoolEvent>{
-        standard: TOKEN_STANDARD,
-        poolId: event.data.contract_address,
-        type: TokenType.FUNGIBLE,
-        operator: data.operator,
-        data: decodedData,
-        timestamp: event.timestamp,
-        rawOutput: data,
-        transaction: {
-          blockNumber: event.blockNumber,
-          transactionIndex: event.transactionIndex,
-          transactionHash: event.transactionHash,
-          logIndex: event.logIndex,
-          signature: event.signature,
-        },
-      },
-    };
   }
 
   private async transformTransferEvent(

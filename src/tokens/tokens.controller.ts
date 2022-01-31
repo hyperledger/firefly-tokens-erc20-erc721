@@ -36,16 +36,14 @@ export class TokensController {
   @Post('init')
   @HttpCode(204)
   @ApiOperation({ summary: 'Perform one-time initialization (if not auto-initialized)' })
-  async init() {
-    await this.service.init();
+  init() {
+    return this.service.init();
   }
 
   @Post('createpool')
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Create a new ERC20 token contract',
-    description:
-      'Will be followed by a websocket notification with event=token-pool and data=TokenPoolEvent',
+    summary: 'Confirm and activate token pool',
   })
   @ApiBody({ type: TokenPool })
   @ApiResponse({ status: 202, type: AsyncResponse })
@@ -61,7 +59,7 @@ export class TokensController {
   })
   @ApiBody({ type: TokenPoolActivate })
   async activatePool(@Body() dto: TokenPoolActivate) {
-    await this.service.activatePool(dto);
+    return await this.service.activatePool(dto);
   }
 
   @Post('mint')
