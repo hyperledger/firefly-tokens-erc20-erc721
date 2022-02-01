@@ -33,6 +33,15 @@ describe('Util', () => {
   it('packSubscriptionName', () => {
     expect(packSubscriptionName('token', '0x123456')).toEqual('token:0x123456');
     expect(packSubscriptionName('token', '0x123456', 'create')).toEqual('token:0x123456:create');
+    expect(
+      packSubscriptionName(
+        'token',
+        'address=0x5bb034ca2fd1ac18e46978a7bbdbe4923e158d83&standard=ERC20WithData&type=fungible',
+        'mintWithData',
+      ),
+    ).toEqual(
+      'token:address=0x5bb034ca2fd1ac18e46978a7bbdbe4923e158d83&standard=ERC20WithData&type=fungible:mintWithData',
+    );
     expect(packSubscriptionName('tok:en', '0x123456', 'create')).toEqual('tok:en:0x123456:create');
   });
 

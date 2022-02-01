@@ -82,7 +82,7 @@ class FakeObservable<T> {
   }
 }
 
-fdescribe('AppController - ERC20 (e2e)', () => {
+describe('AppController - ERC20 (e2e)', () => {
   let app: INestApplication;
   let server: ReturnType<typeof request>;
   let http: {
