@@ -28,11 +28,6 @@ export const mockTransferWithDataABI: IAbiMethod = {
   inputs: [
     {
       internalType: 'address',
-      name: 'from',
-      type: 'address',
-    },
-    {
-      internalType: 'address',
       name: 'to',
       type: 'address',
     },

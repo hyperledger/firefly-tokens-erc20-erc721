@@ -18,12 +18,11 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
-import { ERC20WithDataABI } from '../contractStandards/ERC20WithData';
+import { ERC20WithDataABI } from '../contractStandards/ERC20WithDataABI';
 import {
   Event,
   EventStream,
   EventStreamReply,
-  TokenCreateEvent,
   TransferEvent,
 } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
@@ -61,7 +60,6 @@ const standardAbiMap = {
 
 const standardMethodMap = {
   ERC20WithData: {
-    CREATE: 'create',
     MINT: 'mintWithData',
     TRANSFER: 'transferWithData',
     BURN: 'burnWithData',
@@ -70,10 +68,7 @@ const standardMethodMap = {
   },
 };
 
-const TOKEN_STANDARD = 'ERC20';
-const BASE_SUBSCRIPTION_NAME = 'base';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-
 const transferEvent = 'Transfer';
 const transferEventSignature = 'Transfer(address,address,uint256)';
 
@@ -125,6 +120,7 @@ export class TokensService {
   init() {
     return;
   }
+
   private postOptions(operator: string, requestId?: string) {
     const from = `${this.shortPrefix}-from`;
     const sync = `${this.shortPrefix}-sync`;
@@ -189,11 +185,7 @@ export class TokensService {
       methodAbi,
       this.stream.id,
       transferEvent,
-      packSubscriptionName(
-        this.topic,
-        decodedPoolId.get(EncodedPoolIdEnum.Address)?.toString() ?? '',
-        transferEvent,
-      ),
+      packSubscriptionName(this.topic, dto.poolId, transferEvent),
       dto.transaction?.blockNumber ?? '0',
     );
 
@@ -242,7 +234,7 @@ export class TokensService {
           from: dto.operator,
           to: encodedPoolId.get(EncodedPoolIdEnum.Address),
           method: methodAbi,
-          params: [dto.from, dto.to, dto.amount, encodeHex(dto.data ?? '')],
+          params: [dto.to, dto.amount, encodeHex(dto.data ?? '')],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -302,9 +294,21 @@ export class TokensService {
   }
 
   public async getOperator(poolId: string, txId: string, inputMethod: string): Promise<string> {
+    // Get contract abi ID
+    const contractsResponse = await lastValueFrom(
+      this.http.get<EthConnectContractsResponse>(`${this.baseUrl}/contracts/${poolId}`),
+    );
+    if (contractsResponse.status === 404) {
+      throw new HttpException('Contract address not found', HttpStatus.NOT_FOUND);
+    }
+
+    const abiId = contractsResponse.data.abi;
+    if (!abiId || !abiId.length) {
+      throw new HttpException('ABI ID not found', HttpStatus.NOT_FOUND);
+    }
     const response = await lastValueFrom(
       this.http.get<TransactionDetails>(
-        `${this.baseUrl}/${poolId}/${inputMethod}?fly-transaction=${txId}&stream=${this.stream.id}`,
+        `${this.baseUrl}/abis/${abiId}/${poolId}/${inputMethod}?fly-transaction=${txId}&stream=${this.stream.id}`,
         {
           ...basicAuth(this.username, this.password),
         },
@@ -347,14 +351,26 @@ class TokenListener implements EventListener {
 
     const txIndex = BigInt(event.transactionIndex).toString(10);
     const transferId = [event.blockNumber, txIndex, event.logIndex].join('.');
+    const encodedPoolId = new URLSearchParams(unpackedSub.poolId);
+    const standard = encodedPoolId.get(EncodedPoolIdEnum.Standard) ?? '';
+
+    let inputMethod: string;
+    if (data.from === ZERO_ADDRESS) {
+      inputMethod = standardMethodMap[standard].MINT;
+    } else if (data.to === ZERO_ADDRESS) {
+      inputMethod = standardMethodMap[standard].BURN;
+    } else {
+      inputMethod = inputMethod = standardMethodMap[standard].TRANSFER;
+    }
+
     // TODO: Have ethconnect fetch this
     const operator: string = await this.service.getOperator(
       event.address,
       event.transactionHash,
-      event.inputMethod ?? '',
+      inputMethod,
     );
 
-    const commonData = <TokenTransferEvent>{
+    const commonData = {
       id: transferId,
       type: TokenType.FUNGIBLE,
       poolId: unpackedSub.poolId,
@@ -370,7 +386,7 @@ class TokenListener implements EventListener {
         logIndex: event.logIndex,
         signature: event.signature,
       },
-    };
+    } as TokenTransferEvent;
 
     if (data.from === ZERO_ADDRESS) {
       return {

@@ -1,11 +1,7 @@
 node_modules/
 **/coverage
 **/.nyc_output
-solidity/build
-solidity/cache
-solidity/hardhat.config.ts
-solidity/test
-solidity/typechain
+solidity/
 .git
 Dockerfile
 .dockerignore
