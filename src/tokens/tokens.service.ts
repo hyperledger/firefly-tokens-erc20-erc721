@@ -39,8 +39,6 @@ import {
   EthConnectMsgRequest,
   IAbiMethod,
   ITokenPool,
-  TokenBalance,
-  TokenBalanceQuery,
   TokenBurn,
   TokenBurnEvent,
   TokenMint,
@@ -276,23 +274,6 @@ export class TokensService {
       ),
     );
     return { id: response.data.id };
-  }
-
-  async balance(dto: TokenBalanceQuery): Promise<TokenBalance> {
-    const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
-    const methodAbi = this.getMethodAbi(new URLSearchParams(dto.poolId), 'BALANCE');
-    const response = await lastValueFrom(
-      this.http.post<EthConnectAsyncResponse>(`${this.baseUrl}`, {
-        headers: {
-          type: sendTransactionHeader,
-        },
-        to: validPoolId.address,
-        method: methodAbi,
-        params: [dto.account],
-      } as EthConnectMsgRequest),
-    );
-
-    return { balance: response.data.id };
   }
 
   async getReceipt(id: string): Promise<EventStreamReply> {

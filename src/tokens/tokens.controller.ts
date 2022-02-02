@@ -14,13 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import {
   AsyncResponse,
-  TokenBalance,
-  TokenBalanceQuery,
   TokenBurn,
   TokenMint,
   TokenPool,
@@ -99,13 +97,6 @@ export class TokensController {
   @ApiResponse({ status: 202, type: AsyncResponse })
   burn(@Body() dto: TokenBurn) {
     return this.service.burn(dto);
-  }
-
-  @Get('balance')
-  @ApiOperation({ summary: 'Retrieve a token balance' })
-  @ApiResponse({ status: 200, type: TokenBalance })
-  balance(@Query() query: TokenBalanceQuery) {
-    return this.service.balance(query);
   }
 
   @Get('receipt/:id')

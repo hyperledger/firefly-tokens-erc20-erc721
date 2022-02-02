@@ -234,7 +234,7 @@ export class EventStreamService {
 
   async createSubscription(
     instancePath: string,
-    methodABI: IAbiMethod,
+    eventABI: IAbiMethod,
     streamId: string,
     event: string,
     name: string,
@@ -249,7 +249,7 @@ export class EventStreamService {
           name,
           stream: streamId,
           fromBlock,
-          event: methodABI,
+          event: eventABI,
           address,
           methods,
         },
