@@ -20,6 +20,7 @@ import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import ERC20WithDataABI from '../../solidity/build/contracts/ERC20WithData.json';
+import ERC721WithDataABI from '../../solidity/build/contracts/ERC721WithData.json';
 import {
   Event,
   EventStream,
@@ -37,6 +38,7 @@ import {
   EncodedPoolIdEnum,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
+  EthConnectReturn,
   IAbiMethod,
   ITokenPool,
   TokenBurn,
@@ -52,8 +54,9 @@ import {
 } from './tokens.interfaces';
 import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
 
-const standardAbiMap = {
+export const standardAbiMap = {
   ERC20WithData: ERC20WithDataABI.abi,
+  ERC721WithData: ERC721WithDataABI.abi,
 };
 
 const standardMethodMap = {
@@ -61,7 +64,12 @@ const standardMethodMap = {
     MINT: 'mintWithData',
     TRANSFER: 'transferWithData',
     BURN: 'burnWithData',
-    BALANCE: 'balanceOf',
+    TRANSFEREVENT: 'Transfer',
+  },
+  ERC721WithData: {
+    MINT: 'mintWithData',
+    TRANSFER: 'transferWithData',
+    BURN: 'burnWithData',
     TRANSFEREVENT: 'Transfer',
   },
 };
@@ -83,7 +91,7 @@ export class TokensService {
   password: string;
 
   constructor(
-    private http: HttpService,
+    public http: HttpService,
     private eventstream: EventStreamService,
     private proxy: EventStreamProxyGateway,
   ) {}
@@ -100,17 +108,24 @@ export class TokensService {
     this.shortPrefix = shortPrefix;
     this.username = username;
     this.password = password;
-    this.proxy.addListener(new TokenListener(this, this.topic));
+    this.proxy.addListener(new TokenListener(this));
   }
 
   private getMethodAbi(
     poolId: URLSearchParams,
-    operation: 'MINT' | 'TRANSFER' | 'BURN' | 'BALANCE' | 'TRANSFEREVENT',
+    operation: 'MINT' | 'TRANSFER' | 'BURN' | 'TRANSFEREVENT',
   ): IAbiMethod | undefined {
     const standard = poolId.get(EncodedPoolIdEnum.Standard) as ContractStandardStrings;
     const standardAbi: IAbiMethod[] = standardAbiMap[standard];
     const method = standardAbi?.find(abi => abi.name === standardMethodMap[standard][operation]);
     return method;
+  }
+
+  private getAmountOrTokenID(
+    dto: TokenMint | TokenTransfer | TokenBurn,
+    type: TokenType,
+  ): string | undefined {
+    return type === TokenType.FUNGIBLE ? dto.amount : dto.tokenId;
   }
 
   private validatePoolId(poolId: URLSearchParams): ITokenPool {
@@ -185,9 +200,8 @@ export class TokensService {
 
     const possibleMethods: string[] = Object.values(standardMethodMap[validPoolId.standard]);
     const standardABI: IAbiMethod[] = standardAbiMap[validPoolId.standard];
-
-    const pMethods = standardABI.filter((method: IAbiMethod) =>
-      possibleMethods.includes(method.name),
+    const methodsToSubTo: IAbiMethod[] = standardABI.filter((method: IAbiMethod) =>
+      possibleMethods.includes(method.name ?? ''),
     );
 
     await this.eventstream.getOrCreateSubscription(
@@ -197,7 +211,7 @@ export class TokensService {
       transferEvent,
       packSubscriptionName(this.topic, dto.poolId, transferEvent),
       validPoolId.address,
-      pMethods,
+      methodsToSubTo,
       dto.transaction?.blockNumber ?? '0',
     );
 
@@ -225,7 +239,11 @@ export class TokensService {
           from: dto.operator,
           to: validPoolId.address,
           method: methodAbi,
-          params: [dto.to, dto.amount, encodeHex(dto.data ?? '')],
+          params: [
+            dto.to,
+            this.getAmountOrTokenID(dto, validPoolId.type),
+            encodeHex(dto.data ?? ''),
+          ],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -247,7 +265,12 @@ export class TokensService {
           from: dto.operator,
           to: validPoolId.address,
           method: methodAbi,
-          params: [dto.from, dto.to, dto.amount, encodeHex(dto.data ?? '')],
+          params: [
+            dto.from,
+            dto.to,
+            this.getAmountOrTokenID(dto, validPoolId.type),
+            encodeHex(dto.data ?? ''),
+          ],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -268,7 +291,11 @@ export class TokensService {
           from: dto.operator,
           to: validPoolId.address,
           method: methodAbi,
-          params: [dto.from, dto.amount, encodeHex(dto.data ?? '')],
+          params: [
+            dto.from,
+            this.getAmountOrTokenID(dto, validPoolId.type),
+            encodeHex(dto.data ?? ''),
+          ],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -293,7 +320,7 @@ export class TokensService {
 class TokenListener implements EventListener {
   private readonly logger = new Logger(TokenListener.name);
 
-  constructor(private readonly service: TokensService, private topic: string) {}
+  constructor(private readonly service: TokensService) {}
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     switch (event.signature) {
@@ -308,13 +335,36 @@ class TokenListener implements EventListener {
     }
   }
 
-  private transformTransferEvent(
+  private async getTokenUri(
+    tokenIdx: string,
+    operator: string,
+    contractAddress: string,
+  ): Promise<string> {
+    const methodABI = standardAbiMap.ERC721WithData.find(method => method.name === 'tokenURI');
+
+    const response = await lastValueFrom(
+      this.service.http.post<EthConnectReturn>(
+        `${this.service.baseUrl}?`,
+        {
+          from: operator,
+          to: contractAddress,
+          method: methodABI,
+          params: [tokenIdx],
+        } as EthConnectMsgRequest,
+        this.postOptions(operator),
+      ),
+    );
+
+    return response.data.output;
+  }
+
+  private async transformTransferEvent(
     subName: string,
     event: TransferEvent,
     eventIndex?: number,
-  ): WebSocketMessage | undefined {
+  ): Promise<WebSocketMessage | undefined> {
     const { data } = event;
-    const unpackedSub = unpackSubscriptionName(this.topic, subName);
+    const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
     if (data.from === ZERO_ADDRESS && data.to === ZERO_ADDRESS) {
@@ -335,11 +385,15 @@ class TokenListener implements EventListener {
       transferId += '/' + eventIndex.toString(10).padStart(6, '0');
     }
 
+    const validPool = new URLSearchParams(unpackedSub.poolId);
+    const address = validPool.get(EncodedPoolIdEnum.Address);
+    const poolType = validPool.get(EncodedPoolIdEnum.Type);
+
     const commonData = {
       id: transferId,
-      type: TokenType.FUNGIBLE,
+      type: poolType,
       poolId: unpackedSub.poolId,
-      amount: data.value,
+      amount: poolType === TokenType.FUNGIBLE ? data.value : '1',
       operator: event.inputSigner,
       data: decodedData,
       timestamp: event.timestamp,
@@ -352,6 +406,11 @@ class TokenListener implements EventListener {
         signature: event.signature,
       },
     } as TokenTransferEvent;
+
+    if (poolType === TokenType.NONFUNGIBLE && data.tokenId !== undefined) {
+      commonData.tokenIndex = data.tokenId;
+      commonData.uri = await this.getTokenUri(data.tokenId, event.inputSigner ?? '', address ?? '');
+    }
 
     if (data.from === ZERO_ADDRESS) {
       return {
@@ -369,5 +428,21 @@ class TokenListener implements EventListener {
         data: { ...commonData, from: data.from, to: data.to } as TokenTransferEvent,
       };
     }
+  }
+  private postOptions(operator: string) {
+    const from = `${this.service.shortPrefix}-from`;
+    const sync = `${this.service.shortPrefix}-sync`;
+    const call = `${this.service.shortPrefix}-call`;
+
+    const requestOptions: AxiosRequestConfig = {
+      params: {
+        [from]: operator,
+        [sync]: 'false',
+        [call]: 'true',
+      },
+      ...basicAuth(this.service.username, this.service.password),
+    };
+
+    return requestOptions;
   }
 }

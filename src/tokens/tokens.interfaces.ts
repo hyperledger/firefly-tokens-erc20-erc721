@@ -143,8 +143,12 @@ export class TokenPoolActivate {
 
 export class TokenTransfer {
   @ApiProperty()
-  @IsNotEmpty()
-  amount: string;
+  @IsOptional()
+  amount?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  tokenId?: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -206,16 +210,22 @@ export class TokenPoolEvent extends tokenEventBase {
 
 export class TokenTransferEvent extends tokenEventBase {
   @ApiProperty()
-  amount: string;
+  id: string;
+
+  @ApiProperty()
+  tokenIndex?: string;
 
   @ApiProperty()
   from: string;
 
   @ApiProperty()
-  id: string;
+  to: string;
 
   @ApiProperty()
-  to: string;
+  amount: string;
+
+  @ApiProperty()
+  uri?: string;
 }
 
 export class TokenMintEvent extends OmitType(TokenTransferEvent, ['from']) {}
@@ -251,11 +261,11 @@ export interface IAbiInput {
 
 export interface IAbiMethod {
   anonymous?: boolean;
-  inputs: IAbiInput[];
+  inputs?: IAbiInput[];
   outputs?: any[];
   stateMutability?: string;
-  name: string;
-  type: string;
+  name?: string;
+  type?: string;
 }
 
 export interface EthConnectMsgRequest {
