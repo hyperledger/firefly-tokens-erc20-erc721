@@ -238,6 +238,8 @@ export class EventStreamService {
     streamId: string,
     event: string,
     name: string,
+    address: string,
+    methods: IAbiMethod[],
     fromBlock = '0', // subscribe from the start of the chain by default
   ): Promise<EventStreamSubscription> {
     const response = await lastValueFrom(
@@ -248,6 +250,8 @@ export class EventStreamService {
           stream: streamId,
           fromBlock,
           event: methodABI,
+          address,
+          methods,
         },
         {
           ...basicAuth(this.username, this.password),
@@ -264,6 +268,8 @@ export class EventStreamService {
     streamId: string,
     event: string,
     name: string,
+    contractAddress: string,
+    possibleABIs: IAbiMethod[],
     fromBlock = '0', // subscribe from the start of the chain by default
   ): Promise<EventStreamSubscription> {
     const existingSubscriptions = await this.getSubscriptions();
@@ -272,7 +278,16 @@ export class EventStreamService {
       this.logger.log(`Existing subscription for ${event}: ${sub.id}`);
       return sub;
     }
-    return this.createSubscription(instancePath, methodABI, streamId, event, name, fromBlock);
+    return this.createSubscription(
+      instancePath,
+      methodABI,
+      streamId,
+      event,
+      name,
+      contractAddress,
+      possibleABIs,
+      fromBlock,
+    );
   }
 
   connect(

@@ -43,14 +43,11 @@ export class AsyncResponse {
 }
 
 export enum ContractStandardEnum {
-  ERC20 = 'ERC20',
   ERC20WithData = 'ERC20WithData',
-  ERC721 = 'ERC721',
   ERC721WithData = 'ERC721WithData',
 }
 
 export enum ContractMethodEnum {
-  ERC20WithDataCreate = 'create',
   ERC20WithDataMintWithData = 'mintWithData',
   ERC20WithDataTransferWithData = 'transferWithData',
   ERC20WithDataBurnWithData = 'burnWithData',
@@ -60,6 +57,12 @@ export enum EncodedPoolIdEnum {
   Address = 'address',
   Standard = 'standard',
   Type = 'type',
+}
+
+export interface IPoolId {
+  address: string;
+  standard: string;
+  type: string;
 }
 
 export enum TokenType {
@@ -162,7 +165,7 @@ export class TokenBalance {
   balance: string;
 }
 
-export class TokenTransfer {
+export class Transfer {
   @ApiProperty()
   @IsNotEmpty()
   amount: string;
@@ -192,8 +195,9 @@ export class TokenTransfer {
   requestId?: string;
 }
 
-export class TokenMint extends OmitType(TokenTransfer, ['from']) {}
-export class TokenBurn extends OmitType(TokenTransfer, ['to']) {}
+export class TokenMint extends OmitType(Transfer, ['from']) {}
+export class TokenTransfer extends OmitType(Transfer, ['from']) {}
+export class TokenBurn extends OmitType(Transfer, ['to']) {}
 
 // Websocket notifications
 
@@ -283,7 +287,7 @@ export interface EthConnectMsgRequest {
   headers: {
     type: string;
   };
-  from: string;
+  from?: string;
   to: string;
   method: IAbiMethod;
   params: any[];
