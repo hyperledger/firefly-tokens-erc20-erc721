@@ -148,7 +148,7 @@ export class TokenTransfer {
 
   @ApiProperty()
   @IsOptional()
-  tokenId?: string;
+  tokenIndex?: string;
 
   @ApiProperty()
   @IsNotEmpty()

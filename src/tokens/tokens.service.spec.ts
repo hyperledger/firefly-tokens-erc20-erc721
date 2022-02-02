@@ -310,9 +310,22 @@ describe('TokensService', () => {
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
+    it('should not mint ERC721 token due to invalid amount', async () => {
+      const request: TokenMint = {
+        amount: '2',
+        tokenIndex: '721',
+        operator: IDENTITY,
+        poolId: ERC721_POOL_ID,
+        to: '0x123',
+      };
+      await expect(service.mint(request)).rejects.toThrowError(
+        new HttpException('Amount for nonfungible tokens must be 1', HttpStatus.BAD_REQUEST),
+      );
+    });
+
     it('should mint ERC721 token with correct abi and inputs', async () => {
       const request: TokenMint = {
-        tokenId: '721',
+        tokenIndex: '721',
         operator: IDENTITY,
         poolId: ERC721_POOL_ID,
         to: '0x123',
@@ -377,7 +390,7 @@ describe('TokensService', () => {
 
     it('should transfer ERC721 token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
-        tokenId: '721',
+        tokenIndex: '721',
         operator: IDENTITY,
         poolId: ERC721_POOL_ID,
         from: IDENTITY,
@@ -440,7 +453,7 @@ describe('TokensService', () => {
 
     it('should burn ERC721 token with correct abi and inputs', async () => {
       const request: TokenBurn = {
-        tokenId: '721',
+        tokenIndex: '721',
         operator: IDENTITY,
         poolId: ERC721_POOL_ID,
         from: IDENTITY,

@@ -262,7 +262,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
 
   it('Mint ERC721 token', async () => {
     const request: TokenMint = {
-      tokenId: '721',
+      tokenIndex: '721',
       operator: IDENTITY,
       poolId: ERC721_POOL_ID,
       to: '0x123',
@@ -327,7 +327,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
 
   it('Transfer ERC721 token', async () => {
     const request: TokenTransfer = {
-      tokenId: '721',
+      tokenIndex: '721',
       operator: IDENTITY,
       poolId: ERC721_POOL_ID,
       to: '0x123',
@@ -392,7 +392,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
 
   it('Burn ERC721 token', async () => {
     const request: TokenBurn = {
-      tokenId: '721',
+      tokenIndex: '721',
       operator: IDENTITY,
       poolId: ERC721_POOL_ID,
       from: IDENTITY,

@@ -125,7 +125,15 @@ export class TokensService {
     dto: TokenMint | TokenTransfer | TokenBurn,
     type: TokenType,
   ): string | undefined {
-    return type === TokenType.FUNGIBLE ? dto.amount : dto.tokenId;
+    if (type === TokenType.FUNGIBLE) {
+      return dto.amount;
+    }
+
+    if (dto.amount !== undefined && dto.amount !== '1') {
+      throw new HttpException('Amount for nonfungible tokens must be 1', HttpStatus.BAD_REQUEST);
+    }
+
+    return dto.tokenIndex;
   }
 
   private validatePoolId(poolId: URLSearchParams): ITokenPool {
