@@ -28,6 +28,11 @@ export const mockTransferWithDataABI: IAbiMethod = {
   inputs: [
     {
       internalType: 'address',
+      name: 'from',
+      type: 'address',
+    },
+    {
+      internalType: 'address',
       name: 'to',
       type: 'address',
     },
@@ -50,6 +55,11 @@ export const mockTransferWithDataABI: IAbiMethod = {
 
 export const mockBurnWithDataABI: IAbiMethod = {
   inputs: [
+    {
+      internalType: 'address',
+      name: 'from',
+      type: 'address',
+    },
     {
       internalType: 'uint256',
       name: 'amount',

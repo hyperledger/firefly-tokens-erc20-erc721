@@ -37,6 +37,5 @@ lerna-debug.log*
 # Solidity
 solidity/node_modules
 solidity/artifacts
-solidity/build
 solidity/cache
 solidity/typechain

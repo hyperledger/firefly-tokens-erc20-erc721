@@ -17,7 +17,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
-import * as WebSocket from 'ws';
+import WebSocket from 'ws';
 import { IAbiMethod } from '../tokens/tokens.interfaces';
 import { basicAuth } from '../utils';
 import {
@@ -264,7 +264,7 @@ export class EventStreamService {
 
   async getOrCreateSubscription(
     instancePath: string,
-    methodABI: IAbiMethod,
+    eventABI: IAbiMethod,
     streamId: string,
     event: string,
     name: string,
@@ -280,7 +280,7 @@ export class EventStreamService {
     }
     return this.createSubscription(
       instancePath,
-      methodABI,
+      eventABI,
       streamId,
       event,
       name,

@@ -320,6 +320,7 @@ describe('TokensService', () => {
         amount: '10',
         operator: IDENTITY,
         poolId: POOL_ID,
+        from: IDENTITY,
         to: '0x123',
       };
 
@@ -330,7 +331,7 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: mockTransferWithDataABI,
-        params: ['0x123', '10', '0x00'],
+        params: [IDENTITY, '0x123', '10', '0x00'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -350,7 +351,7 @@ describe('TokensService', () => {
         amount: '10',
         operator: IDENTITY,
         poolId: POOL_ID,
-        from: '0x123',
+        from: IDENTITY,
       };
 
       const mockEthConnectRequest: EthConnectMsgRequest = {
@@ -360,7 +361,7 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: mockBurnWithDataABI,
-        params: ['10', '0x00'],
+        params: [IDENTITY, '10', '0x00'],
       };
 
       const response: EthConnectAsyncResponse = {

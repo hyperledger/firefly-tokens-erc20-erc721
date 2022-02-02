@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { IsDefined, IsNotEmpty, IsOptional } from 'class-validator';
 
 // Ethconnect interfaces
 export interface EthConnectAsyncResponse {
@@ -100,14 +100,14 @@ export class TokenPool {
   type: TokenType;
 
   @ApiProperty({ description: contractConfigDescription })
-  @IsOptional()
+  @IsDefined()
   config: {
     address: string;
   };
 
   @ApiProperty()
   @IsOptional()
-  data: any;
+  data?: string;
 
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
@@ -165,7 +165,7 @@ export class TokenBalance {
   balance: string;
 }
 
-export class Transfer {
+export class TokenTransfer {
   @ApiProperty()
   @IsNotEmpty()
   amount: string;
@@ -195,9 +195,8 @@ export class Transfer {
   requestId?: string;
 }
 
-export class TokenMint extends OmitType(Transfer, ['from']) {}
-export class TokenTransfer extends OmitType(Transfer, ['from']) {}
-export class TokenBurn extends OmitType(Transfer, ['to']) {}
+export class TokenMint extends OmitType(TokenTransfer, ['from']) {}
+export class TokenBurn extends OmitType(TokenTransfer, ['to']) {}
 
 // Websocket notifications
 
@@ -221,7 +220,7 @@ class tokenEventBase {
   transaction?: BlockchainTransaction;
 
   @ApiProperty()
-  type: string;
+  type: TokenType;
 }
 
 export class TokenPoolEvent extends tokenEventBase {

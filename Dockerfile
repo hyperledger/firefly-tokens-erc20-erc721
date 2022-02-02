@@ -1,3 +1,7 @@
+FROM node:14-alpine3.11 AS solidity-builder
+WORKDIR /root
+ADD solidity/build/ ./
+
 FROM node:14-alpine3.11
 RUN apk add curl
 WORKDIR /root

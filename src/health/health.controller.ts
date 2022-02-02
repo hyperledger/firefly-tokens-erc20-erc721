@@ -23,12 +23,6 @@ export class HealthController {
     return this.health.check([
       () =>
         this.http.pingCheck(
-          'ethconnect-instance',
-          this.tokensService.baseUrl,
-          basicAuth(this.tokensService.username, this.tokensService.password),
-        ),
-      () =>
-        this.http.pingCheck(
           'ethconnect-contract',
           this.tokensService.baseUrl,
           basicAuth(this.tokensService.username, this.tokensService.password),

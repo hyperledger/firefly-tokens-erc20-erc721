@@ -43,7 +43,8 @@ export class TokensController {
   @Post('createpool')
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Confirm and activate token pool',
+    summary: 'Register a new ERC20 or ERC721 contract',
+    description: 'The contract must be deployed on-chain before calling this method',
   })
   @ApiBody({ type: TokenPool })
   @ApiResponse({ status: 202, type: AsyncResponse })
@@ -55,11 +56,10 @@ export class TokensController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Activate a token pool to begin receiving transfer events',
-    description: 'Will retrigger the token-pool event for this pool as a side-effect',
   })
   @ApiBody({ type: TokenPoolActivate })
-  async activatePool(@Body() dto: TokenPoolActivate) {
-    return await this.service.activatePool(dto);
+  activatePool(@Body() dto: TokenPoolActivate) {
+    return this.service.activatePool(dto);
   }
 
   @Post('mint')
