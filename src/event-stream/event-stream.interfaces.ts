@@ -41,7 +41,8 @@ export interface TransferEvent extends Event {
   data: {
     from: string;
     to: string;
-    value: string;
+    value?: string;
+    tokenId?: string;
   };
 }
 

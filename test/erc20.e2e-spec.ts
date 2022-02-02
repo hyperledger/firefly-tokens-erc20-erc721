@@ -22,11 +22,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AxiosResponse } from 'axios';
 import { Observer } from 'rxjs';
 import request from 'superwstest';
+import ERC20WithDataABI from '../solidity/build/contracts/ERC20WithData.json';
+import ERC721WithDataABI from '../solidity/build/contracts/ERC721WithData.json';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import {
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
+  IAbiMethod,
   TokenBurn,
   TokenMint,
   TokenPool,
@@ -36,7 +39,6 @@ import {
 } from '../src/tokens/tokens.interfaces';
 import { TokensService } from '../src/tokens/tokens.service';
 import { AppModule } from './../src/app.module';
-import { mockBurnWithDataABI, mockMintWithDataABI, mockTransferWithDataABI } from './constants';
 
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
@@ -55,7 +57,18 @@ const TX = 'tx123';
 const NAME = 'abcTest';
 const SYMBOL = 'abc';
 const ERC20_STANDARD = 'ERC20WithData';
-const POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`;
+const ERC20_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`;
+const ERC721_STANDARD = 'ERC721WithData';
+const ERC721_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
+
+const MINT_WITH_DATA = 'mintWithData';
+const TRANSFER_WITH_DATA = 'transferWithData';
+const BURN_WITH_DATA = 'burnWithData';
+
+const standardAbiMap = {
+  ERC20WithData: ERC20WithDataABI.abi as IAbiMethod[],
+  ERC721WithData: ERC721WithDataABI.abi as IAbiMethod[],
+};
 
 class FakeObservable<T> {
   constructor(public data: T) {}
@@ -73,7 +86,7 @@ class FakeObservable<T> {
   }
 }
 
-describe('AppController - ERC20 (e2e)', () => {
+describe('AppController - ERC20/ERC721 (e2e)', () => {
   let app: INestApplication;
   let server: ReturnType<typeof request>;
   let http: {
@@ -145,7 +158,7 @@ describe('AppController - ERC20 (e2e)', () => {
     expect(response.body).toEqual(expectedResponse);
   });
 
-  it('Create pool - correct fields', async () => {
+  it('Create ERC20 pool - correct fields', async () => {
     const request: TokenPool = {
       type: TokenType.FUNGIBLE,
       requestId: REQUEST,
@@ -162,6 +175,31 @@ describe('AppController - ERC20 (e2e)', () => {
       standard: ERC20_STANDARD,
       timestamp: expect.any(String),
       type: TokenType.FUNGIBLE,
+    });
+
+    http.get = jest.fn(() => new FakeObservable(expectedResponse));
+
+    const response = await server.post('/createpool').send(request).expect(200);
+    expect(response.body).toEqual(expectedResponse);
+  });
+
+  it('Create ERC721 pool - correct fields', async () => {
+    const request: TokenPool = {
+      type: TokenType.NONFUNGIBLE,
+      requestId: REQUEST,
+      operator: IDENTITY,
+      data: `{"tx":${TX}}`,
+      config: { address: CONTRACT_ADDRESS },
+      name: NAME,
+      symbol: SYMBOL,
+    };
+
+    const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      data: `{"tx":${TX}}`,
+      poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC721_STANDARD}&type=${TokenType.NONFUNGIBLE}`,
+      standard: ERC721_STANDARD,
+      timestamp: expect.any(String),
+      type: TokenType.NONFUNGIBLE,
     });
 
     http.get = jest.fn(() => new FakeObservable(expectedResponse));
@@ -193,9 +231,9 @@ describe('AppController - ERC20 (e2e)', () => {
 
   it('Mint ERC20 token', async () => {
     const request: TokenMint = {
-      amount: '10',
+      amount: '20',
       operator: IDENTITY,
-      poolId: POOL_ID,
+      poolId: ERC20_POOL_ID,
       to: '0x123',
     };
 
@@ -205,8 +243,8 @@ describe('AppController - ERC20 (e2e)', () => {
       },
       from: IDENTITY,
       to: CONTRACT_ADDRESS,
-      method: mockMintWithDataABI,
-      params: ['0x123', '10', '0x00'],
+      method: standardAbiMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
+      params: ['0x123', '20', '0x00'],
     };
 
     const response: EthConnectAsyncResponse = {
@@ -222,11 +260,42 @@ describe('AppController - ERC20 (e2e)', () => {
     expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
   });
 
-  it('Transfer token', async () => {
-    const request: TokenTransfer = {
-      amount: '10',
+  it('Mint ERC721 token', async () => {
+    const request: TokenMint = {
+      tokenIndex: '721',
       operator: IDENTITY,
-      poolId: POOL_ID,
+      poolId: ERC721_POOL_ID,
+      to: '0x123',
+    };
+
+    const mockEthConnectRequest: EthConnectMsgRequest = {
+      headers: {
+        type: 'SendTransaction',
+      },
+      from: IDENTITY,
+      to: CONTRACT_ADDRESS,
+      method: standardAbiMap.ERC721WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
+      params: ['0x123', '721', '0x00'],
+    };
+
+    const response: EthConnectAsyncResponse = {
+      id: 'responseId',
+      sent: true,
+    };
+
+    http.post = jest.fn(() => new FakeObservable(response));
+
+    await server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
+
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+  });
+
+  it('Transfer ERC20 token', async () => {
+    const request: TokenTransfer = {
+      amount: '20',
+      operator: IDENTITY,
+      poolId: ERC20_POOL_ID,
       to: '0x123',
       from: IDENTITY,
     };
@@ -237,8 +306,10 @@ describe('AppController - ERC20 (e2e)', () => {
       },
       from: IDENTITY,
       to: CONTRACT_ADDRESS,
-      method: mockTransferWithDataABI,
-      params: [IDENTITY, '0x123', '10', '0x00'],
+      method: standardAbiMap.ERC20WithData.find(
+        abi => abi.name === TRANSFER_WITH_DATA,
+      ) as IAbiMethod,
+      params: [IDENTITY, '0x123', '20', '0x00'],
     };
 
     const response: EthConnectAsyncResponse = {
@@ -254,11 +325,12 @@ describe('AppController - ERC20 (e2e)', () => {
     expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
   });
 
-  it('Burn token', async () => {
-    const request: TokenBurn = {
-      amount: '10',
+  it('Transfer ERC721 token', async () => {
+    const request: TokenTransfer = {
+      tokenIndex: '721',
       operator: IDENTITY,
-      poolId: POOL_ID,
+      poolId: ERC721_POOL_ID,
+      to: '0x123',
       from: IDENTITY,
     };
 
@@ -268,8 +340,72 @@ describe('AppController - ERC20 (e2e)', () => {
       },
       from: IDENTITY,
       to: CONTRACT_ADDRESS,
-      method: mockBurnWithDataABI,
-      params: [IDENTITY, '10', '0x00'],
+      method: standardAbiMap.ERC721WithData.find(
+        abi => abi.name === TRANSFER_WITH_DATA,
+      ) as IAbiMethod,
+      params: [IDENTITY, '0x123', '721', '0x00'],
+    };
+
+    const response: EthConnectAsyncResponse = {
+      id: 'responseId',
+      sent: true,
+    };
+
+    http.post = jest.fn(() => new FakeObservable(response));
+
+    await server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
+
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+  });
+
+  it('Burn ERC20 token', async () => {
+    const request: TokenBurn = {
+      amount: '20',
+      operator: IDENTITY,
+      poolId: ERC20_POOL_ID,
+      from: IDENTITY,
+    };
+
+    const mockEthConnectRequest: EthConnectMsgRequest = {
+      headers: {
+        type: 'SendTransaction',
+      },
+      from: IDENTITY,
+      to: CONTRACT_ADDRESS,
+      method: standardAbiMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
+      params: [IDENTITY, '20', '0x00'],
+    };
+
+    const response: EthConnectAsyncResponse = {
+      id: 'responseId',
+      sent: true,
+    };
+
+    http.post = jest.fn(() => new FakeObservable(response));
+
+    await server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
+
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+  });
+
+  it('Burn ERC721 token', async () => {
+    const request: TokenBurn = {
+      tokenIndex: '721',
+      operator: IDENTITY,
+      poolId: ERC721_POOL_ID,
+      from: IDENTITY,
+    };
+
+    const mockEthConnectRequest: EthConnectMsgRequest = {
+      headers: {
+        type: 'SendTransaction',
+      },
+      from: IDENTITY,
+      to: CONTRACT_ADDRESS,
+      method: standardAbiMap.ERC721WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
+      params: [IDENTITY, '721', '0x00'],
     };
 
     const response: EthConnectAsyncResponse = {
