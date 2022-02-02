@@ -359,7 +359,7 @@ class TokenListener implements EventListener {
           method: methodABI,
           params: [tokenIdx],
         } as EthConnectMsgRequest,
-        this.postOptions(operator),
+        this.postOptions(operator, true),
       ),
     );
 
@@ -437,7 +437,7 @@ class TokenListener implements EventListener {
       };
     }
   }
-  private postOptions(operator: string) {
+  private postOptions(operator: string, callValue: boolean) {
     const from = `${this.service.shortPrefix}-from`;
     const sync = `${this.service.shortPrefix}-sync`;
     const call = `${this.service.shortPrefix}-call`;
@@ -446,7 +446,7 @@ class TokenListener implements EventListener {
       params: {
         [from]: operator,
         [sync]: 'false',
-        [call]: 'true',
+        [call]: callValue ? 'true' : 'false',
       },
       ...basicAuth(this.service.username, this.service.password),
     };

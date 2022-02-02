@@ -34,7 +34,7 @@ contract ERC721WithData is Context, Ownable, ERC721 {
         uint256 tokenId,
         bytes calldata data
     ) external {
-        require(from == _msgSender(), 'ERC20WithData: caller is not owner');
+        require(from == _msgSender(), 'ERC721WithData: caller is not owner');
         _burn(tokenId);
     }
 
