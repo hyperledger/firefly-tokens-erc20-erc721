@@ -351,16 +351,15 @@ class TokenListener implements EventListener {
     const methodABI = standardAbiMap.ERC721WithData.find(method => method.name === 'tokenURI');
 
     const response = await lastValueFrom(
-      this.service.http.post<EthConnectReturn>(
-        `${this.service.baseUrl}?`,
-        {
-          from: operator,
-          to: contractAddress,
-          method: methodABI,
-          params: [tokenIdx],
-        } as EthConnectMsgRequest,
-        this.postOptions(operator, true),
-      ),
+      this.service.http.post<EthConnectReturn>(`${this.service.baseUrl}?`, {
+        headers: {
+          type: 'Query',
+        },
+        from: operator,
+        to: contractAddress,
+        method: methodABI,
+        params: [tokenIdx],
+      } as EthConnectMsgRequest),
     );
 
     return response.data.output;
@@ -436,21 +435,5 @@ class TokenListener implements EventListener {
         data: { ...commonData, from: data.from, to: data.to } as TokenTransferEvent,
       };
     }
-  }
-  private postOptions(operator: string, callValue: boolean) {
-    const from = `${this.service.shortPrefix}-from`;
-    const sync = `${this.service.shortPrefix}-sync`;
-    const call = `${this.service.shortPrefix}-call`;
-
-    const requestOptions: AxiosRequestConfig = {
-      params: {
-        [from]: operator,
-        [sync]: 'false',
-        [call]: callValue ? 'true' : 'false',
-      },
-      ...basicAuth(this.service.username, this.service.password),
-    };
-
-    return requestOptions;
   }
 }
