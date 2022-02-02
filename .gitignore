@@ -10,9 +10,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Solidity Build
-solidity/build
-
 # OS
 .DS_Store
 
@@ -40,5 +37,6 @@ solidity/build
 # Solidity
 solidity/node_modules
 solidity/artifacts
-solidity/typechain
+solidity/build
 solidity/cache
+solidity/typechain
