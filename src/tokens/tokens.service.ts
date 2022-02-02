@@ -36,7 +36,6 @@ import {
   ContractStandardEnum,
   EncodedPoolIdEnum,
   EthConnectAsyncResponse,
-  EthConnectContractsResponse,
   EthConnectMsgRequest,
   IAbiMethod,
   ITokenPool,
@@ -156,19 +155,7 @@ export class TokensService {
     return requestOptions;
   }
 
-  async createPool(dto: TokenPool): Promise<TokenPoolEvent> {
-    // Type must be 'fungible' or 'nonfungible'
-    if (!Object.values(TokenType).includes(dto.type)) {
-      throw new HttpException('Type must be fungible or nonfungible', HttpStatus.NOT_FOUND);
-    }
-    // Confirm that contract exists on chain
-    const response = await lastValueFrom(
-      this.http.get<EthConnectContractsResponse>(`${this.baseUrl}/contracts/${dto.config.address}`),
-    );
-    if (response.status === 404) {
-      throw new HttpException('Contract address not found', HttpStatus.NOT_FOUND);
-    }
-
+  createPool(dto: TokenPool): TokenPoolEvent {
     const poolId = new URLSearchParams({
       address: dto.config.address,
       standard: dto.type === TokenType.FUNGIBLE ? 'ERC20WithData' : 'ERC721WithData',
@@ -364,7 +351,6 @@ class TokenListener implements EventListener {
       logIndex.padStart(6, '0'),
     ].join('/');
     if (eventIndex !== undefined) {
-      transferId += `.${eventIndex}`;
       transferId += '/' + eventIndex.toString(10).padStart(6, '0');
     }
 
@@ -372,7 +358,7 @@ class TokenListener implements EventListener {
       id: transferId,
       type: TokenType.FUNGIBLE,
       poolId: unpackedSub.poolId,
-      amount: event.inputArgs.amount,
+      amount: data.value,
       operator: event.inputSigner,
       data: decodedData,
       timestamp: event.timestamp,

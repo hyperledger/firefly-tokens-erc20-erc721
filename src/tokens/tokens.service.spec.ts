@@ -138,56 +138,7 @@ describe('TokensService', () => {
   });
 
   describe('createPool()', () => {
-    it('should throw 404 exception if token type is not `fungible` or `nonfungible`', async () => {
-      const request: TokenPool = {
-        type: 'not a type' as TokenType,
-        requestId: REQUEST,
-        operator: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: NAME,
-        symbol: SYMBOL,
-      };
-      await expect(service.createPool(request)).rejects.toThrowError(
-        new HttpException('Type must be fungible or nonfungible', HttpStatus.NOT_FOUND),
-      );
-    });
-
-    it('should throw 404 exception if contract does not exist on chain', async () => {
-      const request: TokenPool = {
-        type: TokenType.FUNGIBLE,
-        requestId: REQUEST,
-        operator: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: NAME,
-        symbol: SYMBOL,
-      };
-      const response: EthConnectContractsResponse = {
-        created: 'created',
-        address: CONTRACT_ADDRESS,
-        path: `contracts/${CONTRACT_ADDRESS}`,
-        abi: '123',
-        openapi: `contracts/${CONTRACT_ADDRESS}?swagger`,
-        registeredAs: '',
-      };
-
-      jest.spyOn(http, 'get').mockReturnValue(
-        of({
-          data: response,
-          status: 404,
-          statusText: 'Not Found',
-          headers: undefined,
-          config: undefined,
-        } as AxiosResponse),
-      );
-
-      await expect(service.createPool(request)).rejects.toThrowError(
-        new HttpException('Contract address not found', HttpStatus.NOT_FOUND),
-      );
-    });
-
-    it('should return pool details successfully', async () => {
+    it('should return pool details successfully', () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
@@ -216,7 +167,7 @@ describe('TokensService', () => {
         } as AxiosResponse),
       );
 
-      await expect(service.createPool(request)).resolves.toEqual({
+      expect(service.createPool(request)).toEqual({
         data: `{"tx":${TX}}`,
         poolId: POOL_ID,
         standard: ERC20_STANDARD,

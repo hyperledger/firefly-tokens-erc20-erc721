@@ -182,13 +182,13 @@ describe('AppController - ERC20 (e2e)', () => {
     };
 
     const response = {
-      message: 'Type must be fungible or nonfungible',
-      statusCode: 404,
+      statusCode: 400,
+      message: ['type must be a valid enum value'],
+      error: 'Bad Request',
     };
 
     http.post = jest.fn(() => new FakeObservable(response));
-    await server.post('/createpool').send(request).expect(404).expect(response);
-    expect(http.get).toHaveBeenCalledTimes(0);
+    await server.post('/createpool').send(request).expect(400).expect(response);
   });
 
   it('Mint ERC20 token', async () => {

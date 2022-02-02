@@ -56,14 +56,9 @@ export interface Event {
   logIndex: string;
   timestamp: string;
   data: any;
-  inputMethod: string;
-  inputArgs: {
-    amount: string;
-    data: string;
-    to?: string;
-    from?: string;
-  };
-  inputSigner: string;
+  inputMethod?: string;
+  inputArgs?: Record<string, any>;
+  inputSigner?: string;
 }
 
 export class EventStreamReplyHeaders {
