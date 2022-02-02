@@ -23,15 +23,6 @@ export interface EthConnectAsyncResponse {
   id: string;
 }
 
-export interface EthConnectContractsResponse {
-  created: string;
-  address: string;
-  path: string;
-  abi: string;
-  openapi: string;
-  registeredAs: string;
-}
-
 export interface EthConnectReturn {
   output: string;
 }
@@ -148,21 +139,6 @@ export class TokenPoolActivate {
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
   requestId?: string;
-}
-
-export class TokenBalanceQuery {
-  @ApiProperty()
-  @IsNotEmpty()
-  account: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  poolId: string;
-}
-
-export class TokenBalance {
-  @ApiProperty()
-  balance: string;
 }
 
 export class TokenTransfer {

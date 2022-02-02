@@ -18,7 +18,7 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { AxiosResponse } from '@nestjs/terminus/dist/health-indicator/http/axios.interfaces';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Observer, of } from 'rxjs';
+import { Observer } from 'rxjs';
 import {
   mockBalanceOfABI,
   mockBurnWithDataABI,
@@ -36,10 +36,7 @@ import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.
 import {
   AsyncResponse,
   EthConnectAsyncResponse,
-  EthConnectContractsResponse,
   EthConnectMsgRequest,
-  TokenBalance,
-  TokenBalanceQuery,
   TokenBurn,
   TokenMint,
   TokenPool,
@@ -148,24 +145,6 @@ describe('TokensService', () => {
         name: NAME,
         symbol: SYMBOL,
       };
-      const response: EthConnectContractsResponse = {
-        created: 'created',
-        address: CONTRACT_ADDRESS,
-        path: `contracts/${CONTRACT_ADDRESS}`,
-        abi: '123',
-        openapi: `contracts/${CONTRACT_ADDRESS}?swagger`,
-        registeredAs: '',
-      };
-
-      jest.spyOn(http, 'get').mockReturnValue(
-        of({
-          data: response,
-          status: 200,
-          statusText: '',
-          headers: undefined,
-          config: undefined,
-        } as AxiosResponse),
-      );
 
       expect(service.createPool(request)).toEqual({
         data: `{"tx":${TX}}`,
@@ -326,63 +305,9 @@ describe('TokensService', () => {
       } as AsyncResponse);
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
-    it('should get balance of address with correct abi and inputs', async () => {
-      const request: TokenBalanceQuery = {
-        account: IDENTITY,
-        poolId: POOL_ID,
-      };
-
-      const mockEthConnectRequest: EthConnectMsgRequest = {
-        headers: {
-          type: 'SendTransaction',
-        },
-        to: CONTRACT_ADDRESS,
-        method: mockBalanceOfABI,
-        params: [IDENTITY],
-      };
-
-      const response: EthConnectAsyncResponse = {
-        id: '10',
-        sent: true,
-      };
-
-      http.post = jest.fn(() => new FakeObservable(response));
-      await expect(service.balance(request)).resolves.toEqual({
-        balance: '10',
-      } as TokenBalance);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest);
-    });
   });
 
   describe('getters for balance/receipt/operator', () => {
-    it('should get balance of address with correct abi and inputs', async () => {
-      const request: TokenBalanceQuery = {
-        account: IDENTITY,
-        poolId: POOL_ID,
-      };
-
-      const mockEthConnectRequest: EthConnectMsgRequest = {
-        headers: {
-          type: 'SendTransaction',
-        },
-        to: CONTRACT_ADDRESS,
-        method: mockBalanceOfABI,
-        params: [IDENTITY],
-      };
-
-      const response: EthConnectAsyncResponse = {
-        id: '10',
-        sent: true,
-      };
-
-      http.post = jest.fn(() => new FakeObservable(response));
-      await expect(service.balance(request)).resolves.toEqual({
-        balance: '10',
-      } as TokenBalance);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest);
-    });
-
     it('should get receipt of id successfully', async () => {
       const response: EventStreamReply = {
         headers: {
