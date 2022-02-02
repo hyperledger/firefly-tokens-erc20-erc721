@@ -16,7 +16,7 @@ contract ERC20WithData is Context, Ownable, ERC20 {
         address to,
         uint256 amount,
         bytes calldata data
-    ) public onlyOwner {
+    ) external onlyOwner {
         _mint(to, amount);
     }
 
@@ -25,17 +25,20 @@ contract ERC20WithData is Context, Ownable, ERC20 {
         address to,
         uint256 amount,
         bytes calldata data
-    ) public {
-        require(from == _msgSender(), 'ERC20WithData: caller is not owner nor approved');
-        _transfer(from, to, amount);
+    ) external {
+        if (from == _msgSender()) {
+            transfer(to, amount);
+        } else {
+            transferFrom(from, to, amount);
+        }
     }
 
     function burnWithData(
         address from,
         uint256 amount,
         bytes calldata data
-    ) public {
-        require(from == _msgSender(), 'ERC20WithData: caller is not owner nor approved');
+    ) external {
+        require(from == _msgSender(), 'ERC20WithData: caller is not owner');
         _burn(from, amount);
     }
 }

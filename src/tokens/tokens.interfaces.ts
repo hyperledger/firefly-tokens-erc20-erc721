@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { IsDefined, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsDefined, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 
 // Ethconnect interfaces
 export interface EthConnectAsyncResponse {
@@ -95,8 +95,8 @@ export class TokenPool {
   @IsNotEmpty()
   symbol: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiProperty({ enum: TokenType })
+  @IsEnum(TokenType)
   type: TokenType;
 
   @ApiProperty({ description: contractConfigDescription })
