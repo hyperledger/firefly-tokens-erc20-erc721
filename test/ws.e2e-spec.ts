@@ -499,7 +499,7 @@ describe('WebSocket AppController (e2e)', () => {
     });
 
     const baseUriResponse: EthConnectReturn = {
-      output: ERC721_BASE_URI,
+      output: '',
     };
 
     http.post = jest.fn(() => new FakeObservable(baseUriResponse));
@@ -552,7 +552,7 @@ describe('WebSocket AppController (e2e)', () => {
         },
         type: 'nonfungible',
         tokenIndex: '721',
-        uri: ERC721_BASE_URI,
+        uri: '', // Burned tokens have no URI
       } as TokenBurnEvent,
     };
 
