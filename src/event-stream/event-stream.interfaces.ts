@@ -61,6 +61,7 @@ export interface Event {
     amount: string;
     data: string;
     to?: string;
+    from?: string;
   };
   inputSigner: string;
 }

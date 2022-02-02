@@ -19,7 +19,7 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
-import { ERC20WithDataABI } from '../contractStandards/ERC20WithDataABI';
+import ERC20WithDataABI from '../../solidity/build/contracts/ERC20WithData.json';
 import {
   Event,
   EventStream,
@@ -56,7 +56,7 @@ import {
 import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
 
 const standardAbiMap = {
-  ERC20WithData: ERC20WithDataABI as IAbiMethod[],
+  ERC20WithData: ERC20WithDataABI.abi,
 };
 
 const standardMethodMap = {
@@ -262,7 +262,7 @@ export class TokensService {
           from: dto.operator,
           to: validPoolId.address,
           method: methodAbi,
-          params: [dto.to, dto.amount, encodeHex(dto.data ?? '')],
+          params: [dto.from, dto.to, dto.amount, encodeHex(dto.data ?? '')],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -283,7 +283,7 @@ export class TokensService {
           from: dto.operator,
           to: validPoolId.address,
           method: methodAbi,
-          params: [dto.amount, encodeHex(dto.data ?? '')],
+          params: [dto.from, dto.amount, encodeHex(dto.data ?? '')],
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),

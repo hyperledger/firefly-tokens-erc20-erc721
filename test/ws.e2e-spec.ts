@@ -25,7 +25,6 @@ import {
   Event,
   EventStreamReply,
   EventStreamSubscription,
-  TokenCreateEvent,
   TransferEvent,
 } from '../src/event-stream/event-stream.interfaces';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
@@ -34,78 +33,100 @@ import { ReceiptEvent } from '../src/eventstream-proxy/eventstream-proxy.interfa
 import {
   TokenBurnEvent,
   TokenMintEvent,
-  TokenPoolEvent,
   TokenTransferEvent,
-  TokenType,
 } from '../src/tokens/tokens.interfaces';
 import { TokensService } from '../src/tokens/tokens.service';
 import { WebSocketMessage } from '../src/websocket-events/websocket-events.base';
 
 const BASE_URL = 'http://eth';
-const CONTRACT_URI = '/abis/123';
 const CONTRACT_ADDRESS = '0x123456';
-const INSTANCE_PATH = '/tokens';
-const ERC20_STANDARD = 'ERC20';
+const IDENTITY = '0x321';
 const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const tokenCreateEventSignature = 'TokenCreate(address,address,string,string,bytes)';
 const transferEventSignature = 'Transfer(address,address,uint256)';
 
-const mockTokenCreateEvent: TokenCreateEvent = {
-  subId: 'sb123',
-  signature: tokenCreateEventSignature,
-  address: 'bob',
+const mockMintTransferEvent: TransferEvent = {
+  subId: 'sb-123',
+  signature: transferEventSignature,
+  operator: 'A',
+  address: '',
   blockNumber: '1',
   transactionIndex: '0x0',
-  operator: 'bob',
   transactionHash: '0x123',
   logIndex: '1',
   timestamp: '2020-01-01 00:00:00Z',
   data: {
-    contract_address: '0x123456',
-    data: '0x00',
-    name: 'testName',
-    operator: 'bob',
-    symbol: 'testSymbol',
+    from: ZERO_ADDRESS,
+    to: 'A',
+    value: '5',
   },
+  inputMethod: 'mintWithData',
+  inputArgs: {
+    amount: '5',
+    data: '0x74657374',
+    to: 'A',
+  },
+  inputSigner: IDENTITY,
 };
 
-const mockTokenCreateWebSocketMessage: WebSocketMessage = {
-  event: 'token-pool',
-  data: <TokenPoolEvent>{
-    standard: ERC20_STANDARD,
-    poolId: CONTRACT_ADDRESS,
-    type: TokenType.FUNGIBLE,
-    operator: 'bob',
-    data: '',
-    timestamp: '2020-01-01 00:00:00Z',
-    rawOutput: {
-      contract_address: '0x123456',
-      data: '0x00',
-      name: 'testName',
-      operator: 'bob',
-      symbol: 'testSymbol',
-    },
-    transaction: {
-      logIndex: '1',
-      blockNumber: '1',
-      transactionIndex: '0x0',
-      transactionHash: '0x123',
-      signature: tokenCreateEventSignature,
-    },
+const mockTransferEvent: TransferEvent = {
+  operator: 'A',
+  subId: 'sb-123',
+  signature: transferEventSignature,
+  address: '',
+  blockNumber: '1',
+  transactionIndex: '0x0',
+  transactionHash: '0x123',
+  logIndex: '1',
+  timestamp: '2020-01-01 00:00:00Z',
+  data: {
+    from: 'A',
+    to: 'B',
+    value: '5',
   },
+  inputMethod: 'transferWithData',
+  inputArgs: {
+    amount: '5',
+    data: '0x74657374',
+    from: 'A',
+    to: 'B',
+  },
+  inputSigner: IDENTITY,
 };
 
-xdescribe('WebSocket AppController (e2e)', () => {
+const mockBurnEvent: TransferEvent = {
+  subId: 'sb-123',
+  signature: transferEventSignature,
+  address: '',
+  operator: 'A',
+  blockNumber: '1',
+  transactionIndex: '0x0',
+  transactionHash: '0x123',
+  logIndex: '1',
+  timestamp: '2020-01-01 00:00:00Z',
+  data: {
+    from: 'B',
+    to: ZERO_ADDRESS,
+    value: '5',
+  },
+  inputMethod: 'burnWithData',
+  inputArgs: {
+    amount: '5',
+    data: '0x74657374',
+    from: 'B',
+  },
+  inputSigner: IDENTITY,
+};
+
+describe('WebSocket AppController (e2e)', () => {
   let app: INestApplication;
   let server: ReturnType<typeof request>;
   let http: {
     get: ReturnType<typeof jest.fn>;
     post: ReturnType<typeof jest.fn>;
   };
-  let tokensService: TokensService;
   let eventHandler: (events: Event[]) => void;
   let receiptHandler: (receipt: EventStreamReply) => void;
 
@@ -142,7 +163,6 @@ xdescribe('WebSocket AppController (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useWebSocketAdapter(new WsAdapter(app));
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-    tokensService = moduleFixture.get<TokensService>(TokensService);
     await app.init();
 
     app.get(EventStreamProxyGateway).configure('url', TOPIC);
@@ -156,81 +176,19 @@ xdescribe('WebSocket AppController (e2e)', () => {
     await app.close();
   });
 
-  it('Websocket: token create event', () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + CONTRACT_ADDRESS,
-    });
-
-    return server
-      .ws('/api/ws')
-      .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockTokenCreateEvent]);
-      })
-      .expectJson(message => {
-        expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockTokenCreateWebSocketMessage);
-        return true;
-      });
-  });
-
-  it('Websocket: token create event from base subscription', () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':base',
-    });
-
-    return server
-      .ws('/api/ws')
-      .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockTokenCreateEvent]);
-      })
-      .expectJson(message => {
-        expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockTokenCreateWebSocketMessage);
-        return true;
-      });
-  });
-
   it('Websocket: token mint event', async () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
-    jest.spyOn(tokensService, 'getOperator').mockResolvedValueOnce('A');
-
-    const mockMintTransferEvent: TransferEvent = {
-      subId: 'sb-123',
-      signature: transferEventSignature,
-      operator: 'A',
-      address: '',
-      blockNumber: '1',
-      transactionIndex: '0x0',
-      transactionHash: '0x123',
-      logIndex: '1',
-      timestamp: '2020-01-01 00:00:00Z',
-      data: {
-        from: ZERO_ADDRESS,
-        to: 'A',
-        value: '5',
-      },
-      inputMethod: 'mintWithData',
-      inputArgs: {
-        amount: '5',
-        data: '0x74657374',
-        to: 'A',
-      },
-    };
 
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
       data: {
-        id: '1.0.1',
+        id: '000000000001/000000/000001',
         poolId: CONTRACT_ADDRESS,
         to: 'A',
         amount: '5',
-        operator: 'A',
+        operator: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
@@ -267,41 +225,16 @@ xdescribe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
-    jest.spyOn(tokensService, 'getOperator').mockResolvedValueOnce('A');
-
-    const mockTransferEvent: TransferEvent = {
-      operator: 'A',
-      subId: 'sb-123',
-      signature: transferEventSignature,
-      address: '',
-      blockNumber: '1',
-      transactionIndex: '0x0',
-      transactionHash: '0x123',
-      logIndex: '1',
-      timestamp: '2020-01-01 00:00:00Z',
-      data: {
-        from: 'A',
-        to: 'B',
-        value: '5',
-      },
-      inputMethod: 'transferWithData',
-      inputArgs: {
-        amount: '5',
-        data: '0x74657374',
-        from: 'A',
-        to: 'B',
-      },
-    };
 
     const mockTransferWebSocketMessage: WebSocketMessage = {
       event: 'token-transfer',
       data: {
-        id: '1.0.1',
+        id: '000000000001/000000/000001',
         poolId: CONTRACT_ADDRESS,
         from: 'A',
         to: 'B',
         amount: '5',
-        operator: 'A',
+        operator: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
@@ -338,39 +271,15 @@ xdescribe('WebSocket AppController (e2e)', () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
-    jest.spyOn(tokensService, 'getOperator').mockResolvedValueOnce('A');
-
-    const mockBurnEvent: TransferEvent = {
-      subId: 'sb-123',
-      signature: transferEventSignature,
-      address: '',
-      operator: 'A',
-      blockNumber: '1',
-      transactionIndex: '0x0',
-      transactionHash: '0x123',
-      logIndex: '1',
-      timestamp: '2020-01-01 00:00:00Z',
-      data: {
-        from: 'B',
-        to: ZERO_ADDRESS,
-        value: '5',
-      },
-      inputMethod: 'burnWithData',
-      inputArgs: {
-        amount: '5',
-        data: '0x74657374',
-        from: 'B',
-      },
-    };
 
     const mockBurnWebSocketMessage: WebSocketMessage = {
       event: 'token-burn',
       data: {
-        id: '1.0.1',
+        id: '000000000001/000000/000001',
         poolId: CONTRACT_ADDRESS,
         from: 'B',
         amount: '5',
-        operator: 'A',
+        operator: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
@@ -399,68 +308,6 @@ xdescribe('WebSocket AppController (e2e)', () => {
         expect(message.id).toBeDefined();
         delete message.id;
         expect(message).toEqual(mockBurnWebSocketMessage);
-        return true;
-      });
-  });
-
-  it('Websocket: ignore token creation event from another pool', () => {
-    eventstream.getSubscription
-      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
-      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
-    jest.spyOn(tokensService, 'getOperator').mockResolvedValue('A');
-    return server
-      .ws('/api/ws')
-      .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([
-          {
-            subId: 'sb123',
-            signature: tokenCreateEventSignature,
-            address: 'bob',
-            blockNumber: '1',
-            transactionIndex: '0x0',
-            operator: 'bob',
-            transactionHash: '0x123',
-            logIndex: '1',
-            timestamp: '2020-01-01 00:00:00Z',
-            data: {
-              contract_address: '0x1234560',
-              data: '0x00',
-              name: 'testName',
-              operator: 'bob',
-              symbol: 'testSymbol',
-            },
-          } as TokenCreateEvent,
-          {
-            operator: 'A',
-            subId: 'sb-123',
-            signature: transferEventSignature,
-            address: '',
-            blockNumber: '1',
-            transactionIndex: '0x0',
-            transactionHash: '0x123',
-            logIndex: '1',
-            timestamp: '2020-01-01 00:00:00Z',
-            data: {
-              from: 'A',
-              to: 'B',
-              value: '5',
-            },
-            inputMethod: 'transferWithData',
-            inputArgs: {
-              amount: '5',
-              data: '0x74657374',
-              from: 'A',
-              to: 'B',
-            },
-          } as TransferEvent,
-        ]);
-      })
-      .expectJson(message => {
-        // Only the second transfer should have been processed
-        expect(message.event).toEqual('token-transfer');
-        expect(message.data.poolId).toEqual('0x123456');
-        expect(message.data.transaction.blockNumber).toEqual('1');
         return true;
       });
   });
@@ -524,16 +371,16 @@ xdescribe('WebSocket AppController (e2e)', () => {
       .ws('/api/ws')
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([mockTokenCreateEvent]);
+        eventHandler([mockMintTransferEvent]);
       })
       .expectJson(message => {
-        expect(message.event).toEqual('token-pool');
+        expect(message.event).toEqual('token-mint');
         return true;
       })
       .close();
 
     await server.ws('/api/ws').expectJson(message => {
-      expect(message.event).toEqual('token-pool');
+      expect(message.event).toEqual('token-mint');
       return true;
     });
   });
@@ -549,16 +396,16 @@ xdescribe('WebSocket AppController (e2e)', () => {
     await ws1
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([mockTokenCreateEvent]);
+        eventHandler([mockMintTransferEvent]);
       })
       .expectJson(message => {
-        expect(message.event).toEqual('token-pool');
+        expect(message.event).toEqual('token-mint');
         return true;
       })
       .close();
 
     await ws2.expectJson(message => {
-      expect(message.event).toEqual('token-pool');
+      expect(message.event).toEqual('token-mint');
       return true;
     });
   });
@@ -579,12 +426,18 @@ xdescribe('WebSocket AppController (e2e)', () => {
         to: 'A',
         value: '5',
       },
+      inputMethod: 'mintWithData',
+      inputArgs: {
+        amount: '5',
+        data: '0x74657374',
+        to: 'A',
+      },
+      inputSigner: IDENTITY,
     };
 
     eventstream.getSubscription
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
-    jest.spyOn(tokensService, 'getOperator').mockResolvedValueOnce('A');
 
     const ws1 = server.ws('/api/ws');
     const ws2 = server.ws('/api/ws');
@@ -593,10 +446,10 @@ xdescribe('WebSocket AppController (e2e)', () => {
     await ws1
       .exec(() => {
         expect(eventHandler).toBeDefined();
-        eventHandler([mockTokenCreateEvent, tokenMintMessage]);
+        eventHandler([mockTransferEvent, tokenMintMessage]);
       })
       .expectJson(message => {
-        expect(message.event).toEqual('token-pool');
+        expect(message.event).toEqual('token-transfer');
         messageID1 = message.id;
         return true;
       })
