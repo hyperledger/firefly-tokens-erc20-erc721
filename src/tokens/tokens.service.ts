@@ -349,20 +349,23 @@ class TokenListener implements EventListener {
     contractAddress: string,
   ): Promise<string> {
     const methodABI = standardAbiMap.ERC721WithData.find(method => method.name === 'tokenURI');
-
-    const response = await lastValueFrom(
-      this.service.http.post<EthConnectReturn>(`${this.service.baseUrl}?`, {
-        headers: {
-          type: 'Query',
-        },
-        from: operator,
-        to: contractAddress,
-        method: methodABI,
-        params: [tokenIdx],
-      } as EthConnectMsgRequest),
-    );
-
-    return response.data.output;
+    try {
+      const response = await lastValueFrom(
+        this.service.http.post<EthConnectReturn>(`${this.service.baseUrl}?`, {
+          headers: {
+            type: 'Query',
+          },
+          from: operator,
+          to: contractAddress,
+          method: methodABI,
+          params: [tokenIdx],
+        } as EthConnectMsgRequest),
+      );
+      return response.data.output;
+    } catch (e) {
+      this.logger.log(`Burned tokens do not have a URI: ${e}`);
+      return '';
+    }
   }
 
   private async transformTransferEvent(
