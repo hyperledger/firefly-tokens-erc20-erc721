@@ -19,3 +19,6 @@ jobs:
       - run: npm ci
       - run: npm run test
       - run: npm run test:e2e
+      - run: cd solidity
+      - run: npm ci
+      - run: npm run test

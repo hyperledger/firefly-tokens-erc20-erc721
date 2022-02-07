@@ -94,6 +94,7 @@ export class TokenPool {
   @IsDefined()
   config: {
     address: string;
+    withData?: boolean;
   };
 
   @ApiProperty()

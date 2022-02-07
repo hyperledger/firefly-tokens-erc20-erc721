@@ -19,7 +19,9 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
+import ERC20NoDataABI from '../../solidity/build/contracts/ERC20NoData.json';
 import ERC20WithDataABI from '../../solidity/build/contracts/ERC20WithData.json';
+import ERC721NoDataABI from '../../solidity/build/contracts/ERC721NoData.json';
 import ERC721WithDataABI from '../../solidity/build/contracts/ERC721WithData.json';
 import {
   Event,
@@ -55,15 +57,29 @@ import {
 import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
 
 export const standardAbiMap = {
+  ERC20NoData: ERC20NoDataABI.abi,
   ERC20WithData: ERC20WithDataABI.abi,
+  ERC721NoData: ERC721NoDataABI.abi,
   ERC721WithData: ERC721WithDataABI.abi,
 };
 
 const standardMethodMap = {
+  ERC20NoData: {
+    MINT: 'mintNoData',
+    TRANSFER: 'transferNoData',
+    BURN: 'burnNoData',
+    TRANSFEREVENT: 'Transfer',
+  },
   ERC20WithData: {
     MINT: 'mintWithData',
     TRANSFER: 'transferWithData',
     BURN: 'burnWithData',
+    TRANSFEREVENT: 'Transfer',
+  },
+  ERC721NoData: {
+    MINT: 'mintNoData',
+    TRANSFER: 'transferNoData',
+    BURN: 'burnNoData',
     TRANSFEREVENT: 'Transfer',
   },
   ERC721WithData: {
@@ -119,6 +135,13 @@ export class TokensService {
     const standardAbi: IAbiMethod[] = standardAbiMap[standard];
     const method = standardAbi?.find(abi => abi.name === standardMethodMap[standard][operation]);
     return method;
+  }
+
+  private getTokenStandard(type: TokenType, withData = true): string {
+    if (type === TokenType.FUNGIBLE) {
+      return withData ? 'ERC20WithData' : 'ERC20NoData';
+    }
+    return withData ? 'ERC721WithData' : 'ERC721NoData';
   }
 
   private getAmountOrTokenID(
@@ -179,7 +202,7 @@ export class TokensService {
   createPool(dto: TokenPool): TokenPoolEvent {
     const poolId = new URLSearchParams({
       address: dto.config.address,
-      standard: dto.type === TokenType.FUNGIBLE ? 'ERC20WithData' : 'ERC721WithData',
+      standard: this.getTokenStandard(dto.type, dto.config.withData),
       type: dto.type,
     });
 
@@ -237,6 +260,8 @@ export class TokensService {
     const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
     const encodedPoolId = new URLSearchParams(dto.poolId);
     const methodAbi = this.getMethodAbi(encodedPoolId, 'MINT');
+    const params = [dto.to, this.getAmountOrTokenID(dto, validPoolId.type)];
+    validPoolId.standard.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -247,11 +272,7 @@ export class TokensService {
           from: dto.operator,
           to: validPoolId.address,
           method: methodAbi,
-          params: [
-            dto.to,
-            this.getAmountOrTokenID(dto, validPoolId.type),
-            encodeHex(dto.data ?? ''),
-          ],
+          params,
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -263,6 +284,8 @@ export class TokensService {
   async transfer(dto: TokenTransfer): Promise<AsyncResponse> {
     const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
     const methodAbi = this.getMethodAbi(new URLSearchParams(dto.poolId), 'TRANSFER');
+    const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, validPoolId.type)];
+    validPoolId.standard.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -273,12 +296,7 @@ export class TokensService {
           from: dto.operator,
           to: validPoolId.address,
           method: methodAbi,
-          params: [
-            dto.from,
-            dto.to,
-            this.getAmountOrTokenID(dto, validPoolId.type),
-            encodeHex(dto.data ?? ''),
-          ],
+          params,
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
@@ -289,6 +307,8 @@ export class TokensService {
   async burn(dto: TokenBurn): Promise<AsyncResponse> {
     const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
     const methodAbi = this.getMethodAbi(new URLSearchParams(dto.poolId), 'BURN');
+    const params = [dto.from, this.getAmountOrTokenID(dto, validPoolId.type)];
+    validPoolId.standard.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -299,11 +319,7 @@ export class TokensService {
           from: dto.operator,
           to: validPoolId.address,
           method: methodAbi,
-          params: [
-            dto.from,
-            this.getAmountOrTokenID(dto, validPoolId.type),
-            encodeHex(dto.data ?? ''),
-          ],
+          params,
         } as EthConnectMsgRequest,
         this.postOptions(dto.operator, dto.requestId),
       ),
