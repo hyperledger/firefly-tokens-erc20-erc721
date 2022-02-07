@@ -31,7 +31,7 @@ describe('ERC721WithData - Unit Tests', function () {
     expect(await deployedERC721WithData.symbol()).to.equal(contractSymbol);
   });
 
-  it('Mint - Deployer should mint tokens to a itself successfully', async function () {
+  it('Mint - Deployer should mint tokens to itself successfully', async function () {
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     // Signer A mint token 721 to Signer A (Allowed)
     await expect(
@@ -91,7 +91,7 @@ describe('ERC721WithData - Unit Tests', function () {
     expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(1);
   });
 
-  it("Transfer - Approved signer should transfer tokens from approving signer's wallet to another address", async function () {
+  it("Transfer - Approved signer should transfer tokens from approving signer's wallet", async function () {
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(0);
     expect(await deployedERC721WithData.balanceOf(signerC.address)).to.equal(0);

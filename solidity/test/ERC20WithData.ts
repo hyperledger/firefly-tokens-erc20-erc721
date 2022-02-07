@@ -31,7 +31,7 @@ describe('ERC20WithData - Unit Tests', function () {
     expect(await deployedERC20WithData.symbol()).to.equal(contractSymbol);
   });
 
-  it('Mint - Deployer should mint tokens to a itself successfully', async function () {
+  it('Mint - Deployer should mint tokens to itself successfully', async function () {
     expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     // Signer A mint to Signer A (Allowed)
     await expect(
@@ -89,7 +89,7 @@ describe('ERC20WithData - Unit Tests', function () {
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(10);
   });
 
-  it("Transfer - Approved signer should transfer tokens from approving signer's wallet to another address", async function () {
+  it("Transfer - Approved signer should transfer tokens from approving signer's wallet", async function () {
     expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(0);
     expect(await deployedERC20WithData.balanceOf(signerC.address)).to.equal(0);
