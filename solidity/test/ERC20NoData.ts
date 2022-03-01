@@ -189,9 +189,9 @@ describe('ERC20NoData - Unit Tests', function () {
     await expect(
       deployedERC20NoData.connect(signerB).burnNoData(deployerSignerA.address, 10),
     ).to.be.revertedWith('ERC20NoData: caller is not owner');
-    // Signer C attempts to burn tokens from Signer B wallet (not allowed)
+    // Signer A attempts to burn tokens from Signer B wallet (not allowed)
     await expect(
-      deployedERC20NoData.connect(signerC).burnNoData(signerB.address, 10),
+      deployedERC20NoData.connect(deployerSignerA).burnNoData(signerB.address, 10),
     ).to.be.revertedWith('ERC20NoData: caller is not owner');
 
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(20);

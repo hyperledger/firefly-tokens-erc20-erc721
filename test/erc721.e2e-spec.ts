@@ -140,7 +140,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -165,7 +165,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: true },
         name: NAME,
@@ -189,7 +189,7 @@ describe('ERC721 - e2e', () => {
     it('Mint ERC721WithData token', async () => {
       const request: TokenMint = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
       };
@@ -222,7 +222,7 @@ describe('ERC721 - e2e', () => {
     it('Transfer ERC721WithData token', async () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
@@ -256,7 +256,7 @@ describe('ERC721 - e2e', () => {
     it('Burn ERC721NoData token', async () => {
       const request: TokenBurn = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
@@ -292,7 +292,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: false },
         name: NAME,
@@ -316,7 +316,7 @@ describe('ERC721 - e2e', () => {
     it('Mint ERC721NoData token', async () => {
       const request: TokenMint = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
       };
@@ -347,7 +347,7 @@ describe('ERC721 - e2e', () => {
     it('Transfer ERC721NoData token', async () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
@@ -381,7 +381,7 @@ describe('ERC721 - e2e', () => {
     it('Burn ERC721NoData token', async () => {
       const request: TokenBurn = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
