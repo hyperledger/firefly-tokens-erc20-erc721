@@ -146,7 +146,7 @@ describe('TokensService', () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -166,7 +166,7 @@ describe('TokensService', () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -283,7 +283,7 @@ describe('TokensService', () => {
     it('should mint ERC20 token with correct abi and inputs', async () => {
       const request: TokenMint = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_POOL_ID,
         to: '0x123',
       };
@@ -314,7 +314,7 @@ describe('TokensService', () => {
       const request: TokenMint = {
         amount: '2',
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_POOL_ID,
         to: '0x123',
       };
@@ -326,7 +326,7 @@ describe('TokensService', () => {
     it('should mint ERC721 token with correct abi and inputs', async () => {
       const request: TokenMint = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_POOL_ID,
         to: '0x123',
       };
@@ -358,7 +358,7 @@ describe('TokensService', () => {
     it('should transfer ERC20 token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_POOL_ID,
         from: IDENTITY,
         to: '0x123',
@@ -391,7 +391,7 @@ describe('TokensService', () => {
     it('should transfer ERC721 token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_POOL_ID,
         from: IDENTITY,
         to: '0x123',
@@ -424,7 +424,7 @@ describe('TokensService', () => {
     it('should burn ERC20 token with correct abi and inputs', async () => {
       const request: TokenBurn = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_POOL_ID,
         from: IDENTITY,
       };
@@ -454,7 +454,7 @@ describe('TokensService', () => {
     it('should burn ERC721 token with correct abi and inputs', async () => {
       const request: TokenBurn = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_POOL_ID,
         from: IDENTITY,
       };
@@ -484,7 +484,7 @@ describe('TokensService', () => {
     });
   });
 
-  describe('getters for balance/receipt/operator', () => {
+  describe('getter for receipt', () => {
     it('should get receipt of id successfully', async () => {
       const response: EventStreamReply = {
         headers: {
