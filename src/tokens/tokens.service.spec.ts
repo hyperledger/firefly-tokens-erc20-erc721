@@ -157,7 +157,7 @@ describe('TokensService', () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: false },
         name: NAME,
@@ -214,7 +214,7 @@ describe('TokensService', () => {
     it('should mint ERC20NoData token with correct abi and inputs', async () => {
       const request: TokenMint = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_NO_DATA_POOL_ID,
         to: '0x123',
       };
@@ -244,7 +244,7 @@ describe('TokensService', () => {
     it('should transfer ERC20NoData token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_NO_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
@@ -275,7 +275,7 @@ describe('TokensService', () => {
     it('should burn ERC20NoData token with correct abi and inputs', async () => {
       const request: TokenBurn = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
@@ -308,7 +308,7 @@ describe('TokensService', () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -328,7 +328,7 @@ describe('TokensService', () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: true },
         name: NAME,
@@ -385,7 +385,7 @@ describe('TokensService', () => {
     it('should mint ERC20WithData token with correct abi and inputs', async () => {
       const request: TokenMint = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
       };
@@ -415,7 +415,7 @@ describe('TokensService', () => {
     it('should transfer ERC20WithData token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_WITH_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
@@ -448,7 +448,7 @@ describe('TokensService', () => {
     it('should burn ERC20WithData token with correct abi and inputs', async () => {
       const request: TokenBurn = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
@@ -481,7 +481,7 @@ describe('TokensService', () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: false },
         name: NAME,
@@ -539,7 +539,7 @@ describe('TokensService', () => {
       const request: TokenMint = {
         amount: '2',
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
       };
@@ -551,7 +551,7 @@ describe('TokensService', () => {
     it('should mint ERC721NoData token with correct abi and inputs', async () => {
       const request: TokenMint = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
       };
@@ -581,7 +581,7 @@ describe('TokensService', () => {
     it('should transfer ERC721NoData token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_NO_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
@@ -614,7 +614,7 @@ describe('TokensService', () => {
     it('should burn ERC721NoData token with correct abi and inputs', async () => {
       const request: TokenBurn = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
@@ -647,7 +647,7 @@ describe('TokensService', () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -667,7 +667,7 @@ describe('TokensService', () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: true },
         name: NAME,
@@ -725,7 +725,7 @@ describe('TokensService', () => {
       const request: TokenMint = {
         amount: '2',
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
       };
@@ -737,7 +737,7 @@ describe('TokensService', () => {
     it('should mint ERC721WithData token with correct abi and inputs', async () => {
       const request: TokenMint = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
       };
@@ -769,7 +769,7 @@ describe('TokensService', () => {
     it('should transfer ERC721WithData token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_WITH_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
@@ -802,7 +802,7 @@ describe('TokensService', () => {
     it('should burn ERC721WithData token with correct abi and inputs', async () => {
       const request: TokenBurn = {
         tokenIndex: '721',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC721_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };

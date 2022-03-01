@@ -67,7 +67,6 @@ const BURN_NO_DATA = 'burnNoData';
 const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
-const TRANSFER = 'Transfer';
 
 const standardAbiMap = {
   ERC20WithData: ERC20WithDataABI.abi as IAbiMethod[],
@@ -141,7 +140,7 @@ describe('ERC20 - e2e', () => {
       const request = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -167,7 +166,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenPool = {
         type: 'funkible' as TokenType,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -188,7 +187,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -213,7 +212,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: true },
         name: NAME,
@@ -237,7 +236,7 @@ describe('ERC20 - e2e', () => {
     it('Mint ERC20WithData token', async () => {
       const request: TokenMint = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
       };
@@ -268,7 +267,7 @@ describe('ERC20 - e2e', () => {
     it('Transfer ERC20WithData token', async () => {
       const request: TokenTransfer = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
@@ -302,7 +301,7 @@ describe('ERC20 - e2e', () => {
     it('Burn ERC20WithData token', async () => {
       const request: TokenBurn = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
@@ -336,7 +335,7 @@ describe('ERC20 - e2e', () => {
       const request = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: false },
         name: NAME,
@@ -362,7 +361,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenPool = {
         type: 'funkible' as TokenType,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS },
         name: NAME,
@@ -383,7 +382,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
         config: { address: CONTRACT_ADDRESS, withData: false },
         name: NAME,
@@ -407,7 +406,7 @@ describe('ERC20 - e2e', () => {
     it('Mint ERC20NoData token', async () => {
       const request: TokenMint = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_NO_DATA_POOL_ID,
         to: '0x123',
       };
@@ -438,7 +437,7 @@ describe('ERC20 - e2e', () => {
     it('Transfer ERC20NoData token', async () => {
       const request: TokenTransfer = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_NO_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
@@ -470,7 +469,7 @@ describe('ERC20 - e2e', () => {
     it('Burn ERC20WithData token', async () => {
       const request: TokenBurn = {
         amount: '20',
-        operator: IDENTITY,
+        signer: IDENTITY,
         poolId: ERC20_NO_DATA_POOL_ID,
         from: IDENTITY,
       };

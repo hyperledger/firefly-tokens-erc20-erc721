@@ -213,7 +213,7 @@ describe('WebSocket AppController (e2e)', () => {
         poolId: ERC20_POOL_ID,
         to: 'A',
         amount: '5',
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
@@ -288,7 +288,7 @@ describe('WebSocket AppController (e2e)', () => {
         poolId: ERC721_POOL_ID,
         to: 'A',
         amount: '1',
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
@@ -336,7 +336,7 @@ describe('WebSocket AppController (e2e)', () => {
         from: 'A',
         to: 'B',
         amount: '5',
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
@@ -413,7 +413,7 @@ describe('WebSocket AppController (e2e)', () => {
         from: 'A',
         to: 'B',
         amount: '1',
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
@@ -460,7 +460,7 @@ describe('WebSocket AppController (e2e)', () => {
         poolId: ERC20_POOL_ID,
         from: 'B',
         amount: '5',
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
@@ -535,7 +535,7 @@ describe('WebSocket AppController (e2e)', () => {
         poolId: ERC721_POOL_ID,
         from: 'B',
         amount: '1',
-        operator: IDENTITY,
+        signer: IDENTITY,
         data: 'test',
         timestamp: '2020-01-01 00:00:00Z',
         rawOutput: {
