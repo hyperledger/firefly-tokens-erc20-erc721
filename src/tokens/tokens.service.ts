@@ -159,14 +159,14 @@ export class TokensService {
     return;
   }
 
-  private postOptions(operator: string, requestId?: string) {
+  private postOptions(signer: string, requestId?: string) {
     const from = `${this.shortPrefix}-from`;
     const sync = `${this.shortPrefix}-sync`;
     const id = `${this.shortPrefix}-id`;
 
     const requestOptions: AxiosRequestConfig = {
       params: {
-        [from]: operator,
+        [from]: signer,
         [sync]: 'false',
         [id]: requestId,
       },
@@ -244,7 +244,7 @@ export class TokensService {
           headers: {
             type: sendTransactionHeader,
           },
-          from: dto.operator,
+          from: dto.signer,
           to: validPoolId.address,
           method: methodAbi,
           params: [
@@ -253,7 +253,7 @@ export class TokensService {
             encodeHex(dto.data ?? ''),
           ],
         } as EthConnectMsgRequest,
-        this.postOptions(dto.operator, dto.requestId),
+        this.postOptions(dto.signer, dto.requestId),
       ),
     );
 
@@ -270,7 +270,7 @@ export class TokensService {
           headers: {
             type: sendTransactionHeader,
           },
-          from: dto.operator,
+          from: dto.signer,
           to: validPoolId.address,
           method: methodAbi,
           params: [
@@ -280,7 +280,7 @@ export class TokensService {
             encodeHex(dto.data ?? ''),
           ],
         } as EthConnectMsgRequest,
-        this.postOptions(dto.operator, dto.requestId),
+        this.postOptions(dto.signer, dto.requestId),
       ),
     );
     return { id: response.data.id };
@@ -296,7 +296,7 @@ export class TokensService {
           headers: {
             type: sendTransactionHeader,
           },
-          from: dto.operator,
+          from: dto.signer,
           to: validPoolId.address,
           method: methodAbi,
           params: [
@@ -305,7 +305,7 @@ export class TokensService {
             encodeHex(dto.data ?? ''),
           ],
         } as EthConnectMsgRequest,
-        this.postOptions(dto.operator, dto.requestId),
+        this.postOptions(dto.signer, dto.requestId),
       ),
     );
     return { id: response.data.id };
@@ -345,7 +345,7 @@ class TokenListener implements EventListener {
 
   private async getTokenUri(
     tokenIdx: string,
-    operator: string,
+    signer: string,
     contractAddress: string,
   ): Promise<string> {
     const methodABI = standardAbiMap.ERC721WithData.find(method => method.name === 'tokenURI');
@@ -355,7 +355,7 @@ class TokenListener implements EventListener {
           headers: {
             type: 'Query',
           },
-          from: operator,
+          from: signer,
           to: contractAddress,
           method: methodABI,
           params: [tokenIdx],
@@ -404,7 +404,7 @@ class TokenListener implements EventListener {
       type: poolType,
       poolId: unpackedSub.poolId,
       amount: poolType === TokenType.FUNGIBLE ? data.value : '1',
-      operator: event.inputSigner,
+      signer: event.inputSigner,
       data: decodedData,
       timestamp: event.timestamp,
       rawOutput: data,

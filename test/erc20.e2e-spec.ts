@@ -136,7 +136,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
     const request = {
       type: TokenType.FUNGIBLE,
       requestId: REQUEST,
-      operator: IDENTITY,
+      signer: IDENTITY,
       data: `{"tx":${TX}}`,
       config: { address: CONTRACT_ADDRESS },
       name: NAME,
@@ -162,7 +162,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
     const request: TokenPool = {
       type: TokenType.FUNGIBLE,
       requestId: REQUEST,
-      operator: IDENTITY,
+      signer: IDENTITY,
       data: `{"tx":${TX}}`,
       config: { address: CONTRACT_ADDRESS },
       name: NAME,
@@ -187,7 +187,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
     const request: TokenPool = {
       type: TokenType.NONFUNGIBLE,
       requestId: REQUEST,
-      operator: IDENTITY,
+      signer: IDENTITY,
       data: `{"tx":${TX}}`,
       config: { address: CONTRACT_ADDRESS },
       name: NAME,
@@ -212,7 +212,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
     const request: TokenPool = {
       type: 'funkible' as TokenType,
       requestId: REQUEST,
-      operator: IDENTITY,
+      signer: IDENTITY,
       data: `{"tx":${TX}}`,
       config: { address: CONTRACT_ADDRESS },
       name: NAME,
@@ -232,7 +232,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
   it('Mint ERC20 token', async () => {
     const request: TokenMint = {
       amount: '20',
-      operator: IDENTITY,
+      signer: IDENTITY,
       poolId: ERC20_POOL_ID,
       to: '0x123',
     };
@@ -263,7 +263,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
   it('Mint ERC721 token', async () => {
     const request: TokenMint = {
       tokenIndex: '721',
-      operator: IDENTITY,
+      signer: IDENTITY,
       poolId: ERC721_POOL_ID,
       to: '0x123',
     };
@@ -294,7 +294,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
   it('Transfer ERC20 token', async () => {
     const request: TokenTransfer = {
       amount: '20',
-      operator: IDENTITY,
+      signer: IDENTITY,
       poolId: ERC20_POOL_ID,
       to: '0x123',
       from: IDENTITY,
@@ -328,7 +328,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
   it('Transfer ERC721 token', async () => {
     const request: TokenTransfer = {
       tokenIndex: '721',
-      operator: IDENTITY,
+      signer: IDENTITY,
       poolId: ERC721_POOL_ID,
       to: '0x123',
       from: IDENTITY,
@@ -362,7 +362,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
   it('Burn ERC20 token', async () => {
     const request: TokenBurn = {
       amount: '20',
-      operator: IDENTITY,
+      signer: IDENTITY,
       poolId: ERC20_POOL_ID,
       from: IDENTITY,
     };
@@ -393,7 +393,7 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
   it('Burn ERC721 token', async () => {
     const request: TokenBurn = {
       tokenIndex: '721',
-      operator: IDENTITY,
+      signer: IDENTITY,
       poolId: ERC721_POOL_ID,
       from: IDENTITY,
     };

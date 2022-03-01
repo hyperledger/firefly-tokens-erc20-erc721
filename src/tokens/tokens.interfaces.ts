@@ -80,7 +80,7 @@ export class TokenPool {
 
   @ApiProperty()
   @IsNotEmpty()
-  operator: string;
+  signer: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -156,7 +156,7 @@ export class TokenTransfer {
 
   @ApiProperty()
   @IsNotEmpty()
-  operator: string;
+  signer: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -185,7 +185,7 @@ class tokenEventBase {
   data?: string;
 
   @ApiProperty()
-  operator?: string;
+  signer?: string;
 
   @ApiProperty()
   rawOutput?: any;
