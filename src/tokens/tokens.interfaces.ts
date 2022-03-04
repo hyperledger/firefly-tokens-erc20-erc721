@@ -125,6 +125,10 @@ export class BlockchainTransaction {
   @ApiProperty()
   @IsOptional()
   signature: string;
+
+  @ApiProperty()
+  @IsOptional()
+  address: string;
 }
 
 export class TokenPoolActivate {
@@ -201,6 +205,12 @@ class tokenEventBase {
 
   @ApiProperty()
   type: TokenType;
+
+  @ApiProperty()
+  location?: string;
+
+  @ApiProperty()
+  signature?: string;
 }
 
 export class TokenPoolEvent extends tokenEventBase {
