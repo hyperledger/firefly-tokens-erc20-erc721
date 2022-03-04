@@ -60,7 +60,7 @@ const mockERC20MintTransferEvent: TransferEvent = {
   subId: 'sb-123',
   signature: transferEventSignature,
   operator: 'A',
-  address: '',
+  address: 'bob',
   blockNumber: '1',
   transactionIndex: '0x0',
   transactionHash: '0x123',
@@ -84,7 +84,7 @@ const mockERC20TransferEvent: TransferEvent = {
   operator: 'A',
   subId: 'sb-123',
   signature: transferEventSignature,
-  address: '',
+  address: 'bob',
   blockNumber: '1',
   transactionIndex: '0x0',
   transactionHash: '0x123',
@@ -108,7 +108,7 @@ const mockERC20TransferEvent: TransferEvent = {
 const mockERC20BurnEvent: TransferEvent = {
   subId: 'sb-123',
   signature: transferEventSignature,
-  address: '',
+  address: 'bob',
   operator: 'A',
   blockNumber: '1',
   transactionIndex: '0x0',
@@ -210,6 +210,8 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-mint',
       data: {
         id: '000000000001/000000/000001',
+        location: 'address=bob',
+        signature: transferEventSignature,
         poolId: ERC20_POOL_ID,
         to: 'A',
         amount: '5',
@@ -222,6 +224,7 @@ describe('WebSocket AppController (e2e)', () => {
           value: '5',
         },
         transaction: {
+          address: 'bob',
           blockNumber: '1',
           transactionIndex: '0x0',
           transactionHash: '0x123',
@@ -261,7 +264,7 @@ describe('WebSocket AppController (e2e)', () => {
       subId: 'sb-123',
       signature: transferEventSignature,
       operator: 'A',
-      address: '',
+      address: 'bob',
       blockNumber: '1',
       transactionIndex: '0x0',
       transactionHash: '0x123',
@@ -284,6 +287,8 @@ describe('WebSocket AppController (e2e)', () => {
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
       data: {
+        location: 'address=bob',
+        signature: transferEventSignature,
         id: '000000000001/000000/000001',
         poolId: ERC721_POOL_ID,
         to: 'A',
@@ -297,6 +302,7 @@ describe('WebSocket AppController (e2e)', () => {
           tokenId: '721',
         },
         transaction: {
+          address: 'bob',
           blockNumber: '1',
           transactionIndex: '0x0',
           transactionHash: '0x123',
@@ -332,6 +338,8 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-transfer',
       data: {
         id: '000000000001/000000/000001',
+        location: 'address=bob',
+        signature: transferEventSignature,
         poolId: ERC20_POOL_ID,
         from: 'A',
         to: 'B',
@@ -345,6 +353,7 @@ describe('WebSocket AppController (e2e)', () => {
           value: '5',
         },
         transaction: {
+          address: 'bob',
           blockNumber: '1',
           transactionIndex: '0x0',
           transactionHash: '0x123',
@@ -384,7 +393,7 @@ describe('WebSocket AppController (e2e)', () => {
       subId: 'sb-123',
       signature: transferEventSignature,
       operator: 'A',
-      address: '',
+      address: 'bob',
       blockNumber: '1',
       transactionIndex: '0x0',
       transactionHash: '0x123',
@@ -409,6 +418,8 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-transfer',
       data: {
         id: '000000000001/000000/000001',
+        location: 'address=bob',
+        signature: transferEventSignature,
         poolId: ERC721_POOL_ID,
         from: 'A',
         to: 'B',
@@ -422,6 +433,7 @@ describe('WebSocket AppController (e2e)', () => {
           tokenId: '721',
         },
         transaction: {
+          address: 'bob',
           blockNumber: '1',
           transactionIndex: '0x0',
           transactionHash: '0x123',
@@ -457,6 +469,8 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-burn',
       data: {
         id: '000000000001/000000/000001',
+        location: 'address=bob',
+        signature: transferEventSignature,
         poolId: ERC20_POOL_ID,
         from: 'B',
         amount: '5',
@@ -469,6 +483,7 @@ describe('WebSocket AppController (e2e)', () => {
           value: '5',
         },
         transaction: {
+          address: 'bob',
           blockNumber: '1',
           transactionIndex: '0x0',
           transactionHash: '0x123',
@@ -507,7 +522,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockERC721BurnEvent: TransferEvent = {
       subId: 'sb-123',
       signature: transferEventSignature,
-      address: '',
+      address: 'bob',
       operator: 'A',
       blockNumber: '1',
       transactionIndex: '0x0',
@@ -532,6 +547,8 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-burn',
       data: {
         id: '000000000001/000000/000001',
+        location: 'address=bob',
+        signature: transferEventSignature,
         poolId: ERC721_POOL_ID,
         from: 'B',
         amount: '1',
@@ -544,6 +561,7 @@ describe('WebSocket AppController (e2e)', () => {
           tokenId: '721',
         },
         transaction: {
+          address: 'bob',
           blockNumber: '1',
           transactionIndex: '0x0',
           transactionHash: '0x123',
