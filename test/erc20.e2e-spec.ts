@@ -29,6 +29,7 @@ import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-pr
 import {
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
+  EthConnectReturn,
   IAbiMethod,
   TokenBurn,
   TokenMint,
@@ -153,6 +154,16 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
     });
 
     http.get = jest.fn(() => new FakeObservable(expectedResponse));
+    http.post.mockImplementation((uri, options) => {
+      switch (options.method.name) {
+        case 'name':
+          return new FakeObservable(<EthConnectReturn>{ output: NAME });
+        case 'symbol':
+          return new FakeObservable(<EthConnectReturn>{ output: SYMBOL });
+        default:
+          throw new Error('Unknown "post" call: ' + JSON.stringify(options));
+      }
+    });
 
     const response = await server.post('/createpool').send(request).expect(200);
     expect(response.body).toEqual(expectedResponse);
@@ -178,6 +189,16 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
     });
 
     http.get = jest.fn(() => new FakeObservable(expectedResponse));
+    http.post.mockImplementation((uri, options) => {
+      switch (options.method.name) {
+        case 'name':
+          return new FakeObservable(<EthConnectReturn>{ output: NAME });
+        case 'symbol':
+          return new FakeObservable(<EthConnectReturn>{ output: SYMBOL });
+        default:
+          throw new Error('Unknown "post" call: ' + JSON.stringify(options));
+      }
+    });
 
     const response = await server.post('/createpool').send(request).expect(200);
     expect(response.body).toEqual(expectedResponse);
@@ -203,6 +224,16 @@ describe('AppController - ERC20/ERC721 (e2e)', () => {
     });
 
     http.get = jest.fn(() => new FakeObservable(expectedResponse));
+    http.post.mockImplementation((uri, options) => {
+      switch (options.method.name) {
+        case 'name':
+          return new FakeObservable(<EthConnectReturn>{ output: NAME });
+        case 'symbol':
+          return new FakeObservable(<EthConnectReturn>{ output: SYMBOL });
+        default:
+          throw new Error('Unknown "post" call: ' + JSON.stringify(options));
+      }
+    });
 
     const response = await server.post('/createpool').send(request).expect(200);
     expect(response.body).toEqual(expectedResponse);
