@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { AxiosResponse } from '@nestjs/terminus/dist/health-indicator/http/axios.interfaces';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Observer } from 'rxjs';
@@ -32,6 +32,7 @@ import {
   AsyncResponse,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
+  EthConnectReturn,
   IAbiMethod,
   TokenBurn,
   TokenMint,
@@ -68,6 +69,8 @@ const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 const TRANSFER = 'Transfer';
+const QUERY_NAME = 'name';
+const QUERY_SYMBOL = 'symbol';
 
 const standardAbiMap = {
   ERC20WithData: ERC20WithDataABI.abi as IAbiMethod[],
@@ -142,7 +145,7 @@ describe('TokensService', () => {
   });
 
   describe('createPool()', () => {
-    it('should return ERC20 pool details successfully', () => {
+    it('should return ERC20 pool details successfully', async () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
@@ -153,16 +156,60 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      expect(service.createPool(request)).toEqual({
-        data: `{"tx":${TX}}`,
-        poolId: ERC20_POOL_ID,
-        standard: ERC20_STANDARD,
-        timestamp: expect.any(String),
-        type: 'fungible',
-      } as TokenPoolEvent);
+      http.post
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: NAME,
+          }),
+        )
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: SYMBOL,
+          }),
+        );
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC20_POOL_ID,
+          standard: ERC20_STANDARD,
+          timestamp: expect.any(String),
+          type: 'fungible',
+        } as TokenPoolEvent);
+      });
     });
 
-    it('should return ERC721 pool details successfully', () => {
+    it('should reject ERC20 pool with wrong name', async () => {
+      const request: TokenPool = {
+        type: TokenType.FUNGIBLE,
+        requestId: REQUEST,
+        signer: IDENTITY,
+        data: `{"tx":${TX}}`,
+        config: { address: CONTRACT_ADDRESS },
+        name: 'wrong',
+        symbol: SYMBOL,
+      };
+
+      http.post
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: NAME,
+          }),
+        )
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: SYMBOL,
+          }),
+        );
+
+      await service.createPool(request).catch(e => {
+        expect(e).toEqual(
+          new BadRequestException("Supplied name 'wrong' does not match expected 'abcTest'"),
+        );
+      });
+    });
+
+    it('should return ERC721 pool details successfully', async () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
@@ -173,13 +220,57 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      expect(service.createPool(request)).toEqual({
+      http.post
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: NAME,
+          }),
+        )
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: SYMBOL,
+          }),
+        );
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC721_POOL_ID,
+          standard: ERC721_STANDARD,
+          timestamp: expect.any(String),
+          type: 'nonfungible',
+        } as TokenPoolEvent);
+      });
+    });
+
+    it('should reject ERC721 pool with wrong name', async () => {
+      const request: TokenPool = {
+        type: TokenType.NONFUNGIBLE,
+        requestId: REQUEST,
+        signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        poolId: ERC721_POOL_ID,
-        standard: ERC721_STANDARD,
-        timestamp: expect.any(String),
-        type: 'nonfungible',
-      } as TokenPoolEvent);
+        config: { address: CONTRACT_ADDRESS },
+        name: 'wrong',
+        symbol: SYMBOL,
+      };
+
+      http.post
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: NAME,
+          }),
+        )
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: SYMBOL,
+          }),
+        );
+
+      await service.createPool(request).catch(e => {
+        expect(e).toEqual(
+          new BadRequestException("Supplied name 'wrong' does not match expected 'abcTest'"),
+        );
+      });
     });
   });
 
@@ -231,10 +322,15 @@ describe('TokensService', () => {
         CONTRACT_ADDRESS,
         standardAbiMap.ERC20WithData.filter(
           abi =>
-            abi.name === MINT_WITH_DATA ||
-            abi.name === TRANSFER_WITH_DATA ||
-            abi.name === BURN_WITH_DATA ||
-            abi.name === TRANSFER,
+            abi.name !== undefined &&
+            [
+              MINT_WITH_DATA,
+              TRANSFER_WITH_DATA,
+              BURN_WITH_DATA,
+              TRANSFER,
+              QUERY_NAME,
+              QUERY_SYMBOL,
+            ].includes(abi.name),
         ) as IAbiMethod[],
         '0',
       );
@@ -269,10 +365,15 @@ describe('TokensService', () => {
         CONTRACT_ADDRESS,
         standardAbiMap.ERC721WithData.filter(
           abi =>
-            abi.name === MINT_WITH_DATA ||
-            abi.name === TRANSFER_WITH_DATA ||
-            abi.name === BURN_WITH_DATA ||
-            abi.name === TRANSFER,
+            abi.name !== undefined &&
+            [
+              MINT_WITH_DATA,
+              TRANSFER_WITH_DATA,
+              BURN_WITH_DATA,
+              TRANSFER,
+              QUERY_NAME,
+              QUERY_SYMBOL,
+            ].includes(abi.name),
         ) as IAbiMethod[],
         '0',
       );
