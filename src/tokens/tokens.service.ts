@@ -159,6 +159,13 @@ export class TokensService {
     return;
   }
 
+  private async getStream() {
+    if (this.stream === undefined) {
+      this.stream = await this.eventstream.createOrUpdateStream(this.topic);
+    }
+    return this.stream;
+  }
+
   private postOptions(signer: string, requestId?: string) {
     const from = `${this.shortPrefix}-from`;
     const sync = `${this.shortPrefix}-sync`;
@@ -196,9 +203,7 @@ export class TokensService {
 
   async activatePool(dto: TokenPoolActivate) {
     const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
-    if (this.stream === undefined) {
-      this.stream = await this.eventstream.createOrUpdateStream(this.topic);
-    }
+    const stream = await this.getStream();
     const encodedPoolId = new URLSearchParams(dto.poolId);
     const methodAbi = this.getMethodAbi(encodedPoolId, 'TRANSFEREVENT');
 
@@ -215,7 +220,7 @@ export class TokensService {
     await this.eventstream.getOrCreateSubscription(
       `${this.baseUrl}`,
       methodAbi,
-      this.stream.id,
+      stream.id,
       transferEvent,
       packSubscriptionName(this.topic, dto.poolId, transferEvent),
       validPoolId.address,
