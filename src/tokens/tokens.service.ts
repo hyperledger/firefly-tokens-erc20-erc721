@@ -245,11 +245,7 @@ export class TokensService {
     });
 
     const nameAndSymbol = await this.queryPool(encodedPoolId);
-    if (nameAndSymbol.name !== dto.name) {
-      throw new BadRequestException(
-        `Supplied name '${dto.name}' does not match expected '${nameAndSymbol.name}'`,
-      );
-    } else if (nameAndSymbol.symbol !== dto.symbol) {
+    if (nameAndSymbol.symbol !== dto.symbol) {
       throw new BadRequestException(
         `Supplied symbol '${dto.symbol}' does not match expected '${nameAndSymbol.symbol}'`,
       );
@@ -261,6 +257,11 @@ export class TokensService {
       standard: encodedPoolId.get(EncodedPoolIdEnum.Standard)?.toString() ?? '',
       timestamp: Date.now().toString(),
       type: dto.type,
+      symbol: nameAndSymbol.symbol,
+      info: {
+        name: nameAndSymbol.name,
+        address: dto.config.address,
+      },
     };
 
     return tokenPoolEvent;
@@ -293,11 +294,18 @@ export class TokensService {
       dto.transaction?.blockNumber ?? '0',
     );
 
+    const nameAndSymbol = await this.queryPool(encodedPoolId);
+
     const tokenPoolEvent: TokenPoolEvent = {
       poolId: dto.poolId,
       standard: validPoolId.standard,
       timestamp: Date.now().toString(),
       type: validPoolId.type,
+      symbol: nameAndSymbol.symbol,
+      info: {
+        name: nameAndSymbol.name,
+        address: validPoolId.address,
+      },
     };
 
     return tokenPoolEvent;

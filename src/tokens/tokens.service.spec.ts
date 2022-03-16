@@ -175,6 +175,11 @@ describe('TokensService', () => {
           standard: ERC20_STANDARD,
           timestamp: expect.any(String),
           type: 'fungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+          },
         } as TokenPoolEvent);
       });
     });
@@ -239,6 +244,11 @@ describe('TokensService', () => {
           standard: ERC721_STANDARD,
           timestamp: expect.any(String),
           type: 'nonfungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+          },
         } as TokenPoolEvent);
       });
     });
@@ -308,7 +318,24 @@ describe('TokensService', () => {
         standard: ERC20_STANDARD,
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+        },
       };
+
+      http.post
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: NAME,
+          }),
+        )
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: SYMBOL,
+          }),
+        );
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -351,7 +378,24 @@ describe('TokensService', () => {
         standard: ERC721_STANDARD,
         timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+        },
       };
+
+      http.post
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: NAME,
+          }),
+        )
+        .mockReturnValueOnce(
+          new FakeObservable(<EthConnectReturn>{
+            output: SYMBOL,
+          }),
+        );
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));

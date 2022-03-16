@@ -213,9 +213,23 @@ class tokenEventBase {
   signature?: string;
 }
 
+export class TokenPoolEventInfo {
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  address: string;
+}
+
 export class TokenPoolEvent extends tokenEventBase {
   @ApiProperty()
   standard: string;
+
+  @ApiProperty()
+  symbol: string;
+
+  @ApiProperty()
+  info: TokenPoolEventInfo;
 }
 
 export class TokenTransferEvent extends tokenEventBase {
