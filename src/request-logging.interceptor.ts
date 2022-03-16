@@ -46,7 +46,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
           const statusMessage = httpError.message;
           this.logResponse(request, statusCode, statusMessage);
         }
-        return throwError(() => new Error(error));
+        return throwError(() => error);
       }),
     );
   }
