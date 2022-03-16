@@ -73,6 +73,12 @@ const requestIdDescription =
   'Optional ID to identify this request. Must be unique for every request. ' +
   'If none is provided, one will be assigned and returned in the 202 response.';
 
+export class TokenPoolConfig {
+  @ApiProperty()
+  @IsDefined()
+  address: string;
+}
+
 export class TokenPool {
   @ApiProperty()
   @IsNotEmpty()
@@ -92,9 +98,7 @@ export class TokenPool {
 
   @ApiProperty({ description: contractConfigDescription })
   @IsDefined()
-  config: {
-    address: string;
-  };
+  config: TokenPoolConfig;
 
   @ApiProperty()
   @IsOptional()
