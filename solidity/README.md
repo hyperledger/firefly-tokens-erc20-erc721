@@ -2,9 +2,10 @@
 
 ## Overview
 
-Ethereum smart contract implementations of ERC20 and ERC721 connectors
+Ethereum smart contract implementations of ERC20 and ERC721 connectors.
 
-## Usage
+Included as a reference point for creating smart contracts that conform
+to the ABI expected by this token connector.
 
 ### Compile
 

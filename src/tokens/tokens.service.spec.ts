@@ -19,10 +19,10 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { AxiosResponse } from '@nestjs/terminus/dist/health-indicator/http/axios.interfaces';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Observer } from 'rxjs';
-import ERC20NoDataABI from '../../solidity/build/contracts/ERC20NoData.json';
-import ERC20WithDataABI from '../../solidity/build/contracts/ERC20WithData.json';
-import ERC721NoDataABI from '../../solidity/build/contracts/ERC721NoData.json';
-import ERC721WithDataABI from '../../solidity/build/contracts/ERC721WithData.json';
+import ERC20NoDataABI from '../abi/ERC20NoData.json';
+import ERC20WithDataABI from '../abi/ERC20WithData.json';
+import ERC721NoDataABI from '../abi/ERC721NoData.json';
+import ERC721WithDataABI from '../abi/ERC721WithData.json';
 import {
   EventStream,
   EventStreamReply,
