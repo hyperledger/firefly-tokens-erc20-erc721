@@ -417,6 +417,8 @@ class TokenListener implements EventListener {
 
     const commonData = {
       id: transferId,
+      location: 'address=' + event.address,
+      signature: event.signature,
       type: poolType,
       poolId: unpackedSub.poolId,
       amount: poolType === TokenType.FUNGIBLE ? data.value : '1',
@@ -425,6 +427,7 @@ class TokenListener implements EventListener {
       timestamp: event.timestamp,
       rawOutput: data,
       transaction: {
+        address: event.address,
         blockNumber: event.blockNumber,
         transactionIndex: event.transactionIndex,
         transactionHash: event.transactionHash,
