@@ -65,9 +65,9 @@ export const standardAbiMap = {
 
 const standardMethodMap = {
   ERC20NoData: {
-    MINT: 'mintNoData',
-    TRANSFER: 'transferNoData',
-    BURN: 'burnNoData',
+    MINT: 'mint',
+    TRANSFER: 'transferFrom',
+    BURN: 'burn',
     TRANSFEREVENT: 'Transfer',
   },
   ERC20WithData: {
@@ -77,9 +77,9 @@ const standardMethodMap = {
     TRANSFEREVENT: 'Transfer',
   },
   ERC721NoData: {
-    MINT: 'mintNoData',
-    TRANSFER: 'transferNoData',
-    BURN: 'burnNoData',
+    MINT: 'mint',
+    TRANSFER: 'safeTransferFrom',
+    BURN: 'burn',
     TRANSFEREVENT: 'Transfer',
   },
   ERC721WithData: {
