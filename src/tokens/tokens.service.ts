@@ -237,7 +237,7 @@ export class TokensService {
     const encodedPoolId = packPoolId(poolId);
 
     const nameAndSymbol = await this.queryPool(poolId);
-    if (nameAndSymbol.symbol !== dto.symbol) {
+    if (dto.symbol !== undefined && dto.symbol !== '' && dto.symbol !== nameAndSymbol.symbol) {
       throw new BadRequestException(
         `Supplied symbol '${dto.symbol}' does not match expected '${nameAndSymbol.symbol}'`,
       );

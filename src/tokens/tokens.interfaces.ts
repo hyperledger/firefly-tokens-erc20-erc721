@@ -96,8 +96,8 @@ export class TokenPool {
   signer: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  symbol: string;
+  @IsOptional()
+  symbol?: string;
 
   @ApiProperty({ enum: TokenType })
   @IsEnum(TokenType)
