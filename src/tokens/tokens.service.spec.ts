@@ -60,10 +60,10 @@ const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';
 const SYMBOL = 'abc';
-const ERC20_STANDARD = 'ERC20WithData';
-const ERC20_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`;
-const ERC721_STANDARD = 'ERC721WithData';
-const ERC721_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
+const ERC20_SCHEMA = 'ERC20WithData';
+const ERC20_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_SCHEMA}&type=${TokenType.FUNGIBLE}`;
+const ERC721_SCHEMA = 'ERC721WithData';
+const ERC721_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
 const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
@@ -72,7 +72,7 @@ const TRANSFER = 'Transfer';
 const QUERY_NAME = 'name';
 const QUERY_SYMBOL = 'symbol';
 
-const standardAbiMap = {
+const abiMethodMap = {
   ERC20WithData: ERC20WithDataABI.abi as IAbiMethod[],
   ERC721WithData: ERC721WithDataABI.abi as IAbiMethod[],
 };
@@ -172,13 +172,14 @@ describe('TokensService', () => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
           poolId: ERC20_POOL_ID,
-          standard: ERC20_STANDARD,
+          standard: 'ERC20',
           timestamp: expect.any(String),
           type: 'fungible',
           symbol: SYMBOL,
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
+            schema: ERC20_SCHEMA,
           },
         } as TokenPoolEvent);
       });
@@ -241,13 +242,14 @@ describe('TokensService', () => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
           poolId: ERC721_POOL_ID,
-          standard: ERC721_STANDARD,
+          standard: 'ERC721',
           timestamp: expect.any(String),
           type: 'nonfungible',
           symbol: SYMBOL,
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
+            schema: ERC721_SCHEMA,
           },
         } as TokenPoolEvent);
       });
@@ -315,13 +317,14 @@ describe('TokensService', () => {
 
       const response: TokenPoolEvent = {
         poolId: ERC20_POOL_ID,
-        standard: ERC20_STANDARD,
+        standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
+          schema: ERC20_SCHEMA,
         },
       };
 
@@ -342,12 +345,12 @@ describe('TokensService', () => {
       await expect(service.activatePool(request)).resolves.toEqual(response);
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         BASE_URL,
-        standardAbiMap.ERC20WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        abiMethodMap.ERC20WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
         `${TOPIC}:${ERC20_POOL_ID}:${TRANSFER}`,
         CONTRACT_ADDRESS,
-        standardAbiMap.ERC20WithData.filter(
+        abiMethodMap.ERC20WithData.filter(
           abi =>
             abi.name !== undefined &&
             [
@@ -375,13 +378,14 @@ describe('TokensService', () => {
 
       const response: TokenPoolEvent = {
         poolId: ERC721_POOL_ID,
-        standard: ERC721_STANDARD,
+        standard: 'ERC721',
         timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
+          schema: ERC721_SCHEMA,
         },
       };
 
@@ -402,12 +406,12 @@ describe('TokensService', () => {
       await expect(service.activatePool(request)).resolves.toEqual(response);
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         BASE_URL,
-        standardAbiMap.ERC721WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        abiMethodMap.ERC721WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
         `${TOPIC}:${ERC721_POOL_ID}:${TRANSFER}`,
         CONTRACT_ADDRESS,
-        standardAbiMap.ERC721WithData.filter(
+        abiMethodMap.ERC721WithData.filter(
           abi =>
             abi.name !== undefined &&
             [
@@ -439,7 +443,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
+        method: abiMethodMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
         params: ['0x123', '20', '0x00'],
       };
 
@@ -482,9 +486,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721WithData.find(
-          abi => abi.name === MINT_WITH_DATA,
-        ) as IAbiMethod,
+        method: abiMethodMap.ERC721WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
         params: ['0x123', '721', '0x00'],
       };
 
@@ -515,7 +517,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(
+        method: abiMethodMap.ERC20WithData.find(
           abi => abi.name === TRANSFER_WITH_DATA,
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '20', '0x00'],
@@ -548,7 +550,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721WithData.find(
+        method: abiMethodMap.ERC721WithData.find(
           abi => abi.name === TRANSFER_WITH_DATA,
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '721', '0x00'],
@@ -580,7 +582,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
+        method: abiMethodMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '20', '0x00'],
       };
 
@@ -610,9 +612,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721WithData.find(
-          abi => abi.name === BURN_WITH_DATA,
-        ) as IAbiMethod,
+        method: abiMethodMap.ERC721WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '721', '0x00'],
       };
 

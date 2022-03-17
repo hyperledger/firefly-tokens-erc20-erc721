@@ -33,12 +33,12 @@ export class AsyncResponse {
   id: string;
 }
 
-export enum ContractStandardEnum {
+export enum ContractSchema {
   ERC20WithData = 'ERC20WithData',
   ERC721WithData = 'ERC721WithData',
 }
 
-export enum ContractMethodEnum {
+export enum ContractMethod {
   ERC20WithDataMintWithData = 'mintWithData',
   ERC20WithDataTransferWithData = 'transferWithData',
   ERC20WithDataBurnWithData = 'burnWithData',
@@ -46,7 +46,8 @@ export enum ContractMethodEnum {
 
 export enum EncodedPoolIdEnum {
   Address = 'address',
-  Standard = 'standard',
+  Standard = 'standard', // deprecated in favor of "schema" below
+  Schema = 'schema',
   Type = 'type',
 }
 
@@ -62,8 +63,14 @@ export enum TokenType {
 }
 
 export interface ITokenPool {
+  address: string | null;
+  schema: string | null;
+  type: TokenType | null;
+}
+
+export interface IValidTokenPool {
   address: string;
-  standard: string;
+  schema: string;
   type: TokenType;
 }
 
@@ -223,6 +230,9 @@ export class TokenPoolEventInfo {
 
   @ApiProperty()
   address: string;
+
+  @ApiProperty()
+  schema: string;
 }
 
 export class TokenPoolEvent extends tokenEventBase {

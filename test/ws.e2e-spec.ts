@@ -48,9 +48,9 @@ const IDENTITY = '0x321';
 const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const ERC20_STANDARD = 'ERC20WithData';
-const ERC20_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`;
+const ERC20_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`;
 const ERC721_STANDARD = 'ERC721WithData';
-const ERC721_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
+const ERC721_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
 const ERC721_BASE_URI = 'firefly://token/';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -213,6 +213,54 @@ describe('WebSocket AppController (e2e)', () => {
         location: 'address=bob',
         signature: transferEventSignature,
         poolId: ERC20_POOL_ID,
+        to: 'A',
+        amount: '5',
+        signer: IDENTITY,
+        data: 'test',
+        timestamp: '2020-01-01 00:00:00Z',
+        rawOutput: {
+          from: ZERO_ADDRESS,
+          to: 'A',
+          value: '5',
+        },
+        transaction: {
+          address: 'bob',
+          blockNumber: '1',
+          transactionIndex: '0x0',
+          transactionHash: '0x123',
+          logIndex: '1',
+          signature: transferEventSignature,
+        },
+        type: 'fungible',
+      } as TokenMintEvent,
+    };
+
+    await server
+      .ws('/api/ws')
+      .exec(() => {
+        expect(eventHandler).toBeDefined();
+        eventHandler([mockERC20MintTransferEvent]);
+      })
+      .expectJson(message => {
+        expect(message.id).toBeDefined();
+        delete message.id;
+        expect(message).toEqual(mockMintWebSocketMessage);
+        return true;
+      });
+  });
+
+  it('Websocket: ERC20 token mint event with old poolId', async () => {
+    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+      name: TOPIC + ':' + `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
+    });
+
+    const mockMintWebSocketMessage: WebSocketMessage = {
+      event: 'token-mint',
+      data: {
+        id: '000000000001/000000/000001',
+        location: 'address=bob',
+        signature: transferEventSignature,
+        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
         to: 'A',
         amount: '5',
         signer: IDENTITY,
