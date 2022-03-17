@@ -61,9 +61,9 @@ const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_NO
 const ERC721_WITH_DATA_STANDARD = 'ERC721WithData';
 const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_WITH_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
 
-const MINT_NO_DATA = 'mintNoData';
-const TRANSFER_NO_DATA = 'transferNoData';
-const BURN_NO_DATA = 'burnNoData';
+const MINT_NO_DATA = 'mint';
+const TRANSFER_NO_DATA = 'safeTransferFrom';
+const BURN_NO_DATA = 'burn';
 const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';

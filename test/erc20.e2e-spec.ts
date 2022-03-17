@@ -61,9 +61,9 @@ const ERC20_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_NO_D
 const ERC20_WITH_DATA_STANDARD = 'ERC20WithData';
 const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_WITH_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`;
 
-const MINT_NO_DATA = 'mintNoData';
-const TRANSFER_NO_DATA = 'transferNoData';
-const BURN_NO_DATA = 'burnNoData';
+const MINT_NO_DATA = 'mint';
+const TRANSFER_NO_DATA = 'transferFrom';
+const BURN_NO_DATA = 'burn';
 const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';

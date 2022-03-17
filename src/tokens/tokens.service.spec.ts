@@ -70,9 +70,10 @@ const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_NO
 const ERC721_WITH_DATA_STANDARD = 'ERC721WithData';
 const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_WITH_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
 
-const MINT_NO_DATA = 'mintNoData';
-const TRANSFER_NO_DATA = 'transferNoData';
-const BURN_NO_DATA = 'burnNoData';
+const MINT_NO_DATA = 'mint';
+const ERC20_TRANSFER_NO_DATA = 'transferFrom';
+const ERC721_TRANSFER_NO_DATA = 'safeTransferFrom';
+const BURN_NO_DATA = 'burn';
 const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
@@ -203,7 +204,7 @@ describe('TokensService', () => {
         standardAbiMap.ERC20NoData.filter(
           abi =>
             abi.name === MINT_NO_DATA ||
-            abi.name === TRANSFER_NO_DATA ||
+            abi.name === ERC20_TRANSFER_NO_DATA ||
             abi.name === BURN_NO_DATA ||
             abi.name === TRANSFER,
         ) as IAbiMethod[],
@@ -256,7 +257,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20NoData.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
+        method: standardAbiMap.ERC20NoData.find(abi => abi.name === ERC20_TRANSFER_NO_DATA) as IAbiMethod,
         params: [IDENTITY, '0x123', '20'],
       };
 
@@ -527,7 +528,7 @@ describe('TokensService', () => {
         standardAbiMap.ERC721NoData.filter(
           abi =>
             abi.name === MINT_NO_DATA ||
-            abi.name === TRANSFER_NO_DATA ||
+            abi.name === ERC721_TRANSFER_NO_DATA ||
             abi.name === BURN_NO_DATA ||
             abi.name === TRANSFER,
         ) as IAbiMethod[],
@@ -594,7 +595,7 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: standardAbiMap.ERC721NoData.find(
-          abi => abi.name === TRANSFER_NO_DATA,
+          abi => abi.name === ERC721_TRANSFER_NO_DATA,
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '721'],
       };
