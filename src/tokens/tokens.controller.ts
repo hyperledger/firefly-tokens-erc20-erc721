@@ -19,6 +19,7 @@ import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import {
   AsyncResponse,
+  TokenApproval,
   TokenBurn,
   TokenMint,
   TokenPool,
@@ -84,6 +85,18 @@ export class TokensController {
   @ApiResponse({ status: 202, type: AsyncResponse })
   transfer(@Body() dto: TokenTransfer) {
     return this.service.transfer(dto);
+  }
+
+  @Post('approval')
+  @HttpCode(202)
+  @ApiOperation({
+    summary: "Approves a spender to perform token transfers on the caller's behalf",
+    description: 'Will be followed by a websocket notification with event=token-approval',
+  })
+  @ApiBody({ type: TokenApproval })
+  @ApiResponse({ status: 202, type: AsyncResponse })
+  approve(@Body() dto: TokenApproval) {
+    return this.service.approval(dto);
   }
 
   @Post('burn')

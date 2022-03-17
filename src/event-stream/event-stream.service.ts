@@ -232,6 +232,14 @@ export class EventStreamService {
     return response.data;
   }
 
+  async deleteSubscription(subId: string) {
+    await lastValueFrom(
+      this.http.delete(`${this.baseUrl}/subscriptions/${subId}`, {
+        ...basicAuth(this.username, this.password),
+      }),
+    );
+  }
+
   async createSubscription(
     instancePath: string,
     eventABI: IAbiMethod,

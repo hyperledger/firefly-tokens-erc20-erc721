@@ -38,6 +38,22 @@ contract ERC721WithData is Context, Ownable, ERC721 {
         _burn(tokenId);
     }
 
+    function approveWithData(
+        address to,
+        uint256 tokenId,
+        bytes calldata data
+    ) external {
+        approve(to, tokenId);
+    }
+
+    function setApprovalForAllWithData(
+        address operator,
+        bool approved,
+        bytes calldata data
+    ) external {
+        setApprovalForAll(operator, approved);
+    }
+
     function _baseURI() internal view virtual override returns (string memory) {
         return 'firefly://token/';
     }

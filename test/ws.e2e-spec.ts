@@ -27,7 +27,6 @@ import {
   Event,
   EventStreamReply,
   EventStreamSubscription,
-  TransferEvent,
 } from '../src/event-stream/event-stream.interfaces';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
@@ -38,6 +37,7 @@ import {
   TokenMintEvent,
   TokenTransferEvent,
   TokenType,
+  TransferEvent,
 } from '../src/tokens/tokens.interfaces';
 import { TokensService } from '../src/tokens/tokens.service';
 import { WebSocketMessage } from '../src/websocket-events/websocket-events.base';
