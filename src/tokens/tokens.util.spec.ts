@@ -14,7 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
+import { ITokenPool, TokenType } from './tokens.interfaces';
+import {
+  decodeHex,
+  encodeHex,
+  packPoolId,
+  packSubscriptionName,
+  unpackPoolId,
+  unpackSubscriptionName,
+} from './tokens.util';
 
 describe('Util', () => {
   it('encodeHex', () => {
@@ -59,6 +67,30 @@ describe('Util', () => {
       prefix: 'tok:en',
       poolId: '0x123456',
       event: 'create',
+    });
+  });
+
+  it('packPoolId', () => {
+    expect(
+      packPoolId({
+        address: '0x12345',
+        schema: 'ERC20WithData',
+        type: TokenType.FUNGIBLE,
+      }),
+    ).toEqual('address=0x12345&schema=ERC20WithData&type=fungible');
+  });
+
+  it('unpackPoolId', () => {
+    expect(unpackPoolId('address=0x12345&schema=ERC20WithData&type=fungible')).toEqual(<ITokenPool>{
+      address: '0x12345',
+      schema: 'ERC20WithData',
+      type: TokenType.FUNGIBLE,
+    });
+
+    expect(unpackPoolId('address=0x12345&standard=ERC20WithData&type=fungible')).toEqual(<ITokenPool>{
+      address: '0x12345',
+      schema: 'ERC20WithData',
+      type: TokenType.FUNGIBLE,
     });
   });
 });
