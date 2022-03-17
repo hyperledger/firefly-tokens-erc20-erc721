@@ -28,5 +28,7 @@ jobs:
           node-version: '12.x'
       - run: npm ci
         working-directory: ./solidity
+      - run: npm run compile
+        working-directory: ./solidity
       - run: npm run test
         working-directory: ./solidity

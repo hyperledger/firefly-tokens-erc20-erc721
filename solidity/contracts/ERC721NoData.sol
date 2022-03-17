@@ -12,19 +12,11 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 contract ERC721NoData is Context, Ownable, ERC721 {
     constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
 
-    function mintNoData(address to, uint256 tokenId) external onlyOwner {
+    function mint(address to, uint256 tokenId) external onlyOwner {
         _safeMint(to, tokenId);
     }
 
-    function transferNoData(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external {
-        safeTransferFrom(from, to, tokenId);
-    }
-
-    function burnNoData(address from, uint256 tokenId) external {
+    function burn(address from, uint256 tokenId) external {
         require(from == _msgSender(), 'ERC721NoData: caller is not owner');
         _burn(tokenId);
     }

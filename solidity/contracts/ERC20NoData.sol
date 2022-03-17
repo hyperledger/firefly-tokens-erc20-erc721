@@ -12,23 +12,23 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 contract ERC20NoData is Context, Ownable, ERC20 {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
-    function mintNoData(address to, uint256 amount) external onlyOwner {
+    function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
 
-    function transferNoData(
+    function transferFrom(
         address from,
         address to,
         uint256 amount
-    ) external {
+    ) public override returns (bool) {
         if (from == _msgSender()) {
-            transfer(to, amount);
+            return transfer(to, amount);
         } else {
-            transferFrom(from, to, amount);
+            return super.transferFrom(from, to, amount);
         }
     }
 
-    function burnNoData(address from, uint256 amount) external {
+    function burn(address from, uint256 amount) external {
         require(from == _msgSender(), 'ERC20NoData: caller is not owner');
         _burn(from, amount);
     }

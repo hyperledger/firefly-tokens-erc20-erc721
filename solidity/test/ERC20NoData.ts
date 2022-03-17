@@ -35,7 +35,7 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(0);
     // Signer A mint to Signer A (Allowed)
     await expect(
-      deployedERC20NoData.connect(deployerSignerA).mintNoData(deployerSignerA.address, 20),
+      deployedERC20NoData.connect(deployerSignerA).mint(deployerSignerA.address, 20),
     )
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, deployerSignerA.address, 20);
@@ -47,7 +47,7 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
     // Signer B mint to Signer B (Not allowed)
     await expect(
-      deployedERC20NoData.connect(signerB).mintNoData(signerB.address, 20),
+      deployedERC20NoData.connect(signerB).mint(signerB.address, 20),
     ).to.be.revertedWith('Ownable: caller is not the owner');
 
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
@@ -56,7 +56,7 @@ describe('ERC20NoData - Unit Tests', function () {
   it('Mint - Non-signing address should not be able to mint tokens', async function () {
     expect(await deployedERC20NoData.balanceOf(ONE_ADDRESS)).to.equal(0);
     // Non-signer mint to non-signer (Not allowed)
-    await expect(deployedERC20NoData.connect(ONE_ADDRESS).mintNoData(ONE_ADDRESS, 20)).to.be
+    await expect(deployedERC20NoData.connect(ONE_ADDRESS).mint(ONE_ADDRESS, 20)).to.be
       .reverted;
 
     expect(await deployedERC20NoData.balanceOf(ONE_ADDRESS)).to.equal(0);
@@ -67,7 +67,7 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
     // Signer A mint to Signer A
     await expect(
-      deployedERC20NoData.connect(deployerSignerA).mintNoData(deployerSignerA.address, 20),
+      deployedERC20NoData.connect(deployerSignerA).mint(deployerSignerA.address, 20),
     )
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, deployerSignerA.address, 20);
@@ -76,7 +76,7 @@ describe('ERC20NoData - Unit Tests', function () {
     await expect(
       deployedERC20NoData
         .connect(deployerSignerA)
-        .transferNoData(deployerSignerA.address, signerB.address, 10),
+        .transferFrom(deployerSignerA.address, signerB.address, 10),
     )
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(deployerSignerA.address, signerB.address, 10);
@@ -90,7 +90,7 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
     expect(await deployedERC20NoData.balanceOf(signerC.address)).to.equal(0);
     // Signer A mint to Signer B
-    await expect(deployedERC20NoData.connect(deployerSignerA).mintNoData(signerB.address, 20))
+    await expect(deployedERC20NoData.connect(deployerSignerA).mint(signerB.address, 20))
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, signerB.address, 20);
 
@@ -100,7 +100,7 @@ describe('ERC20NoData - Unit Tests', function () {
     await expect(
       deployedERC20NoData
         .connect(deployerSignerA)
-        .transferNoData(signerB.address, signerC.address, 10),
+        .transferFrom(signerB.address, signerC.address, 10),
     )
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(signerB.address, signerC.address, 10);
@@ -116,22 +116,22 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(signerC.address)).to.equal(0);
 
     // Mint tokens to Signer B
-    await expect(deployedERC20NoData.connect(deployerSignerA).mintNoData(signerB.address, 20))
+    await expect(deployedERC20NoData.connect(deployerSignerA).mint(signerB.address, 20))
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, signerB.address, 20);
     // Mint tokens to Signer C
-    await expect(deployedERC20NoData.connect(deployerSignerA).mintNoData(signerC.address, 20))
+    await expect(deployedERC20NoData.connect(deployerSignerA).mint(signerC.address, 20))
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, signerC.address, 20);
     // Signer B attempts to transfer from Signer A to Signer B (Not allowed)
     await expect(
       deployedERC20NoData
         .connect(signerB)
-        .transferNoData(deployerSignerA.address, signerB.address, 10),
+        .transferFrom(deployerSignerA.address, signerB.address, 10),
     ).to.be.reverted;
     // Signer C attempts to transfer from Signer B to Signer C (Not allowed)
     await expect(
-      deployedERC20NoData.connect(signerC).transferNoData(signerB.address, signerC.address, 10),
+      deployedERC20NoData.connect(signerC).transferFrom(signerB.address, signerC.address, 10),
     ).to.be.reverted;
 
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(0);
@@ -143,7 +143,7 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(0);
     // Mint tokens to Signer A
     await expect(
-      deployedERC20NoData.connect(deployerSignerA).mintNoData(deployerSignerA.address, 20),
+      deployedERC20NoData.connect(deployerSignerA).mint(deployerSignerA.address, 20),
     )
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, deployerSignerA.address, 20);
@@ -151,7 +151,7 @@ describe('ERC20NoData - Unit Tests', function () {
 
     // Signer A burns 5 of their tokens
     await expect(
-      deployedERC20NoData.connect(deployerSignerA).burnNoData(deployerSignerA.address, 5),
+      deployedERC20NoData.connect(deployerSignerA).burn(deployerSignerA.address, 5),
     )
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(deployerSignerA.address, ZERO_ADDRESS, 5);
@@ -159,7 +159,7 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(15);
     // Signer A burns 15 of their tokens
     await expect(
-      deployedERC20NoData.connect(deployerSignerA).burnNoData(deployerSignerA.address, 15),
+      deployedERC20NoData.connect(deployerSignerA).burn(deployerSignerA.address, 15),
     )
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(deployerSignerA.address, ZERO_ADDRESS, 15);
@@ -173,25 +173,25 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(signerC.address)).to.equal(0);
     // Signer A mints 20 tokens to itself
     await expect(
-      deployedERC20NoData.connect(deployerSignerA).mintNoData(deployerSignerA.address, 20),
+      deployedERC20NoData.connect(deployerSignerA).mint(deployerSignerA.address, 20),
     )
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, deployerSignerA.address, 20);
     // Signer A mints 20 tokens to Signer B
-    await expect(deployedERC20NoData.connect(deployerSignerA).mintNoData(signerB.address, 20))
+    await expect(deployedERC20NoData.connect(deployerSignerA).mint(signerB.address, 20))
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, signerB.address, 20);
     // Signer A mints 20 tokens to Signer C
-    await expect(deployedERC20NoData.connect(deployerSignerA).mintNoData(signerC.address, 20))
+    await expect(deployedERC20NoData.connect(deployerSignerA).mint(signerC.address, 20))
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, signerC.address, 20);
     // Signer B attempts to burn tokens from Signer A wallet (not allowed)
     await expect(
-      deployedERC20NoData.connect(signerB).burnNoData(deployerSignerA.address, 10),
+      deployedERC20NoData.connect(signerB).burn(deployerSignerA.address, 10),
     ).to.be.revertedWith('ERC20NoData: caller is not owner');
     // Signer A attempts to burn tokens from Signer B wallet (not allowed)
     await expect(
-      deployedERC20NoData.connect(deployerSignerA).burnNoData(signerB.address, 10),
+      deployedERC20NoData.connect(deployerSignerA).burn(signerB.address, 10),
     ).to.be.revertedWith('ERC20NoData: caller is not owner');
 
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(20);
