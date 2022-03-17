@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
@@ -19,6 +18,15 @@ jobs:
       - run: npm ci
       - run: npm run test
       - run: npm run test:e2e
-      - run: cd solidity
+  solidity-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '12.x'
       - run: npm ci
+        working-directory: ./solidity
       - run: npm run test
+        working-directory: ./solidity
