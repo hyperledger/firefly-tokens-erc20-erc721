@@ -22,8 +22,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AxiosResponse } from 'axios';
 import { Observer } from 'rxjs';
 import request from 'superwstest';
-import ERC721NoDataABI from '../solidity/build/contracts/ERC721NoData.json';
-import ERC721WithDataABI from '../solidity/build/contracts/ERC721WithData.json';
+import ERC721NoDataABI from '../src/abi/ERC721NoData.json';
+import ERC721WithDataABI from '../src/abi/ERC721WithData.json';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import {
