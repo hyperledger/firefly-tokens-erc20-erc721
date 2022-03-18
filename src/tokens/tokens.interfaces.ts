@@ -16,6 +16,7 @@
 
 import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { IsDefined, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { Event } from '../event-stream/event-stream.interfaces';
 
 // Ethconnect interfaces
 export interface EthConnectAsyncResponse {
@@ -27,6 +28,32 @@ export interface EthConnectReturn {
   output: string;
 }
 
+export interface ApprovalEvent extends Event {
+  data: {
+    owner: string;
+    spender: string;
+    value?: string;
+    tokenId?: string;
+  };
+}
+
+export interface ApprovalForAllEvent extends Event {
+  data: {
+    owner: string;
+    operator: string;
+    approved: boolean;
+  };
+}
+
+export interface TransferEvent extends Event {
+  data: {
+    from: string;
+    to: string;
+    value?: string;
+    tokenId?: string;
+  };
+}
+
 // REST API requests and responses
 export class AsyncResponse {
   @ApiProperty()
@@ -35,7 +62,9 @@ export class AsyncResponse {
 
 export enum ContractSchema {
   ERC20WithData = 'ERC20WithData',
+  ERC20NoData = 'ERC20NoData',
   ERC721WithData = 'ERC721WithData',
+  ERC721NoData = 'ERC721NoData',
 }
 
 export enum ContractMethod {
@@ -74,8 +103,6 @@ export interface IValidTokenPool {
   type: TokenType;
 }
 
-const contractConfigDescription =
-  'Optional configuration info for the token pool. Reserved for future use.';
 const requestIdDescription =
   'Optional ID to identify this request. Must be unique for every request. ' +
   'If none is provided, one will be assigned and returned in the 202 response.';
@@ -107,7 +134,7 @@ export class TokenPool {
   @IsEnum(TokenType)
   type: TokenType;
 
-  @ApiProperty({ description: contractConfigDescription })
+  @ApiProperty()
   @IsDefined()
   config: TokenPoolConfig;
 
@@ -118,6 +145,46 @@ export class TokenPool {
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
   requestId?: string;
+}
+
+export class TokenApprovalConfig {
+  @ApiProperty()
+  @IsOptional()
+  allowance?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  tokenIndex?: string;
+}
+
+export class TokenApproval {
+  @ApiProperty()
+  @IsNotEmpty()
+  poolId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  signer: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  operator: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  approved: boolean;
+
+  @ApiProperty({ description: requestIdDescription })
+  @IsOptional()
+  requestId?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  data?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  config?: TokenApprovalConfig;
 }
 
 export class BlockchainTransaction {
@@ -272,6 +339,14 @@ export class TokenTransferEvent extends tokenEventBase {
 
 export class TokenMintEvent extends OmitType(TokenTransferEvent, ['from']) {}
 export class TokenBurnEvent extends OmitType(TokenTransferEvent, ['to']) {}
+
+export class TokenApprovalEvent extends tokenEventBase {
+  @ApiProperty()
+  operator: string;
+
+  @ApiProperty()
+  approved: boolean;
+}
 
 export interface TransactionDetails {
   blockHash: string;

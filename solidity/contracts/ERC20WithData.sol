@@ -41,4 +41,12 @@ contract ERC20WithData is Context, Ownable, ERC20 {
         require(from == _msgSender(), 'ERC20WithData: caller is not owner');
         _burn(from, amount);
     }
+
+    function approveWithData(
+        address spender,
+        uint256 amount,
+        bytes calldata data
+    ) external returns (bool) {
+        return approve(spender, amount);
+    }
 }
