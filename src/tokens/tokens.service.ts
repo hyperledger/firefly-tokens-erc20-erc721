@@ -18,8 +18,10 @@ import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
-import ERC20WithDataABI from '../../solidity/build/contracts/ERC20WithData.json';
-import ERC721WithDataABI from '../../solidity/build/contracts/ERC721WithData.json';
+import ERC20NoDataABI from '../abi/ERC20NoData.json';
+import ERC20WithDataABI from '../abi/ERC20WithData.json';
+import ERC721NoDataABI from '../abi/ERC721NoData.json';
+import ERC721WithDataABI from '../abi/ERC721WithData.json';
 import {
   Event,
   EventStream,
@@ -61,11 +63,19 @@ import {
 } from './tokens.util';
 
 export const abiTypeMap = {
+  ERC20NoData: ERC20NoDataABI.abi,
   ERC20WithData: ERC20WithDataABI.abi,
+  ERC721NoData: ERC721NoDataABI.abi,
   ERC721WithData: ERC721WithDataABI.abi,
 };
 
 const abiMethodMap = {
+  ERC20NoData: {
+    MINT: 'mint',
+    TRANSFER: 'transferFrom',
+    BURN: 'burn',
+    TRANSFEREVENT: 'Transfer',
+  },
   ERC20WithData: {
     MINT: 'mintWithData',
     TRANSFER: 'transferWithData',
@@ -73,6 +83,12 @@ const abiMethodMap = {
     TRANSFEREVENT: 'Transfer',
     NAME: 'name',
     SYMBOL: 'symbol',
+  },
+  ERC721NoData: {
+    MINT: 'mint',
+    TRANSFER: 'safeTransferFrom',
+    BURN: 'burn',
+    TRANSFEREVENT: 'Transfer',
   },
   ERC721WithData: {
     MINT: 'mintWithData',
@@ -130,6 +146,13 @@ export class TokensService {
     const contractAbi: IAbiMethod[] = abiTypeMap[contractType];
     const method = contractAbi?.find(abi => abi.name === abiMethodMap[contractType][operation]);
     return method;
+  }
+
+  private getTokenStandard(type: TokenType, withData = true): string {
+    if (type === TokenType.FUNGIBLE) {
+      return withData ? 'ERC20WithData' : 'ERC20NoData';
+    }
+    return withData ? 'ERC721WithData' : 'ERC721NoData';
   }
 
   private getAmountOrTokenID(
@@ -225,11 +248,11 @@ export class TokensService {
   }
 
   async createPool(dto: TokenPool): Promise<TokenPoolEvent> {
-    const schema = dto.type === TokenType.FUNGIBLE ? 'ERC20WithData' : 'ERC721WithData';
+    const schema = this.getTokenStandard(dto.type, dto.config.withData);
     const poolId: ITokenPool = {
       address: dto.config.address,
-      schema: schema,
       type: dto.type,
+      schema,
     };
     if (!this.validatePoolId(poolId)) {
       throw new BadRequestException('Invalid Pool ID');
@@ -290,7 +313,6 @@ export class TokensService {
     );
 
     const nameAndSymbol = await this.queryPool(poolId);
-
     const tokenPoolEvent: TokenPoolEvent = {
       poolId: dto.poolId,
       standard: poolId.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
@@ -314,6 +336,9 @@ export class TokensService {
     }
 
     const methodAbi = this.getMethodAbi(poolId, 'MINT');
+    const params = [dto.to, this.getAmountOrTokenID(dto, poolId.type)];
+    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -324,7 +349,7 @@ export class TokensService {
           from: dto.signer,
           to: poolId.address,
           method: methodAbi,
-          params: [dto.to, this.getAmountOrTokenID(dto, poolId.type), encodeHex(dto.data ?? '')],
+          params,
         } as EthConnectMsgRequest,
         this.postOptions(dto.signer, dto.requestId),
       ),
@@ -340,6 +365,9 @@ export class TokensService {
     }
 
     const methodAbi = this.getMethodAbi(poolId, 'TRANSFER');
+    const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, poolId.type)];
+    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -350,12 +378,7 @@ export class TokensService {
           from: dto.signer,
           to: poolId.address,
           method: methodAbi,
-          params: [
-            dto.from,
-            dto.to,
-            this.getAmountOrTokenID(dto, poolId.type),
-            encodeHex(dto.data ?? ''),
-          ],
+          params,
         } as EthConnectMsgRequest,
         this.postOptions(dto.signer, dto.requestId),
       ),
@@ -370,6 +393,9 @@ export class TokensService {
     }
 
     const methodAbi = this.getMethodAbi(poolId, 'BURN');
+    const params = [dto.from, this.getAmountOrTokenID(dto, poolId.type)];
+    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -380,7 +406,7 @@ export class TokensService {
           from: dto.signer,
           to: poolId.address,
           method: methodAbi,
-          params: [dto.from, this.getAmountOrTokenID(dto, poolId.type), encodeHex(dto.data ?? '')],
+          params,
         } as EthConnectMsgRequest,
         this.postOptions(dto.signer, dto.requestId),
       ),

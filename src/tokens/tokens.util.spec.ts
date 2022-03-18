@@ -87,7 +87,9 @@ describe('Util', () => {
       type: TokenType.FUNGIBLE,
     });
 
-    expect(unpackPoolId('address=0x12345&standard=ERC20WithData&type=fungible')).toEqual(<ITokenPool>{
+    expect(unpackPoolId('address=0x12345&standard=ERC20WithData&type=fungible')).toEqual(<
+      ITokenPool
+    >{
       address: '0x12345',
       schema: 'ERC20WithData',
       type: TokenType.FUNGIBLE,

@@ -84,6 +84,10 @@ export class TokenPoolConfig {
   @ApiProperty()
   @IsDefined()
   address: string;
+
+  @ApiProperty()
+  @IsOptional()
+  withData?: boolean;
 }
 
 export class TokenPool {

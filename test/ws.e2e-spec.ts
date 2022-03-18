@@ -251,7 +251,10 @@ describe('WebSocket AppController (e2e)', () => {
 
   it('Websocket: ERC20 token mint event with old poolId', async () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
+      name:
+        TOPIC +
+        ':' +
+        `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
     });
 
     const mockMintWebSocketMessage: WebSocketMessage = {

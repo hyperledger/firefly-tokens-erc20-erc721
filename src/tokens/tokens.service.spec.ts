@@ -15,12 +15,14 @@
 // limitations under the License.
 
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { AxiosResponse } from '@nestjs/terminus/dist/health-indicator/http/axios.interfaces';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Observer } from 'rxjs';
-import ERC20WithDataABI from '../../solidity/build/contracts/ERC20WithData.json';
-import ERC721WithDataABI from '../../solidity/build/contracts/ERC721WithData.json';
+import ERC20NoDataABI from '../abi/ERC20NoData.json';
+import ERC20WithDataABI from '../abi/ERC20WithData.json';
+import ERC721NoDataABI from '../abi/ERC721NoData.json';
+import ERC721WithDataABI from '../abi/ERC721WithData.json';
 import {
   EventStream,
   EventStreamReply,
@@ -42,7 +44,7 @@ import {
   TokenTransfer,
   TokenType,
 } from './tokens.interfaces';
-import { TokensService } from './tokens.service';
+import { abiTypeMap, TokensService } from './tokens.service';
 
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
@@ -60,11 +62,19 @@ const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';
 const SYMBOL = 'abc';
-const ERC20_SCHEMA = 'ERC20WithData';
-const ERC20_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_SCHEMA}&type=${TokenType.FUNGIBLE}`;
-const ERC721_SCHEMA = 'ERC721WithData';
-const ERC721_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
+const ERC20_NO_DATA_SCHEMA = 'ERC20NoData';
+const ERC20_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
+const ERC20_WITH_DATA_SCHEMA = 'ERC20WithData';
+const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
+const ERC721_NO_DATA_SCHEMA = 'ERC721NoData';
+const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
+const ERC721_WITH_DATA_SCHEMA = 'ERC721WithData';
+const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
+const MINT_NO_DATA = 'mint';
+const ERC20_TRANSFER_NO_DATA = 'transferFrom';
+const ERC721_TRANSFER_NO_DATA = 'safeTransferFrom';
+const BURN_NO_DATA = 'burn';
 const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
@@ -73,7 +83,9 @@ const QUERY_NAME = 'name';
 const QUERY_SYMBOL = 'symbol';
 
 const abiMethodMap = {
+  ERC20NoData: ERC20NoDataABI.abi as IAbiMethod[],
   ERC20WithData: ERC20WithDataABI.abi as IAbiMethod[],
+  ERC721NoData: ERC721NoDataABI.abi as IAbiMethod[],
   ERC721WithData: ERC721WithDataABI.abi as IAbiMethod[],
 };
 
@@ -103,6 +115,20 @@ describe('TokensService', () => {
   const eventstream = {
     createOrUpdateStream: jest.fn(),
     getOrCreateSubscription: jest.fn(),
+  };
+
+  const mockNameAndSymbolQuery = () => {
+    http.post
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: NAME,
+        }),
+      )
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: SYMBOL,
+        }),
+      );
   };
 
   beforeEach(async () => {
@@ -144,34 +170,24 @@ describe('TokensService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('createPool()', () => {
-    it('should return ERC20 pool details successfully', async () => {
+  describe('ERC20NoData', () => {
+    it('should return ERC20NoData pool details successfully', async () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
+        config: { address: CONTRACT_ADDRESS, withData: false },
         name: NAME,
         symbol: SYMBOL,
       };
 
-      http.post
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: NAME,
-          }),
-        )
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: SYMBOL,
-          }),
-        );
+      mockNameAndSymbolQuery();
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
-          poolId: ERC20_POOL_ID,
+          poolId: ERC20_NO_DATA_POOL_ID,
           standard: 'ERC20',
           timestamp: expect.any(String),
           type: 'fungible',
@@ -179,135 +195,15 @@ describe('TokensService', () => {
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
-            schema: ERC20_SCHEMA,
+            schema: ERC20_NO_DATA_SCHEMA,
           },
         } as TokenPoolEvent);
       });
     });
 
-    it('should reject ERC20 pool with wrong name', async () => {
-      const request: TokenPool = {
-        type: TokenType.FUNGIBLE,
-        requestId: REQUEST,
-        signer: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: 'wrong',
-        symbol: SYMBOL,
-      };
-
-      http.post
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: NAME,
-          }),
-        )
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: SYMBOL,
-          }),
-        );
-
-      await service.createPool(request).catch(e => {
-        expect(e).toEqual(
-          new BadRequestException("Supplied name 'wrong' does not match expected 'abcTest'"),
-        );
-      });
-    });
-
-    it('should return ERC721 pool details successfully', async () => {
-      const request: TokenPool = {
-        type: TokenType.NONFUNGIBLE,
-        requestId: REQUEST,
-        signer: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: NAME,
-        symbol: SYMBOL,
-      };
-
-      http.post
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: NAME,
-          }),
-        )
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: SYMBOL,
-          }),
-        );
-
-      await service.createPool(request).then(resp => {
-        expect(resp).toEqual({
-          data: `{"tx":${TX}}`,
-          poolId: ERC721_POOL_ID,
-          standard: 'ERC721',
-          timestamp: expect.any(String),
-          type: 'nonfungible',
-          symbol: SYMBOL,
-          info: {
-            name: NAME,
-            address: CONTRACT_ADDRESS,
-            schema: ERC721_SCHEMA,
-          },
-        } as TokenPoolEvent);
-      });
-    });
-
-    it('should reject ERC721 pool with wrong name', async () => {
-      const request: TokenPool = {
-        type: TokenType.NONFUNGIBLE,
-        requestId: REQUEST,
-        signer: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: 'wrong',
-        symbol: SYMBOL,
-      };
-
-      http.post
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: NAME,
-          }),
-        )
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: SYMBOL,
-          }),
-        );
-
-      await service.createPool(request).catch(e => {
-        expect(e).toEqual(
-          new BadRequestException("Supplied name 'wrong' does not match expected 'abcTest'"),
-        );
-      });
-    });
-  });
-
-  describe('activatePool()', () => {
-    it('should throw 404 exception if ABI method is not found', async () => {
+    it('should activate ERC20NoData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
-        poolId: 'address=0x123&standard=notAStandard&type=fungible',
-      };
-      await expect(service.activatePool(request)).rejects.toThrowError(
-        new HttpException('ABI event not found', HttpStatus.NOT_FOUND),
-      );
-    });
-
-    it('should throw 400 exception if poolID is malformed', async () => {
-      const request: TokenPoolActivate = {
-        poolId: 'address=0x123&type=fungible',
-      };
-      await expect(service.activatePool(request)).rejects.toThrowError(
-        new HttpException('Invalid Pool ID', HttpStatus.BAD_REQUEST),
-      );
-    });
-
-    it('should activate ERC20 pool correctly and return correct values', async () => {
-      const request: TokenPoolActivate = {
-        poolId: ERC20_POOL_ID,
+        poolId: ERC20_NO_DATA_POOL_ID,
       };
 
       const mockEventStream: EventStream = {
@@ -316,7 +212,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
-        poolId: ERC20_POOL_ID,
+        poolId: ERC20_NO_DATA_POOL_ID,
         standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
@@ -324,31 +220,226 @@ describe('TokensService', () => {
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
-          schema: ERC20_SCHEMA,
+          schema: ERC20_NO_DATA_SCHEMA,
         },
       };
 
-      http.post
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: NAME,
-          }),
-        )
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: SYMBOL,
-          }),
-        );
+      mockNameAndSymbolQuery();
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
+
       await expect(service.activatePool(request)).resolves.toEqual(response);
+
+      expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
+        BASE_URL,
+        abiTypeMap.ERC20NoData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
+        'Transfer',
+        `${TOPIC}:${ERC20_NO_DATA_POOL_ID}:${TRANSFER}`,
+        CONTRACT_ADDRESS,
+        abiTypeMap.ERC20NoData.filter(
+          abi =>
+            abi.name === MINT_NO_DATA ||
+            abi.name === ERC20_TRANSFER_NO_DATA ||
+            abi.name === BURN_NO_DATA ||
+            abi.name === TRANSFER,
+        ) as IAbiMethod[],
+        '0',
+      );
+    });
+
+    it('should mint ERC20NoData token with correct abi and inputs', async () => {
+      const request: TokenMint = {
+        amount: '20',
+        signer: IDENTITY,
+        poolId: ERC20_NO_DATA_POOL_ID,
+        to: '0x123',
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC20NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        params: ['0x123', '20'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      http.post = jest.fn(() => new FakeObservable(response));
+      await expect(service.mint(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('should transfer ERC20NoData token with correct abi and inputs', async () => {
+      const request: TokenTransfer = {
+        amount: '20',
+        signer: IDENTITY,
+        poolId: ERC20_NO_DATA_POOL_ID,
+        from: IDENTITY,
+        to: '0x123',
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC20NoData.find(
+          abi => abi.name === ERC20_TRANSFER_NO_DATA,
+        ) as IAbiMethod,
+        params: [IDENTITY, '0x123', '20'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      http.post = jest.fn(() => new FakeObservable(response));
+      await expect(service.transfer(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('should burn ERC20NoData token with correct abi and inputs', async () => {
+      const request: TokenBurn = {
+        amount: '20',
+        signer: IDENTITY,
+        poolId: ERC20_NO_DATA_POOL_ID,
+        from: IDENTITY,
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
+        params: [IDENTITY, '20'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      http.post = jest.fn(() => new FakeObservable(response));
+      await expect(service.burn(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+  });
+
+  describe('ERC20WithData', () => {
+    it('should return ERC20WithData pool details successfully  - implicit withData config', async () => {
+      const request: TokenPool = {
+        type: TokenType.FUNGIBLE,
+        requestId: REQUEST,
+        signer: IDENTITY,
+        data: `{"tx":${TX}}`,
+        config: { address: CONTRACT_ADDRESS },
+        name: NAME,
+        symbol: SYMBOL,
+      };
+
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC20_WITH_DATA_POOL_ID,
+          standard: 'ERC20',
+          timestamp: expect.any(String),
+          type: 'fungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC20_WITH_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
+    });
+
+    it('should return ERC20WithData pool details successfully - explicit withData config', async () => {
+      const request: TokenPool = {
+        type: TokenType.FUNGIBLE,
+        requestId: REQUEST,
+        signer: IDENTITY,
+        data: `{"tx":${TX}}`,
+        config: { address: CONTRACT_ADDRESS, withData: true },
+        name: NAME,
+        symbol: SYMBOL,
+      };
+
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC20_WITH_DATA_POOL_ID,
+          standard: 'ERC20',
+          timestamp: expect.any(String),
+          type: 'fungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC20_WITH_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
+    });
+
+    it('should activate ERC20WithData pool correctly and return correct values', async () => {
+      const request: TokenPoolActivate = {
+        poolId: ERC20_WITH_DATA_POOL_ID,
+      };
+
+      const mockEventStream: EventStream = {
+        id: 'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
+        name: 'token',
+      };
+
+      const response: TokenPoolEvent = {
+        poolId: ERC20_WITH_DATA_POOL_ID,
+        standard: 'ERC20',
+        timestamp: expect.any(String),
+        type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC20_WITH_DATA_SCHEMA,
+        },
+      };
+
+      mockNameAndSymbolQuery();
+
+      eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
+      eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
+
+      await expect(service.activatePool(request)).resolves.toEqual(response);
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         BASE_URL,
         abiMethodMap.ERC20WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
-        `${TOPIC}:${ERC20_POOL_ID}:${TRANSFER}`,
+        `${TOPIC}:${ERC20_WITH_DATA_POOL_ID}:${TRANSFER}`,
         CONTRACT_ADDRESS,
         abiMethodMap.ERC20WithData.filter(
           abi =>
@@ -366,74 +457,11 @@ describe('TokensService', () => {
       );
     });
 
-    it('should activate ERC721 pool correctly and return correct values', async () => {
-      const request: TokenPoolActivate = {
-        poolId: ERC721_POOL_ID,
-      };
-
-      const mockEventStream: EventStream = {
-        id: 'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
-        name: 'token',
-      };
-
-      const response: TokenPoolEvent = {
-        poolId: ERC721_POOL_ID,
-        standard: 'ERC721',
-        timestamp: expect.any(String),
-        type: TokenType.NONFUNGIBLE,
-        symbol: SYMBOL,
-        info: {
-          name: NAME,
-          address: CONTRACT_ADDRESS,
-          schema: ERC721_SCHEMA,
-        },
-      };
-
-      http.post
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: NAME,
-          }),
-        )
-        .mockReturnValueOnce(
-          new FakeObservable(<EthConnectReturn>{
-            output: SYMBOL,
-          }),
-        );
-
-      eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
-      eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
-      await expect(service.activatePool(request)).resolves.toEqual(response);
-      expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
-        BASE_URL,
-        abiMethodMap.ERC721WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
-        'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
-        'Transfer',
-        `${TOPIC}:${ERC721_POOL_ID}:${TRANSFER}`,
-        CONTRACT_ADDRESS,
-        abiMethodMap.ERC721WithData.filter(
-          abi =>
-            abi.name !== undefined &&
-            [
-              MINT_WITH_DATA,
-              TRANSFER_WITH_DATA,
-              BURN_WITH_DATA,
-              TRANSFER,
-              QUERY_NAME,
-              QUERY_SYMBOL,
-            ].includes(abi.name),
-        ) as IAbiMethod[],
-        '0',
-      );
-    });
-  });
-
-  describe('mint/transfer/burn', () => {
-    it('should mint ERC20 token with correct abi and inputs', async () => {
+    it('should mint ERC20WithData token with correct abi and inputs', async () => {
       const request: TokenMint = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_POOL_ID,
+        poolId: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -443,7 +471,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
         params: ['0x123', '20', '0x00'],
       };
 
@@ -459,54 +487,11 @@ describe('TokensService', () => {
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
-    it('should not mint ERC721 token due to invalid amount', async () => {
-      const request: TokenMint = {
-        amount: '2',
-        tokenIndex: '721',
-        signer: IDENTITY,
-        poolId: ERC721_POOL_ID,
-        to: '0x123',
-      };
-      await expect(service.mint(request)).rejects.toThrowError(
-        new HttpException('Amount for nonfungible tokens must be 1', HttpStatus.BAD_REQUEST),
-      );
-    });
-
-    it('should mint ERC721 token with correct abi and inputs', async () => {
-      const request: TokenMint = {
-        tokenIndex: '721',
-        signer: IDENTITY,
-        poolId: ERC721_POOL_ID,
-        to: '0x123',
-      };
-
-      const mockEthConnectRequest: EthConnectMsgRequest = {
-        headers: {
-          type: 'SendTransaction',
-        },
-        from: IDENTITY,
-        to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
-        params: ['0x123', '721', '0x00'],
-      };
-
-      const response: EthConnectAsyncResponse = {
-        id: 'responseId',
-        sent: true,
-      };
-
-      http.post = jest.fn(() => new FakeObservable(response));
-      await expect(service.mint(request)).resolves.toEqual({
-        id: 'responseId',
-      } as AsyncResponse);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
-    });
-
-    it('should transfer ERC20 token with correct abi and inputs', async () => {
+    it('should transfer ERC20WithData token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_POOL_ID,
+        poolId: ERC20_WITH_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
       };
@@ -517,9 +502,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20WithData.find(
-          abi => abi.name === TRANSFER_WITH_DATA,
-        ) as IAbiMethod,
+        method: abiTypeMap.ERC20WithData.find(abi => abi.name === TRANSFER_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '0x123', '20', '0x00'],
       };
 
@@ -535,11 +518,164 @@ describe('TokensService', () => {
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
-    it('should transfer ERC721 token with correct abi and inputs', async () => {
+    it('should burn ERC20WithData token with correct abi and inputs', async () => {
+      const request: TokenBurn = {
+        amount: '20',
+        signer: IDENTITY,
+        poolId: ERC20_WITH_DATA_POOL_ID,
+        from: IDENTITY,
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
+        params: [IDENTITY, '20', '0x00'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      http.post = jest.fn(() => new FakeObservable(response));
+      await expect(service.burn(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+  });
+
+  describe('ERC721NoData', () => {
+    it('should return ERC721NoData pool details successfully', async () => {
+      const request: TokenPool = {
+        type: TokenType.NONFUNGIBLE,
+        requestId: REQUEST,
+        signer: IDENTITY,
+        data: `{"tx":${TX}}`,
+        config: { address: CONTRACT_ADDRESS, withData: false },
+        name: NAME,
+        symbol: SYMBOL,
+      };
+
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC721_NO_DATA_POOL_ID,
+          standard: 'ERC721',
+          timestamp: expect.any(String),
+          type: 'nonfungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC721_NO_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
+    });
+
+    it('should activate ERC721NoData pool correctly and return correct values', async () => {
+      const request: TokenPoolActivate = {
+        poolId: ERC721_NO_DATA_POOL_ID,
+      };
+
+      const mockEventStream: EventStream = {
+        id: 'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
+        name: 'token',
+      };
+
+      const response: TokenPoolEvent = {
+        poolId: ERC721_NO_DATA_POOL_ID,
+        standard: 'ERC721',
+        timestamp: expect.any(String),
+        type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC721_NO_DATA_SCHEMA,
+        },
+      };
+
+      mockNameAndSymbolQuery();
+
+      eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
+      eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
+
+      await expect(service.activatePool(request)).resolves.toEqual(response);
+
+      expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
+        BASE_URL,
+        abiMethodMap.ERC721NoData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
+        'Transfer',
+        `${TOPIC}:${ERC721_NO_DATA_POOL_ID}:${TRANSFER}`,
+        CONTRACT_ADDRESS,
+        abiTypeMap.ERC721NoData.filter(
+          abi =>
+            abi.name === MINT_NO_DATA ||
+            abi.name === ERC721_TRANSFER_NO_DATA ||
+            abi.name === BURN_NO_DATA ||
+            abi.name === TRANSFER,
+        ) as IAbiMethod[],
+        '0',
+      );
+    });
+
+    it('should not mint ERC721NoData token due to invalid amount', async () => {
+      const request: TokenMint = {
+        amount: '2',
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolId: ERC721_NO_DATA_POOL_ID,
+        to: '0x123',
+      };
+      await expect(service.mint(request)).rejects.toThrowError(
+        new HttpException('Amount for nonfungible tokens must be 1', HttpStatus.BAD_REQUEST),
+      );
+    });
+
+    it('should mint ERC721NoData token with correct abi and inputs', async () => {
+      const request: TokenMint = {
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolId: ERC721_NO_DATA_POOL_ID,
+        to: '0x123',
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC721NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        params: ['0x123', '721'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      http.post = jest.fn(() => new FakeObservable(response));
+      await expect(service.mint(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('should transfer ERC721NoData token with correct abi and inputs', async () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_POOL_ID,
+        poolId: ERC721_NO_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
       };
@@ -550,7 +686,228 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721WithData.find(
+        method: abiTypeMap.ERC721NoData.find(
+          abi => abi.name === ERC721_TRANSFER_NO_DATA,
+        ) as IAbiMethod,
+        params: [IDENTITY, '0x123', '721'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      http.post = jest.fn(() => new FakeObservable(response));
+      await expect(service.transfer(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('should burn ERC721NoData token with correct abi and inputs', async () => {
+      const request: TokenBurn = {
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolId: ERC721_NO_DATA_POOL_ID,
+        from: IDENTITY,
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC721NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
+        params: [IDENTITY, '721'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      http.post = jest.fn(() => new FakeObservable(response));
+      await expect(service.burn(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+  });
+
+  describe('ERC721WithData', () => {
+    it('should return ERC721WithData pool details successfully - implicit withData config', async () => {
+      const request: TokenPool = {
+        type: TokenType.NONFUNGIBLE,
+        requestId: REQUEST,
+        signer: IDENTITY,
+        data: `{"tx":${TX}}`,
+        config: { address: CONTRACT_ADDRESS },
+        name: NAME,
+        symbol: SYMBOL,
+      };
+
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC721_WITH_DATA_POOL_ID,
+          standard: 'ERC721',
+          timestamp: expect.any(String),
+          type: 'nonfungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC721_WITH_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
+    });
+
+    it('should return ERC721WithData pool details successfully - explicit withData config', async () => {
+      const request: TokenPool = {
+        type: TokenType.NONFUNGIBLE,
+        requestId: REQUEST,
+        signer: IDENTITY,
+        data: `{"tx":${TX}}`,
+        config: { address: CONTRACT_ADDRESS, withData: true },
+        name: NAME,
+        symbol: SYMBOL,
+      };
+
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC721_WITH_DATA_POOL_ID,
+          standard: 'ERC721',
+          timestamp: expect.any(String),
+          type: 'nonfungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC721_WITH_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
+    });
+
+    it('should activate ERC721WithData pool correctly and return correct values', async () => {
+      const request: TokenPoolActivate = {
+        poolId: ERC721_WITH_DATA_POOL_ID,
+      };
+
+      const mockEventStream: EventStream = {
+        id: 'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
+        name: 'token',
+      };
+
+      const response: TokenPoolEvent = {
+        poolId: ERC721_WITH_DATA_POOL_ID,
+        standard: 'ERC721',
+        timestamp: expect.any(String),
+        type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC721_WITH_DATA_SCHEMA,
+        },
+      };
+
+      mockNameAndSymbolQuery();
+
+      eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
+      eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
+
+      await expect(service.activatePool(request)).resolves.toEqual(response);
+
+      expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
+        BASE_URL,
+        abiTypeMap.ERC721WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
+        'Transfer',
+        `${TOPIC}:${ERC721_WITH_DATA_POOL_ID}:${TRANSFER}`,
+        CONTRACT_ADDRESS,
+        abiTypeMap.ERC721WithData.filter(
+          abi =>
+            abi.name !== undefined &&
+            [
+              MINT_WITH_DATA,
+              TRANSFER_WITH_DATA,
+              BURN_WITH_DATA,
+              TRANSFER,
+              QUERY_NAME,
+              QUERY_SYMBOL,
+            ].includes(abi.name),
+        ) as IAbiMethod[],
+        '0',
+      );
+    });
+
+    it('should not mint ERC721WithData token due to invalid amount', async () => {
+      const request: TokenMint = {
+        amount: '2',
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolId: ERC721_WITH_DATA_POOL_ID,
+        to: '0x123',
+      };
+      await expect(service.mint(request)).rejects.toThrowError(
+        new HttpException('Amount for nonfungible tokens must be 1', HttpStatus.BAD_REQUEST),
+      );
+    });
+
+    it('should mint ERC721WithData token with correct abi and inputs', async () => {
+      const request: TokenMint = {
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolId: ERC721_WITH_DATA_POOL_ID,
+        to: '0x123',
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC721WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
+        params: ['0x123', '721', '0x00'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      http.post = jest.fn(() => new FakeObservable(response));
+      await expect(service.mint(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('should transfer ERC721WithData token with correct abi and inputs', async () => {
+      const request: TokenTransfer = {
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolId: ERC721_WITH_DATA_POOL_ID,
+        from: IDENTITY,
+        to: '0x123',
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC721WithData.find(
           abi => abi.name === TRANSFER_WITH_DATA,
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '721', '0x00'],
@@ -568,41 +925,11 @@ describe('TokensService', () => {
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
-    it('should burn ERC20 token with correct abi and inputs', async () => {
-      const request: TokenBurn = {
-        amount: '20',
-        signer: IDENTITY,
-        poolId: ERC20_POOL_ID,
-        from: IDENTITY,
-      };
-
-      const mockEthConnectRequest: EthConnectMsgRequest = {
-        headers: {
-          type: 'SendTransaction',
-        },
-        from: IDENTITY,
-        to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
-        params: [IDENTITY, '20', '0x00'],
-      };
-
-      const response: EthConnectAsyncResponse = {
-        id: 'responseId',
-        sent: true,
-      };
-
-      http.post = jest.fn(() => new FakeObservable(response));
-      await expect(service.burn(request)).resolves.toEqual({
-        id: 'responseId',
-      } as AsyncResponse);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
-    });
-
-    it('should burn ERC721 token with correct abi and inputs', async () => {
+    it('should burn ERC721WithData token with correct abi and inputs', async () => {
       const request: TokenBurn = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_POOL_ID,
+        poolId: ERC721_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
 
@@ -629,7 +956,25 @@ describe('TokensService', () => {
     });
   });
 
-  describe('getter for receipt', () => {
+  describe('Miscellaneous', () => {
+    it('should throw 404 exception if ABI method is not found when activating pool', async () => {
+      const request: TokenPoolActivate = {
+        poolId: 'address=0x123&standard=notAStandard&type=fungible',
+      };
+      await expect(service.activatePool(request)).rejects.toThrowError(
+        new HttpException('ABI event not found', HttpStatus.NOT_FOUND),
+      );
+    });
+
+    it('should throw 400 exception if poolID is malformed when activating pool', async () => {
+      const request: TokenPoolActivate = {
+        poolId: 'address=0x123&type=fungible',
+      };
+      await expect(service.activatePool(request)).rejects.toThrowError(
+        new HttpException('Invalid Pool ID', HttpStatus.BAD_REQUEST),
+      );
+    });
+
     it('should get receipt of id successfully', async () => {
       const response: EventStreamReply = {
         headers: {
