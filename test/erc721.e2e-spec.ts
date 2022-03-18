@@ -29,6 +29,7 @@ import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-pr
 import {
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
+  EthConnectReturn,
   IAbiMethod,
   TokenBurn,
   TokenMint,
@@ -56,10 +57,10 @@ const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';
 const SYMBOL = 'abc';
-const ERC721_NO_DATA_STANDARD = 'ERC721NoData';
-const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_NO_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
-const ERC721_WITH_DATA_STANDARD = 'ERC721WithData';
-const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_WITH_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
+const ERC721_NO_DATA_SCHEMA = 'ERC721NoData';
+const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
+const ERC721_WITH_DATA_SCHEMA = 'ERC721WithData';
+const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
 const MINT_NO_DATA = 'mint';
 const TRANSFER_NO_DATA = 'safeTransferFrom';
@@ -100,6 +101,20 @@ describe('ERC721 - e2e', () => {
 
   const eventstream = {
     getSubscription: jest.fn(),
+  };
+
+  const mockNameAndSymbolQuery = () => {
+    http.post
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: NAME,
+        }),
+      )
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: SYMBOL,
+        }),
+      );
   };
 
   beforeEach(async () => {
@@ -147,14 +162,21 @@ describe('ERC721 - e2e', () => {
         symbol: SYMBOL,
       };
 
-      const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC721_WITH_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`,
-        standard: ERC721_WITH_DATA_STANDARD,
+        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
+        standard: 'ERC721',
         timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC721_WITH_DATA_SCHEMA,
+        },
       });
 
+      mockNameAndSymbolQuery();
       http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await server.post('/createpool').send(request).expect(200);
@@ -172,14 +194,21 @@ describe('ERC721 - e2e', () => {
         symbol: SYMBOL,
       };
 
-      const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC721_WITH_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`,
-        standard: ERC721_WITH_DATA_STANDARD,
+        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
+        standard: 'ERC721',
         timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC721_WITH_DATA_SCHEMA,
+        },
       });
 
+      mockNameAndSymbolQuery();
       http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await server.post('/createpool').send(request).expect(200);
@@ -299,14 +328,21 @@ describe('ERC721 - e2e', () => {
         symbol: SYMBOL,
       };
 
-      const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC721_NO_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`,
-        standard: ERC721_NO_DATA_STANDARD,
+        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
+        standard: 'ERC721',
         timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC721_NO_DATA_SCHEMA,
+        },
       });
 
+      mockNameAndSymbolQuery();
       http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await server.post('/createpool').send(request).expect(200);

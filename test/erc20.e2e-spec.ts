@@ -29,6 +29,7 @@ import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-pr
 import {
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
+  EthConnectReturn,
   IAbiMethod,
   TokenBurn,
   TokenMint,
@@ -56,10 +57,11 @@ const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';
 const SYMBOL = 'abc';
-const ERC20_NO_DATA_STANDARD = 'ERC20NoData';
-const ERC20_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_NO_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`;
-const ERC20_WITH_DATA_STANDARD = 'ERC20WithData';
-const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_WITH_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`;
+
+const ERC20_NO_DATA_SCHEMA = 'ERC20NoData';
+const ERC20_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
+const ERC20_WITH_DATA_SCHEMA = 'ERC20WithData';
+const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
 
 const MINT_NO_DATA = 'mint';
 const TRANSFER_NO_DATA = 'transferFrom';
@@ -68,7 +70,7 @@ const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 
-const standardAbiMap = {
+const abiMethodMap = {
   ERC20WithData: ERC20WithDataABI.abi as IAbiMethod[],
   ERC20NoData: ERC20NoDataABI.abi as IAbiMethod[],
 };
@@ -100,6 +102,20 @@ describe('ERC20 - e2e', () => {
 
   const eventstream = {
     getSubscription: jest.fn(),
+  };
+
+  const mockNameAndSymbolQuery = () => {
+    http.post
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: NAME,
+        }),
+      )
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: SYMBOL,
+        }),
+      );
   };
 
   beforeEach(async () => {
@@ -148,14 +164,21 @@ describe('ERC20 - e2e', () => {
         isBestPool: true, // will be stripped but will not cause an error
       };
 
-      const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_WITH_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`,
-        standard: ERC20_WITH_DATA_STANDARD,
+        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC20_WITH_DATA_SCHEMA,
+        },
       });
 
+      mockNameAndSymbolQuery();
       http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await server.post('/createpool').send(request).expect(200);
@@ -194,14 +217,21 @@ describe('ERC20 - e2e', () => {
         symbol: SYMBOL,
       };
 
-      const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_WITH_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`,
-        standard: ERC20_WITH_DATA_STANDARD,
+        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC20_WITH_DATA_SCHEMA,
+        },
       });
 
+      mockNameAndSymbolQuery();
       http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await server.post('/createpool').send(request).expect(200);
@@ -219,14 +249,21 @@ describe('ERC20 - e2e', () => {
         symbol: SYMBOL,
       };
 
-      const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_WITH_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`,
-        standard: ERC20_WITH_DATA_STANDARD,
+        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC20_WITH_DATA_SCHEMA,
+        },
       });
 
+      mockNameAndSymbolQuery();
       http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await server.post('/createpool').send(request).expect(200);
@@ -247,7 +284,7 @@ describe('ERC20 - e2e', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
+        method: abiMethodMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
         params: ['0x123', '20', '0x00'],
       };
 
@@ -279,7 +316,7 @@ describe('ERC20 - e2e', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(
+        method: abiMethodMap.ERC20WithData.find(
           abi => abi.name === TRANSFER_WITH_DATA,
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '20', '0x00'],
@@ -312,7 +349,7 @@ describe('ERC20 - e2e', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
+        method: abiMethodMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '20', '0x00'],
       };
 
@@ -343,14 +380,21 @@ describe('ERC20 - e2e', () => {
         isBestPool: true, // will be stripped but will not cause an error
       };
 
-      const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_NO_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`,
-        standard: ERC20_NO_DATA_STANDARD,
+        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC20_NO_DATA_SCHEMA,
+        },
       });
 
+      mockNameAndSymbolQuery();
       http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await server.post('/createpool').send(request).expect(200);
@@ -374,7 +418,6 @@ describe('ERC20 - e2e', () => {
         error: 'Bad Request',
       };
 
-      http.post = jest.fn(() => new FakeObservable(response));
       await server.post('/createpool').send(request).expect(400).expect(response);
     });
 
@@ -389,14 +432,21 @@ describe('ERC20 - e2e', () => {
         symbol: SYMBOL,
       };
 
-      const expectedResponse: TokenPoolEvent = expect.objectContaining({
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_NO_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`,
-        standard: ERC20_NO_DATA_STANDARD,
+        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC20_NO_DATA_SCHEMA,
+        },
       });
 
+      mockNameAndSymbolQuery();
       http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await server.post('/createpool').send(request).expect(200);
@@ -417,7 +467,7 @@ describe('ERC20 - e2e', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        method: abiMethodMap.ERC20NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '20'],
       };
 
@@ -449,7 +499,7 @@ describe('ERC20 - e2e', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20NoData.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
+        method: abiMethodMap.ERC20NoData.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
         params: [IDENTITY, '0x123', '20'],
       };
 
@@ -480,7 +530,7 @@ describe('ERC20 - e2e', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
+        method: abiMethodMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
         params: [IDENTITY, '20'],
       };
 

@@ -14,9 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { URLSearchParams } from 'url';
 import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import ERC20NoDataABI from '../abi/ERC20NoData.json';
@@ -36,13 +35,13 @@ import { basicAuth } from '../utils';
 import { WebSocketMessage } from '../websocket-events/websocket-events.base';
 import {
   AsyncResponse,
-  ContractStandardEnum,
-  EncodedPoolIdEnum,
+  ContractSchema,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
   EthConnectReturn,
   IAbiMethod,
   ITokenPool,
+  IValidTokenPool,
   TokenBurn,
   TokenBurnEvent,
   TokenMint,
@@ -54,16 +53,23 @@ import {
   TokenTransferEvent,
   TokenType,
 } from './tokens.interfaces';
-import { decodeHex, encodeHex, packSubscriptionName, unpackSubscriptionName } from './tokens.util';
+import {
+  decodeHex,
+  encodeHex,
+  packPoolId,
+  packSubscriptionName,
+  unpackPoolId,
+  unpackSubscriptionName,
+} from './tokens.util';
 
-export const standardAbiMap = {
+export const abiTypeMap = {
   ERC20NoData: ERC20NoDataABI.abi,
   ERC20WithData: ERC20WithDataABI.abi,
   ERC721NoData: ERC721NoDataABI.abi,
   ERC721WithData: ERC721WithDataABI.abi,
 };
 
-const standardMethodMap = {
+const abiMethodMap = {
   ERC20NoData: {
     MINT: 'mint',
     TRANSFER: 'transferFrom',
@@ -75,6 +81,8 @@ const standardMethodMap = {
     TRANSFER: 'transferWithData',
     BURN: 'burnWithData',
     TRANSFEREVENT: 'Transfer',
+    NAME: 'name',
+    SYMBOL: 'symbol',
   },
   ERC721NoData: {
     MINT: 'mint',
@@ -87,15 +95,18 @@ const standardMethodMap = {
     TRANSFER: 'transferWithData',
     BURN: 'burnWithData',
     TRANSFEREVENT: 'Transfer',
+    NAME: 'name',
+    SYMBOL: 'symbol',
   },
 };
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const sendTransactionHeader = 'SendTransaction';
+const queryHeader = 'Query';
 const transferEvent = 'Transfer';
 const transferEventSignature = 'Transfer(address,address,uint256)';
 
-type ContractStandardStrings = keyof typeof ContractStandardEnum;
+type ContractSchemaStrings = keyof typeof ContractSchema;
 
 @Injectable()
 export class TokensService {
@@ -128,12 +139,12 @@ export class TokensService {
   }
 
   private getMethodAbi(
-    poolId: URLSearchParams,
-    operation: 'MINT' | 'TRANSFER' | 'BURN' | 'TRANSFEREVENT',
+    poolId: ITokenPool,
+    operation: 'MINT' | 'TRANSFER' | 'BURN' | 'TRANSFEREVENT' | 'NAME' | 'SYMBOL',
   ): IAbiMethod | undefined {
-    const standard = poolId.get(EncodedPoolIdEnum.Standard) as ContractStandardStrings;
-    const standardAbi: IAbiMethod[] = standardAbiMap[standard];
-    const method = standardAbi?.find(abi => abi.name === standardMethodMap[standard][operation]);
+    const contractType = poolId.schema as ContractSchemaStrings;
+    const contractAbi: IAbiMethod[] = abiTypeMap[contractType];
+    const method = contractAbi?.find(abi => abi.name === abiMethodMap[contractType][operation]);
     return method;
   }
 
@@ -153,26 +164,14 @@ export class TokensService {
     }
 
     if (dto.amount !== undefined && dto.amount !== '1') {
-      throw new HttpException('Amount for nonfungible tokens must be 1', HttpStatus.BAD_REQUEST);
+      throw new BadRequestException('Amount for nonfungible tokens must be 1');
     }
 
     return dto.tokenIndex;
   }
 
-  private validatePoolId(poolId: URLSearchParams): ITokenPool {
-    if (
-      poolId.get(EncodedPoolIdEnum.Address) === null ||
-      poolId.get(EncodedPoolIdEnum.Standard) === null ||
-      poolId.get(EncodedPoolIdEnum.Type) === null
-    ) {
-      throw new HttpException('Invalid Pool ID', HttpStatus.BAD_REQUEST);
-    }
-
-    return {
-      address: poolId.get(EncodedPoolIdEnum.Address),
-      standard: poolId.get(EncodedPoolIdEnum.Standard),
-      type: poolId.get(EncodedPoolIdEnum.Type),
-    } as ITokenPool;
+  private validatePoolId(poolId: ITokenPool): poolId is IValidTokenPool {
+    return !(poolId.address === null || poolId.schema === null || poolId.type === null);
   }
 
   /**
@@ -180,6 +179,13 @@ export class TokensService {
    */
   init() {
     return;
+  }
+
+  private async getStream() {
+    if (this.stream === undefined) {
+      this.stream = await this.eventstream.createOrUpdateStream(this.topic);
+    }
+    return this.stream;
   }
 
   private postOptions(signer: string, requestId?: string) {
@@ -195,73 +201,144 @@ export class TokensService {
       },
       ...basicAuth(this.username, this.password),
     };
-
     return requestOptions;
   }
 
-  createPool(dto: TokenPool): TokenPoolEvent {
-    const poolId = new URLSearchParams({
+  private queryOptions() {
+    const requestOptions: AxiosRequestConfig = {
+      ...basicAuth(this.username, this.password),
+    };
+    return requestOptions;
+  }
+
+  private async queryPool(poolId: ITokenPool) {
+    this.validatePoolId(poolId);
+    const nameResponse = await lastValueFrom(
+      this.http.post<EthConnectReturn>(
+        `${this.baseUrl}`,
+        {
+          headers: {
+            type: queryHeader,
+          },
+          to: poolId.address,
+          method: this.getMethodAbi(poolId, 'NAME'),
+          params: [],
+        } as EthConnectMsgRequest,
+        this.queryOptions(),
+      ),
+    );
+    const symbolResponse = await lastValueFrom(
+      this.http.post<EthConnectReturn>(
+        `${this.baseUrl}`,
+        {
+          headers: {
+            type: queryHeader,
+          },
+          to: poolId.address,
+          method: this.getMethodAbi(poolId, 'SYMBOL'),
+          params: [],
+        } as EthConnectMsgRequest,
+        this.queryOptions(),
+      ),
+    );
+    return {
+      name: nameResponse.data.output,
+      symbol: symbolResponse.data.output,
+    };
+  }
+
+  async createPool(dto: TokenPool): Promise<TokenPoolEvent> {
+    const schema = this.getTokenStandard(dto.type, dto.config.withData);
+    const poolId: ITokenPool = {
       address: dto.config.address,
-      standard: this.getTokenStandard(dto.type, dto.config.withData),
       type: dto.type,
-    });
+      schema,
+    };
+    if (!this.validatePoolId(poolId)) {
+      throw new BadRequestException('Invalid Pool ID');
+    }
+    const encodedPoolId = packPoolId(poolId);
+
+    const nameAndSymbol = await this.queryPool(poolId);
+    if (dto.symbol !== undefined && dto.symbol !== '' && dto.symbol !== nameAndSymbol.symbol) {
+      throw new BadRequestException(
+        `Supplied symbol '${dto.symbol}' does not match expected '${nameAndSymbol.symbol}'`,
+      );
+    }
 
     const tokenPoolEvent: TokenPoolEvent = {
       data: dto.data,
-      poolId: poolId.toString(),
-      standard: poolId.get(EncodedPoolIdEnum.Standard)?.toString() ?? '',
+      poolId: encodedPoolId.toString(),
+      standard: dto.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
       timestamp: Date.now().toString(),
       type: dto.type,
+      symbol: nameAndSymbol.symbol,
+      info: {
+        name: nameAndSymbol.name,
+        address: dto.config.address,
+        schema,
+      },
     };
 
     return tokenPoolEvent;
   }
 
   async activatePool(dto: TokenPoolActivate) {
-    const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
-    if (this.stream === undefined) {
-      this.stream = await this.eventstream.createOrUpdateStream(this.topic);
+    const poolId = unpackPoolId(dto.poolId);
+    if (!this.validatePoolId(poolId)) {
+      throw new BadRequestException('Invalid Pool ID');
     }
-    const encodedPoolId = new URLSearchParams(dto.poolId);
-    const methodAbi = this.getMethodAbi(encodedPoolId, 'TRANSFEREVENT');
 
+    const stream = await this.getStream();
+    const methodAbi = this.getMethodAbi(poolId, 'TRANSFEREVENT');
     if (!methodAbi) {
-      throw new HttpException('ABI event not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException('ABI event not found');
     }
 
-    const possibleMethods: string[] = Object.values(standardMethodMap[validPoolId.standard]);
-    const standardABI: IAbiMethod[] = standardAbiMap[validPoolId.standard];
-    const methodsToSubTo: IAbiMethod[] = standardABI.filter((method: IAbiMethod) =>
+    const possibleMethods: string[] = Object.values(abiMethodMap[poolId.schema]);
+    const contractAbi: IAbiMethod[] = abiTypeMap[poolId.schema];
+    const methodsToSubTo: IAbiMethod[] = contractAbi.filter((method: IAbiMethod) =>
       possibleMethods.includes(method.name ?? ''),
     );
 
     await this.eventstream.getOrCreateSubscription(
       `${this.baseUrl}`,
       methodAbi,
-      this.stream.id,
+      stream.id,
       transferEvent,
       packSubscriptionName(this.topic, dto.poolId, transferEvent),
-      validPoolId.address,
+      poolId.address,
       methodsToSubTo,
       dto.transaction?.blockNumber ?? '0',
     );
 
+    const nameAndSymbol = await this.queryPool(poolId);
     const tokenPoolEvent: TokenPoolEvent = {
       poolId: dto.poolId,
-      standard: validPoolId.standard,
+      standard: poolId.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
       timestamp: Date.now().toString(),
-      type: validPoolId.type,
+      type: poolId.type,
+      symbol: nameAndSymbol.symbol,
+      info: {
+        name: nameAndSymbol.name,
+        address: poolId.address,
+        schema: poolId.schema,
+      },
     };
 
     return tokenPoolEvent;
   }
 
   async mint(dto: TokenMint): Promise<AsyncResponse> {
-    const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
-    const encodedPoolId = new URLSearchParams(dto.poolId);
-    const methodAbi = this.getMethodAbi(encodedPoolId, 'MINT');
-    const params = [dto.to, this.getAmountOrTokenID(dto, validPoolId.type)];
-    validPoolId.standard.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    const poolId = unpackPoolId(dto.poolId);
+    if (!this.validatePoolId(poolId)) {
+      throw new BadRequestException('Invalid Pool ID');
+    }
+
+    const methodAbi = this.getMethodAbi(poolId, 'MINT');
+    const params = [dto.to, this.getAmountOrTokenID(dto, poolId.type)];
+    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -270,7 +347,7 @@ export class TokensService {
             type: sendTransactionHeader,
           },
           from: dto.signer,
-          to: validPoolId.address,
+          to: poolId.address,
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
@@ -282,10 +359,15 @@ export class TokensService {
   }
 
   async transfer(dto: TokenTransfer): Promise<AsyncResponse> {
-    const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
-    const methodAbi = this.getMethodAbi(new URLSearchParams(dto.poolId), 'TRANSFER');
-    const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, validPoolId.type)];
-    validPoolId.standard.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    const poolId = unpackPoolId(dto.poolId);
+    if (!this.validatePoolId(poolId)) {
+      throw new BadRequestException('Invalid Pool ID');
+    }
+
+    const methodAbi = this.getMethodAbi(poolId, 'TRANSFER');
+    const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, poolId.type)];
+    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -294,7 +376,7 @@ export class TokensService {
             type: sendTransactionHeader,
           },
           from: dto.signer,
-          to: validPoolId.address,
+          to: poolId.address,
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
@@ -305,10 +387,15 @@ export class TokensService {
   }
 
   async burn(dto: TokenBurn): Promise<AsyncResponse> {
-    const validPoolId: ITokenPool = this.validatePoolId(new URLSearchParams(dto.poolId));
-    const methodAbi = this.getMethodAbi(new URLSearchParams(dto.poolId), 'BURN');
-    const params = [dto.from, this.getAmountOrTokenID(dto, validPoolId.type)];
-    validPoolId.standard.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    const poolId = unpackPoolId(dto.poolId);
+    if (!this.validatePoolId(poolId)) {
+      throw new BadRequestException('Invalid Pool ID');
+    }
+
+    const methodAbi = this.getMethodAbi(poolId, 'BURN');
+    const params = [dto.from, this.getAmountOrTokenID(dto, poolId.type)];
+    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
         `${this.baseUrl}`,
@@ -317,7 +404,7 @@ export class TokensService {
             type: sendTransactionHeader,
           },
           from: dto.signer,
-          to: validPoolId.address,
+          to: poolId.address,
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
@@ -364,7 +451,7 @@ class TokenListener implements EventListener {
     signer: string,
     contractAddress: string,
   ): Promise<string> {
-    const methodABI = standardAbiMap.ERC721WithData.find(method => method.name === 'tokenURI');
+    const methodABI = abiTypeMap.ERC721WithData.find(method => method.name === 'tokenURI');
     try {
       const response = await lastValueFrom(
         this.service.http.post<EthConnectReturn>(`${this.service.baseUrl}?`, {
@@ -397,6 +484,10 @@ class TokenListener implements EventListener {
       // should not happen
       return undefined;
     }
+    if (unpackedSub.poolId === undefined) {
+      // should not happen
+      return undefined;
+    }
 
     // This intentionally matches the formatting of protocol IDs for blockchain events in FireFly core
     const blockNumber = event.blockNumber ?? '0';
@@ -411,17 +502,15 @@ class TokenListener implements EventListener {
       transferId += '/' + eventIndex.toString(10).padStart(6, '0');
     }
 
-    const validPool = new URLSearchParams(unpackedSub.poolId);
-    const address = validPool.get(EncodedPoolIdEnum.Address);
-    const poolType = validPool.get(EncodedPoolIdEnum.Type);
+    const poolId = unpackPoolId(unpackedSub.poolId);
 
     const commonData = {
       id: transferId,
       location: 'address=' + event.address,
       signature: event.signature,
-      type: poolType,
+      type: poolId.type,
       poolId: unpackedSub.poolId,
-      amount: poolType === TokenType.FUNGIBLE ? data.value : '1',
+      amount: poolId.type === TokenType.FUNGIBLE ? data.value : '1',
       signer: event.inputSigner,
       data: decodedData,
       timestamp: event.timestamp,
@@ -436,9 +525,13 @@ class TokenListener implements EventListener {
       },
     } as TokenTransferEvent;
 
-    if (poolType === TokenType.NONFUNGIBLE && data.tokenId !== undefined) {
+    if (poolId.type === TokenType.NONFUNGIBLE && data.tokenId !== undefined) {
       commonData.tokenIndex = data.tokenId;
-      commonData.uri = await this.getTokenUri(data.tokenId, event.inputSigner ?? '', address ?? '');
+      commonData.uri = await this.getTokenUri(
+        data.tokenId,
+        event.inputSigner ?? '',
+        poolId.address ?? '',
+      );
     }
 
     if (data.from === ZERO_ADDRESS) {

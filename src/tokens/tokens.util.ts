@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { EncodedPoolIdEnum, ITokenPool, IValidTokenPool, TokenType } from './tokens.interfaces';
+
 /**
  * Encode a UTF-8 string into hex bytes with a leading 0x
  */
@@ -48,5 +50,24 @@ export function unpackSubscriptionName(prefix: string, data: string) {
     prefix,
     poolId: parts?.[0],
     event: parts?.[1],
+  };
+}
+
+export function packPoolId(poolId: IValidTokenPool) {
+  const encodedPoolId = new URLSearchParams({
+    [EncodedPoolIdEnum.Address]: poolId.address,
+    [EncodedPoolIdEnum.Schema]: poolId.schema,
+    [EncodedPoolIdEnum.Type]: poolId.type,
+  });
+  return encodedPoolId.toString();
+}
+
+export function unpackPoolId(data: string): ITokenPool {
+  const encodedPoolId = new URLSearchParams(data);
+  return {
+    address: encodedPoolId.get(EncodedPoolIdEnum.Address),
+    schema:
+      encodedPoolId.get(EncodedPoolIdEnum.Schema) ?? encodedPoolId.get(EncodedPoolIdEnum.Standard),
+    type: encodedPoolId.get(EncodedPoolIdEnum.Type) as TokenType,
   };
 }

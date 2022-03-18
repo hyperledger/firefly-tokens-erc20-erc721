@@ -33,12 +33,12 @@ export class AsyncResponse {
   id: string;
 }
 
-export enum ContractStandardEnum {
+export enum ContractSchema {
   ERC20WithData = 'ERC20WithData',
   ERC721WithData = 'ERC721WithData',
 }
 
-export enum ContractMethodEnum {
+export enum ContractMethod {
   ERC20WithDataMintWithData = 'mintWithData',
   ERC20WithDataTransferWithData = 'transferWithData',
   ERC20WithDataBurnWithData = 'burnWithData',
@@ -46,7 +46,8 @@ export enum ContractMethodEnum {
 
 export enum EncodedPoolIdEnum {
   Address = 'address',
-  Standard = 'standard',
+  Standard = 'standard', // deprecated in favor of "schema" below
+  Schema = 'schema',
   Type = 'type',
 }
 
@@ -62,8 +63,14 @@ export enum TokenType {
 }
 
 export interface ITokenPool {
+  address: string | null;
+  schema: string | null;
+  type: TokenType | null;
+}
+
+export interface IValidTokenPool {
   address: string;
-  standard: string;
+  schema: string;
   type: TokenType;
 }
 
@@ -72,6 +79,16 @@ const contractConfigDescription =
 const requestIdDescription =
   'Optional ID to identify this request. Must be unique for every request. ' +
   'If none is provided, one will be assigned and returned in the 202 response.';
+
+export class TokenPoolConfig {
+  @ApiProperty()
+  @IsDefined()
+  address: string;
+
+  @ApiProperty()
+  @IsOptional()
+  withData?: boolean;
+}
 
 export class TokenPool {
   @ApiProperty()
@@ -83,8 +100,8 @@ export class TokenPool {
   signer: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  symbol: string;
+  @IsOptional()
+  symbol?: string;
 
   @ApiProperty({ enum: TokenType })
   @IsEnum(TokenType)
@@ -92,10 +109,7 @@ export class TokenPool {
 
   @ApiProperty({ description: contractConfigDescription })
   @IsDefined()
-  config: {
-    address: string;
-    withData?: boolean;
-  };
+  config: TokenPoolConfig;
 
   @ApiProperty()
   @IsOptional()
@@ -214,9 +228,26 @@ class tokenEventBase {
   signature?: string;
 }
 
+export class TokenPoolEventInfo {
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  address: string;
+
+  @ApiProperty()
+  schema: string;
+}
+
 export class TokenPoolEvent extends tokenEventBase {
   @ApiProperty()
   standard: string;
+
+  @ApiProperty()
+  symbol: string;
+
+  @ApiProperty()
+  info: TokenPoolEventInfo;
 }
 
 export class TokenTransferEvent extends tokenEventBase {

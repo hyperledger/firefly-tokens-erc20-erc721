@@ -34,6 +34,7 @@ import {
   AsyncResponse,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
+  EthConnectReturn,
   IAbiMethod,
   TokenBurn,
   TokenMint,
@@ -43,7 +44,7 @@ import {
   TokenTransfer,
   TokenType,
 } from './tokens.interfaces';
-import { TokensService } from './tokens.service';
+import { abiTypeMap, TokensService } from './tokens.service';
 
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
@@ -61,14 +62,14 @@ const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';
 const SYMBOL = 'abc';
-const ERC20_NO_DATA_STANDARD = 'ERC20NoData';
-const ERC20_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_NO_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`;
-const ERC20_WITH_DATA_STANDARD = 'ERC20WithData';
-const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC20_WITH_DATA_STANDARD}&type=${TokenType.FUNGIBLE}`;
-const ERC721_NO_DATA_STANDARD = 'ERC721NoData';
-const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_NO_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
-const ERC721_WITH_DATA_STANDARD = 'ERC721WithData';
-const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&standard=${ERC721_WITH_DATA_STANDARD}&type=${TokenType.NONFUNGIBLE}`;
+const ERC20_NO_DATA_SCHEMA = 'ERC20NoData';
+const ERC20_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
+const ERC20_WITH_DATA_SCHEMA = 'ERC20WithData';
+const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
+const ERC721_NO_DATA_SCHEMA = 'ERC721NoData';
+const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
+const ERC721_WITH_DATA_SCHEMA = 'ERC721WithData';
+const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
 const MINT_NO_DATA = 'mint';
 const ERC20_TRANSFER_NO_DATA = 'transferFrom';
@@ -78,8 +79,10 @@ const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 const TRANSFER = 'Transfer';
+const QUERY_NAME = 'name';
+const QUERY_SYMBOL = 'symbol';
 
-const standardAbiMap = {
+const abiMethodMap = {
   ERC20NoData: ERC20NoDataABI.abi as IAbiMethod[],
   ERC20WithData: ERC20WithDataABI.abi as IAbiMethod[],
   ERC721NoData: ERC721NoDataABI.abi as IAbiMethod[],
@@ -112,6 +115,20 @@ describe('TokensService', () => {
   const eventstream = {
     createOrUpdateStream: jest.fn(),
     getOrCreateSubscription: jest.fn(),
+  };
+
+  const mockNameAndSymbolQuery = () => {
+    http.post
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: NAME,
+        }),
+      )
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: SYMBOL,
+        }),
+      );
   };
 
   beforeEach(async () => {
@@ -154,7 +171,7 @@ describe('TokensService', () => {
   });
 
   describe('ERC20NoData', () => {
-    it('should return ERC20NoData pool details successfully', () => {
+    it('should return ERC20NoData pool details successfully', async () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
@@ -165,13 +182,23 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      expect(service.createPool(request)).toEqual({
-        data: `{"tx":${TX}}`,
-        poolId: ERC20_NO_DATA_POOL_ID,
-        standard: ERC20_NO_DATA_STANDARD,
-        timestamp: expect.any(String),
-        type: 'fungible',
-      } as TokenPoolEvent);
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC20_NO_DATA_POOL_ID,
+          standard: 'ERC20',
+          timestamp: expect.any(String),
+          type: 'fungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC20_NO_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
     });
 
     it('should activate ERC20NoData pool correctly and return correct values', async () => {
@@ -186,22 +213,32 @@ describe('TokensService', () => {
 
       const response: TokenPoolEvent = {
         poolId: ERC20_NO_DATA_POOL_ID,
-        standard: ERC20_NO_DATA_STANDARD,
+        standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC20_NO_DATA_SCHEMA,
+        },
       };
+
+      mockNameAndSymbolQuery();
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
+
       await expect(service.activatePool(request)).resolves.toEqual(response);
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         BASE_URL,
-        standardAbiMap.ERC20NoData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        abiTypeMap.ERC20NoData.find(abi => abi.name === TRANSFER) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
         `${TOPIC}:${ERC20_NO_DATA_POOL_ID}:${TRANSFER}`,
         CONTRACT_ADDRESS,
-        standardAbiMap.ERC20NoData.filter(
+        abiTypeMap.ERC20NoData.filter(
           abi =>
             abi.name === MINT_NO_DATA ||
             abi.name === ERC20_TRANSFER_NO_DATA ||
@@ -226,7 +263,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC20NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '20'],
       };
 
@@ -257,7 +294,9 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20NoData.find(abi => abi.name === ERC20_TRANSFER_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC20NoData.find(
+          abi => abi.name === ERC20_TRANSFER_NO_DATA,
+        ) as IAbiMethod,
         params: [IDENTITY, '0x123', '20'],
       };
 
@@ -287,7 +326,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
         params: [IDENTITY, '20'],
       };
 
@@ -305,7 +344,7 @@ describe('TokensService', () => {
   });
 
   describe('ERC20WithData', () => {
-    it('should return ERC20WithData pool details successfully  - implicit withData config', () => {
+    it('should return ERC20WithData pool details successfully  - implicit withData config', async () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
@@ -316,16 +355,26 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      expect(service.createPool(request)).toEqual({
-        data: `{"tx":${TX}}`,
-        poolId: ERC20_WITH_DATA_POOL_ID,
-        standard: ERC20_WITH_DATA_STANDARD,
-        timestamp: expect.any(String),
-        type: 'fungible',
-      } as TokenPoolEvent);
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC20_WITH_DATA_POOL_ID,
+          standard: 'ERC20',
+          timestamp: expect.any(String),
+          type: 'fungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC20_WITH_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
     });
 
-    it('should return ERC20WithData pool details successfully - explicit withData config', () => {
+    it('should return ERC20WithData pool details successfully - explicit withData config', async () => {
       const request: TokenPool = {
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
@@ -336,13 +385,23 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      expect(service.createPool(request)).toEqual({
-        data: `{"tx":${TX}}`,
-        poolId: ERC20_WITH_DATA_POOL_ID,
-        standard: ERC20_WITH_DATA_STANDARD,
-        timestamp: expect.any(String),
-        type: 'fungible',
-      } as TokenPoolEvent);
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC20_WITH_DATA_POOL_ID,
+          standard: 'ERC20',
+          timestamp: expect.any(String),
+          type: 'fungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC20_WITH_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
     });
 
     it('should activate ERC20WithData pool correctly and return correct values', async () => {
@@ -357,27 +416,42 @@ describe('TokensService', () => {
 
       const response: TokenPoolEvent = {
         poolId: ERC20_WITH_DATA_POOL_ID,
-        standard: ERC20_WITH_DATA_STANDARD,
+        standard: 'ERC20',
         timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC20_WITH_DATA_SCHEMA,
+        },
       };
+
+      mockNameAndSymbolQuery();
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
+
       await expect(service.activatePool(request)).resolves.toEqual(response);
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         BASE_URL,
-        standardAbiMap.ERC20WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        abiMethodMap.ERC20WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
         `${TOPIC}:${ERC20_WITH_DATA_POOL_ID}:${TRANSFER}`,
         CONTRACT_ADDRESS,
-        standardAbiMap.ERC20WithData.filter(
+        abiMethodMap.ERC20WithData.filter(
           abi =>
-            abi.name === MINT_WITH_DATA ||
-            abi.name === TRANSFER_WITH_DATA ||
-            abi.name === BURN_WITH_DATA ||
-            abi.name === TRANSFER,
+            abi.name !== undefined &&
+            [
+              MINT_WITH_DATA,
+              TRANSFER_WITH_DATA,
+              BURN_WITH_DATA,
+              TRANSFER,
+              QUERY_NAME,
+              QUERY_SYMBOL,
+            ].includes(abi.name),
         ) as IAbiMethod[],
         '0',
       );
@@ -397,7 +471,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
         params: ['0x123', '20', '0x00'],
       };
 
@@ -428,9 +502,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(
-          abi => abi.name === TRANSFER_WITH_DATA,
-        ) as IAbiMethod,
+        method: abiTypeMap.ERC20WithData.find(abi => abi.name === TRANSFER_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '0x123', '20', '0x00'],
       };
 
@@ -460,7 +532,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '20', '0x00'],
       };
 
@@ -478,7 +550,7 @@ describe('TokensService', () => {
   });
 
   describe('ERC721NoData', () => {
-    it('should return ERC721NoData pool details successfully', () => {
+    it('should return ERC721NoData pool details successfully', async () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
@@ -489,13 +561,23 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      expect(service.createPool(request)).toEqual({
-        data: `{"tx":${TX}}`,
-        poolId: ERC721_NO_DATA_POOL_ID,
-        standard: ERC721_NO_DATA_STANDARD,
-        timestamp: expect.any(String),
-        type: 'nonfungible',
-      } as TokenPoolEvent);
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC721_NO_DATA_POOL_ID,
+          standard: 'ERC721',
+          timestamp: expect.any(String),
+          type: 'nonfungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC721_NO_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
     });
 
     it('should activate ERC721NoData pool correctly and return correct values', async () => {
@@ -510,22 +592,32 @@ describe('TokensService', () => {
 
       const response: TokenPoolEvent = {
         poolId: ERC721_NO_DATA_POOL_ID,
-        standard: ERC721_NO_DATA_STANDARD,
+        standard: 'ERC721',
         timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC721_NO_DATA_SCHEMA,
+        },
       };
+
+      mockNameAndSymbolQuery();
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
+
       await expect(service.activatePool(request)).resolves.toEqual(response);
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         BASE_URL,
-        standardAbiMap.ERC721NoData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        abiMethodMap.ERC721NoData.find(abi => abi.name === TRANSFER) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
         `${TOPIC}:${ERC721_NO_DATA_POOL_ID}:${TRANSFER}`,
         CONTRACT_ADDRESS,
-        standardAbiMap.ERC721NoData.filter(
+        abiTypeMap.ERC721NoData.filter(
           abi =>
             abi.name === MINT_NO_DATA ||
             abi.name === ERC721_TRANSFER_NO_DATA ||
@@ -563,7 +655,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC721NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '721'],
       };
 
@@ -594,7 +686,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721NoData.find(
+        method: abiTypeMap.ERC721NoData.find(
           abi => abi.name === ERC721_TRANSFER_NO_DATA,
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '721'],
@@ -626,7 +718,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC721NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
         params: [IDENTITY, '721'],
       };
 
@@ -644,7 +736,7 @@ describe('TokensService', () => {
   });
 
   describe('ERC721WithData', () => {
-    it('should return ERC721WithData pool details successfully - implicit withData config', () => {
+    it('should return ERC721WithData pool details successfully - implicit withData config', async () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
@@ -655,16 +747,26 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      expect(service.createPool(request)).toEqual({
-        data: `{"tx":${TX}}`,
-        poolId: ERC721_WITH_DATA_POOL_ID,
-        standard: ERC721_WITH_DATA_STANDARD,
-        timestamp: expect.any(String),
-        type: 'nonfungible',
-      } as TokenPoolEvent);
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC721_WITH_DATA_POOL_ID,
+          standard: 'ERC721',
+          timestamp: expect.any(String),
+          type: 'nonfungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC721_WITH_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
     });
 
-    it('should return ERC721WithData pool details successfully - explicit withData config', () => {
+    it('should return ERC721WithData pool details successfully - explicit withData config', async () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
@@ -675,13 +777,23 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      expect(service.createPool(request)).toEqual({
-        data: `{"tx":${TX}}`,
-        poolId: ERC721_WITH_DATA_POOL_ID,
-        standard: ERC721_WITH_DATA_STANDARD,
-        timestamp: expect.any(String),
-        type: 'nonfungible',
-      } as TokenPoolEvent);
+      mockNameAndSymbolQuery();
+
+      await service.createPool(request).then(resp => {
+        expect(resp).toEqual({
+          data: `{"tx":${TX}}`,
+          poolId: ERC721_WITH_DATA_POOL_ID,
+          standard: 'ERC721',
+          timestamp: expect.any(String),
+          type: 'nonfungible',
+          symbol: SYMBOL,
+          info: {
+            name: NAME,
+            address: CONTRACT_ADDRESS,
+            schema: ERC721_WITH_DATA_SCHEMA,
+          },
+        } as TokenPoolEvent);
+      });
     });
 
     it('should activate ERC721WithData pool correctly and return correct values', async () => {
@@ -696,27 +808,42 @@ describe('TokensService', () => {
 
       const response: TokenPoolEvent = {
         poolId: ERC721_WITH_DATA_POOL_ID,
-        standard: ERC721_WITH_DATA_STANDARD,
+        standard: 'ERC721',
         timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC721_WITH_DATA_SCHEMA,
+        },
       };
+
+      mockNameAndSymbolQuery();
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
+
       await expect(service.activatePool(request)).resolves.toEqual(response);
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         BASE_URL,
-        standardAbiMap.ERC721WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
+        abiTypeMap.ERC721WithData.find(abi => abi.name === TRANSFER) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
         `${TOPIC}:${ERC721_WITH_DATA_POOL_ID}:${TRANSFER}`,
         CONTRACT_ADDRESS,
-        standardAbiMap.ERC721WithData.filter(
+        abiTypeMap.ERC721WithData.filter(
           abi =>
-            abi.name === MINT_WITH_DATA ||
-            abi.name === TRANSFER_WITH_DATA ||
-            abi.name === BURN_WITH_DATA ||
-            abi.name === TRANSFER,
+            abi.name !== undefined &&
+            [
+              MINT_WITH_DATA,
+              TRANSFER_WITH_DATA,
+              BURN_WITH_DATA,
+              TRANSFER,
+              QUERY_NAME,
+              QUERY_SYMBOL,
+            ].includes(abi.name),
         ) as IAbiMethod[],
         '0',
       );
@@ -749,9 +876,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721WithData.find(
-          abi => abi.name === MINT_WITH_DATA,
-        ) as IAbiMethod,
+        method: abiTypeMap.ERC721WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
         params: ['0x123', '721', '0x00'],
       };
 
@@ -782,7 +907,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721WithData.find(
+        method: abiTypeMap.ERC721WithData.find(
           abi => abi.name === TRANSFER_WITH_DATA,
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '721', '0x00'],
@@ -814,9 +939,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: standardAbiMap.ERC721WithData.find(
-          abi => abi.name === BURN_WITH_DATA,
-        ) as IAbiMethod,
+        method: abiMethodMap.ERC721WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '721', '0x00'],
       };
 
