@@ -114,6 +114,10 @@ export class TokenPoolConfig {
 
   @ApiProperty()
   @IsOptional()
+  blockNumber?: number;
+
+  @ApiProperty()
+  @IsOptional()
   withData?: boolean;
 }
 
@@ -217,6 +221,10 @@ export class TokenPoolActivate {
   @ApiProperty()
   @IsNotEmpty()
   poolId: string;
+
+  @ApiProperty()
+  @IsOptional()
+  poolConfig?: TokenPoolConfig;
 
   @ApiProperty()
   @IsOptional()
