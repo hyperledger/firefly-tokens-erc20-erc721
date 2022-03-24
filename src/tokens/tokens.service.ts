@@ -37,6 +37,7 @@ import {
   ApprovalEvent,
   ApprovalForAllEvent,
   AsyncResponse,
+  BlockchainTransaction,
   ContractSchema,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
@@ -45,6 +46,7 @@ import {
   ITokenPool,
   IValidTokenPool,
   TokenApproval,
+  TokenApprovalConfig,
   TokenApprovalEvent,
   TokenBurn,
   TokenBurnEvent,
@@ -52,6 +54,7 @@ import {
   TokenMintEvent,
   TokenPool,
   TokenPoolActivate,
+  TokenPoolConfig,
   TokenPoolEvent,
   TokenTransfer,
   TokenTransferEvent,
@@ -415,6 +418,16 @@ export class TokensService {
     return tokenPoolEvent;
   }
 
+  getSubscriptionBlockNumber(poolConfig?: TokenPoolConfig, transaction?: BlockchainTransaction): string {
+    let blockNumber = '0';
+    if (poolConfig?.blockNumber) {
+      blockNumber = String(poolConfig.blockNumber)
+    } else if (transaction?.blockNumber) {
+      blockNumber = transaction.blockNumber;
+    }
+    return blockNumber;
+  }
+
   async activatePool(dto: TokenPoolActivate) {
     const poolId = unpackPoolId(dto.poolId);
     if (!this.validatePoolId(poolId)) {
@@ -453,7 +466,7 @@ export class TokensService {
         packSubscriptionName(this.topic, dto.poolId, abiEvents.TRANSFER),
         poolId.address,
         methodsToSubTo,
-        dto.transaction?.blockNumber ?? '0',
+        this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
       ),
       this.eventstream.getOrCreateSubscription(
         `${this.baseUrl}`,
@@ -463,7 +476,7 @@ export class TokensService {
         packSubscriptionName(this.topic, dto.poolId, abiEvents.APPROVAL),
         poolId.address,
         methodsToSubTo,
-        dto.transaction?.blockNumber ?? '0',
+        this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
       ),
     ];
     if (abiEvents.APPROVALFORALL !== null) {
@@ -480,7 +493,7 @@ export class TokensService {
           packSubscriptionName(this.topic, dto.poolId, abiEvents.APPROVALFORALL),
           poolId.address,
           methodsToSubTo,
-          dto.transaction?.blockNumber ?? '0',
+          this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
         ),
       );
     }
