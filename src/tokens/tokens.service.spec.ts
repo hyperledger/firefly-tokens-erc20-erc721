@@ -220,7 +220,6 @@ describe('TokensService', () => {
           data: `{"tx":${TX}}`,
           poolId: ERC20_NO_DATA_POOL_ID,
           standard: 'ERC20',
-          timestamp: expect.any(String),
           type: 'fungible',
           symbol: SYMBOL,
           info: {
@@ -245,7 +244,6 @@ describe('TokensService', () => {
       const response: TokenPoolEvent = {
         poolId: ERC20_NO_DATA_POOL_ID,
         standard: 'ERC20',
-        timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -391,7 +389,6 @@ describe('TokensService', () => {
           data: `{"tx":${TX}}`,
           poolId: ERC20_WITH_DATA_POOL_ID,
           standard: 'ERC20',
-          timestamp: expect.any(String),
           type: 'fungible',
           symbol: SYMBOL,
           info: {
@@ -421,7 +418,6 @@ describe('TokensService', () => {
           data: `{"tx":${TX}}`,
           poolId: ERC20_WITH_DATA_POOL_ID,
           standard: 'ERC20',
-          timestamp: expect.any(String),
           type: 'fungible',
           symbol: SYMBOL,
           info: {
@@ -446,7 +442,6 @@ describe('TokensService', () => {
       const response: TokenPoolEvent = {
         poolId: ERC20_WITH_DATA_POOL_ID,
         standard: 'ERC20',
-        timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -588,7 +583,6 @@ describe('TokensService', () => {
           data: `{"tx":${TX}}`,
           poolId: ERC721_NO_DATA_POOL_ID,
           standard: 'ERC721',
-          timestamp: expect.any(String),
           type: 'nonfungible',
           symbol: SYMBOL,
           info: {
@@ -613,7 +607,6 @@ describe('TokensService', () => {
       const response: TokenPoolEvent = {
         poolId: ERC721_NO_DATA_POOL_ID,
         standard: 'ERC721',
-        timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -772,7 +765,6 @@ describe('TokensService', () => {
           data: `{"tx":${TX}}`,
           poolId: ERC721_WITH_DATA_POOL_ID,
           standard: 'ERC721',
-          timestamp: expect.any(String),
           type: 'nonfungible',
           symbol: SYMBOL,
           info: {
@@ -802,7 +794,6 @@ describe('TokensService', () => {
           data: `{"tx":${TX}}`,
           poolId: ERC721_WITH_DATA_POOL_ID,
           standard: 'ERC721',
-          timestamp: expect.any(String),
           type: 'nonfungible',
           symbol: SYMBOL,
           info: {
@@ -827,7 +818,6 @@ describe('TokensService', () => {
       const response: TokenPoolEvent = {
         poolId: ERC721_WITH_DATA_POOL_ID,
         standard: 'ERC721',
-        timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
         info: {

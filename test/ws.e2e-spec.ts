@@ -208,31 +208,34 @@ describe('WebSocket AppController (e2e)', () => {
 
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
-      data: {
+      data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
-        location: 'address=bob',
-        signature: transferEventSignature,
         poolId: ERC20_POOL_ID,
         to: 'A',
         amount: '5',
         signer: IDENTITY,
         data: 'test',
-        timestamp: '2020-01-01 00:00:00Z',
-        rawOutput: {
-          from: ZERO_ADDRESS,
-          to: 'A',
-          value: '5',
-        },
-        transaction: {
-          address: 'bob',
-          blockNumber: '1',
-          transactionIndex: '0x0',
-          transactionHash: '0x123',
-          logIndex: '1',
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Transfer',
+          location: 'address=bob',
           signature: transferEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            from: ZERO_ADDRESS,
+            to: 'A',
+            value: '5',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: transferEventSignature,
+          },
         },
-        type: 'fungible',
-      } as TokenMintEvent,
+      },
     };
 
     await server
@@ -259,31 +262,34 @@ describe('WebSocket AppController (e2e)', () => {
 
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
-      data: {
+      data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
-        location: 'address=bob',
-        signature: transferEventSignature,
         poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
         to: 'A',
         amount: '5',
         signer: IDENTITY,
         data: 'test',
-        timestamp: '2020-01-01 00:00:00Z',
-        rawOutput: {
-          from: ZERO_ADDRESS,
-          to: 'A',
-          value: '5',
-        },
-        transaction: {
-          address: 'bob',
-          blockNumber: '1',
-          transactionIndex: '0x0',
-          transactionHash: '0x123',
-          logIndex: '1',
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Transfer',
+          location: 'address=bob',
           signature: transferEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            from: ZERO_ADDRESS,
+            to: 'A',
+            value: '5',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: transferEventSignature,
+          },
         },
-        type: 'fungible',
-      } as TokenMintEvent,
+      },
     };
 
     await server
@@ -337,33 +343,36 @@ describe('WebSocket AppController (e2e)', () => {
 
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
-      data: {
-        location: 'address=bob',
-        signature: transferEventSignature,
+      data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
         poolId: ERC721_POOL_ID,
         to: 'A',
         amount: '1',
         signer: IDENTITY,
         data: 'test',
-        timestamp: '2020-01-01 00:00:00Z',
-        rawOutput: {
-          from: ZERO_ADDRESS,
-          to: 'A',
-          tokenId: '721',
-        },
-        transaction: {
-          address: 'bob',
-          blockNumber: '1',
-          transactionIndex: '0x0',
-          transactionHash: '0x123',
-          logIndex: '1',
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Transfer',
+          location: 'address=bob',
           signature: transferEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            from: ZERO_ADDRESS,
+            to: 'A',
+            tokenId: '721',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: transferEventSignature,
+          },
         },
-        type: 'nonfungible',
         tokenIndex: '721',
         uri: ERC721_BASE_URI,
-      } as TokenMintEvent,
+      },
     };
 
     await server
@@ -387,32 +396,35 @@ describe('WebSocket AppController (e2e)', () => {
 
     const mockTransferWebSocketMessage: WebSocketMessage = {
       event: 'token-transfer',
-      data: {
+      data: <TokenTransferEvent>{
         id: '000000000001/000000/000001',
-        location: 'address=bob',
-        signature: transferEventSignature,
         poolId: ERC20_POOL_ID,
         from: 'A',
         to: 'B',
         amount: '5',
         signer: IDENTITY,
         data: 'test',
-        timestamp: '2020-01-01 00:00:00Z',
-        rawOutput: {
-          from: 'A',
-          to: 'B',
-          value: '5',
-        },
-        transaction: {
-          address: 'bob',
-          blockNumber: '1',
-          transactionIndex: '0x0',
-          transactionHash: '0x123',
-          logIndex: '1',
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Transfer',
+          location: 'address=bob',
           signature: transferEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            from: 'A',
+            to: 'B',
+            value: '5',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: transferEventSignature,
+          },
         },
-        type: 'fungible',
-      } as TokenTransferEvent,
+      },
     };
 
     await server
@@ -467,34 +479,37 @@ describe('WebSocket AppController (e2e)', () => {
 
     const mockTransferWebSocketMessage: WebSocketMessage = {
       event: 'token-transfer',
-      data: {
+      data: <TokenTransferEvent>{
         id: '000000000001/000000/000001',
-        location: 'address=bob',
-        signature: transferEventSignature,
         poolId: ERC721_POOL_ID,
         from: 'A',
         to: 'B',
         amount: '1',
         signer: IDENTITY,
         data: 'test',
-        timestamp: '2020-01-01 00:00:00Z',
-        rawOutput: {
-          from: 'A',
-          to: 'B',
-          tokenId: '721',
-        },
-        transaction: {
-          address: 'bob',
-          blockNumber: '1',
-          transactionIndex: '0x0',
-          transactionHash: '0x123',
-          logIndex: '1',
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Transfer',
+          location: 'address=bob',
           signature: transferEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            from: 'A',
+            to: 'B',
+            tokenId: '721',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: transferEventSignature,
+          },
         },
-        type: 'nonfungible',
         tokenIndex: '721',
         uri: ERC721_BASE_URI,
-      } as TokenTransferEvent,
+      },
     };
 
     await server
@@ -518,31 +533,34 @@ describe('WebSocket AppController (e2e)', () => {
 
     const mockBurnWebSocketMessage: WebSocketMessage = {
       event: 'token-burn',
-      data: {
+      data: <TokenBurnEvent>{
         id: '000000000001/000000/000001',
-        location: 'address=bob',
-        signature: transferEventSignature,
         poolId: ERC20_POOL_ID,
         from: 'B',
         amount: '5',
         signer: IDENTITY,
         data: 'test',
-        timestamp: '2020-01-01 00:00:00Z',
-        rawOutput: {
-          from: 'B',
-          to: ZERO_ADDRESS,
-          value: '5',
-        },
-        transaction: {
-          address: 'bob',
-          blockNumber: '1',
-          transactionIndex: '0x0',
-          transactionHash: '0x123',
-          logIndex: '1',
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Transfer',
+          location: 'address=bob',
           signature: transferEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            from: 'B',
+            to: ZERO_ADDRESS,
+            value: '5',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: transferEventSignature,
+          },
         },
-        type: 'fungible',
-      } as TokenBurnEvent,
+      },
     };
 
     await server
@@ -596,33 +614,36 @@ describe('WebSocket AppController (e2e)', () => {
 
     const mockBurnWebSocketMessage: WebSocketMessage = {
       event: 'token-burn',
-      data: {
+      data: <TokenBurnEvent>{
         id: '000000000001/000000/000001',
-        location: 'address=bob',
-        signature: transferEventSignature,
         poolId: ERC721_POOL_ID,
         from: 'B',
         amount: '1',
         signer: IDENTITY,
         data: 'test',
-        timestamp: '2020-01-01 00:00:00Z',
-        rawOutput: {
-          from: 'B',
-          to: ZERO_ADDRESS,
-          tokenId: '721',
-        },
-        transaction: {
-          address: 'bob',
-          blockNumber: '1',
-          transactionIndex: '0x0',
-          transactionHash: '0x123',
-          logIndex: '1',
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Transfer',
+          location: 'address=bob',
           signature: transferEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            from: 'B',
+            to: ZERO_ADDRESS,
+            tokenId: '721',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: transferEventSignature,
+          },
         },
-        type: 'nonfungible',
         tokenIndex: '721',
         uri: '', // Burned tokens have no URI
-      } as TokenBurnEvent,
+      },
     };
 
     await server

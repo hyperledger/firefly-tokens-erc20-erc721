@@ -168,7 +168,6 @@ describe('ERC20 - e2e', () => {
         data: `{"tx":${TX}}`,
         poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
-        timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -221,7 +220,6 @@ describe('ERC20 - e2e', () => {
         data: `{"tx":${TX}}`,
         poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
-        timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -253,7 +251,6 @@ describe('ERC20 - e2e', () => {
         data: `{"tx":${TX}}`,
         poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
-        timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -384,7 +381,6 @@ describe('ERC20 - e2e', () => {
         data: `{"tx":${TX}}`,
         poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
-        timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -436,7 +432,6 @@ describe('ERC20 - e2e', () => {
         data: `{"tx":${TX}}`,
         poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
-        timestamp: expect.any(String),
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         info: {
