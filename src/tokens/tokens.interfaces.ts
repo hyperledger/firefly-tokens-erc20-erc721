@@ -114,7 +114,7 @@ export class TokenPoolConfig {
 
   @ApiProperty()
   @IsOptional()
-  blockNumber?: number;
+  blockNumber?: string;
 
   @ApiProperty()
   @IsOptional()
@@ -244,11 +244,11 @@ export class TokenPoolActivate {
 
   @ApiProperty()
   @IsOptional()
-  poolConfig?: TokenPoolConfig;
+  config?: TokenPoolConfig;
 
   @ApiProperty()
   @IsOptional()
-  transaction?: BlockLocator;
+  locator?: BlockLocator;
 
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()

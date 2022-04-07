@@ -37,7 +37,7 @@ import {
   ApprovalEvent,
   ApprovalForAllEvent,
   AsyncResponse,
-  BlockchainTransaction,
+  BlockLocator,
   ContractSchema,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
@@ -46,7 +46,6 @@ import {
   ITokenPool,
   IValidTokenPool,
   TokenApproval,
-  TokenApprovalConfig,
   TokenApprovalEvent,
   TokenBurn,
   TokenBurnEvent,
@@ -417,14 +416,14 @@ export class TokensService {
     return tokenPoolEvent;
   }
 
-  getSubscriptionBlockNumber(poolConfig?: TokenPoolConfig, transaction?: BlockchainTransaction): string {
-    let blockNumber = '0';
-    if (poolConfig?.blockNumber) {
-      blockNumber = String(poolConfig.blockNumber)
-    } else if (transaction?.blockNumber) {
-      blockNumber = transaction.blockNumber;
+  getSubscriptionBlockNumber(config?: TokenPoolConfig, transaction?: BlockLocator): string {
+    if (config?.blockNumber !== undefined && config.blockNumber !== '') {
+      return config.blockNumber;
+    } else if (transaction?.blockNumber !== undefined && transaction.blockNumber !== '') {
+      return transaction.blockNumber;
+    } else {
+      return '0';
     }
-    return blockNumber;
   }
 
   async activatePool(dto: TokenPoolActivate) {
@@ -465,7 +464,7 @@ export class TokensService {
         packSubscriptionName(this.topic, dto.poolId, abiEvents.TRANSFER),
         poolId.address,
         methodsToSubTo,
-        this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
+        this.getSubscriptionBlockNumber(dto.config, dto.locator),
       ),
       this.eventstream.getOrCreateSubscription(
         `${this.baseUrl}`,
@@ -475,7 +474,7 @@ export class TokensService {
         packSubscriptionName(this.topic, dto.poolId, abiEvents.APPROVAL),
         poolId.address,
         methodsToSubTo,
-        this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
+        this.getSubscriptionBlockNumber(dto.config, dto.locator),
       ),
     ];
     if (abiEvents.APPROVALFORALL !== null) {
@@ -492,7 +491,7 @@ export class TokensService {
           packSubscriptionName(this.topic, dto.poolId, abiEvents.APPROVALFORALL),
           poolId.address,
           methodsToSubTo,
-          this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
+          this.getSubscriptionBlockNumber(dto.config, dto.locator),
         ),
       );
     }
@@ -613,12 +612,13 @@ export class TokensService {
     const schema = poolId.schema as ContractSchemaStrings;
 
     switch (poolId.type) {
-      case TokenType.FUNGIBLE:
+      case TokenType.FUNGIBLE: {
         // Not approved means 0 allowance; approved with no allowance means unlimited allowance
         const allowance = !dto.approved ? '0' : dto.config?.allowance ?? UINT256_MAX.toString();
         params.push(dto.operator, allowance);
         methodAbi = this.getMethodAbi(schema, 'APPROVE');
         break;
+      }
       case TokenType.NONFUNGIBLE:
         if (dto.config?.tokenIndex !== undefined) {
           // Not approved means setting approved operator to 0
