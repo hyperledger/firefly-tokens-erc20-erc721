@@ -37,7 +37,7 @@ import {
   ApprovalEvent,
   ApprovalForAllEvent,
   AsyncResponse,
-  BlockchainTransaction,
+  BlockLocator,
   ContractSchema,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
@@ -46,7 +46,6 @@ import {
   ITokenPool,
   IValidTokenPool,
   TokenApproval,
-  TokenApprovalConfig,
   TokenApprovalEvent,
   TokenBurn,
   TokenBurnEvent,
@@ -405,7 +404,6 @@ export class TokensService {
       data: dto.data,
       poolId: encodedPoolId.toString(),
       standard: dto.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
-      timestamp: Date.now().toString(),
       type: dto.type,
       symbol: nameAndSymbol.symbol,
       info: {
@@ -418,14 +416,14 @@ export class TokensService {
     return tokenPoolEvent;
   }
 
-  getSubscriptionBlockNumber(poolConfig?: TokenPoolConfig, transaction?: BlockchainTransaction): string {
-    let blockNumber = '0';
-    if (poolConfig?.blockNumber) {
-      blockNumber = String(poolConfig.blockNumber)
-    } else if (transaction?.blockNumber) {
-      blockNumber = transaction.blockNumber;
+  getSubscriptionBlockNumber(config?: TokenPoolConfig, transaction?: BlockLocator): string {
+    if (config?.blockNumber !== undefined && config.blockNumber !== '') {
+      return config.blockNumber;
+    } else if (transaction?.blockNumber !== undefined && transaction.blockNumber !== '') {
+      return transaction.blockNumber;
+    } else {
+      return '0';
     }
-    return blockNumber;
   }
 
   async activatePool(dto: TokenPoolActivate) {
@@ -466,7 +464,7 @@ export class TokensService {
         packSubscriptionName(this.topic, dto.poolId, abiEvents.TRANSFER),
         poolId.address,
         methodsToSubTo,
-        this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
+        this.getSubscriptionBlockNumber(dto.config, dto.locator),
       ),
       this.eventstream.getOrCreateSubscription(
         `${this.baseUrl}`,
@@ -476,7 +474,7 @@ export class TokensService {
         packSubscriptionName(this.topic, dto.poolId, abiEvents.APPROVAL),
         poolId.address,
         methodsToSubTo,
-        this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
+        this.getSubscriptionBlockNumber(dto.config, dto.locator),
       ),
     ];
     if (abiEvents.APPROVALFORALL !== null) {
@@ -493,7 +491,7 @@ export class TokensService {
           packSubscriptionName(this.topic, dto.poolId, abiEvents.APPROVALFORALL),
           poolId.address,
           methodsToSubTo,
-          this.getSubscriptionBlockNumber(dto.poolConfig, dto.transaction),
+          this.getSubscriptionBlockNumber(dto.config, dto.locator),
         ),
       );
     }
@@ -503,7 +501,6 @@ export class TokensService {
     const tokenPoolEvent: TokenPoolEvent = {
       poolId: dto.poolId,
       standard: poolId.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
-      timestamp: Date.now().toString(),
       type: poolId.type,
       symbol: nameAndSymbol.symbol,
       info: {
@@ -615,12 +612,13 @@ export class TokensService {
     const schema = poolId.schema as ContractSchemaStrings;
 
     switch (poolId.type) {
-      case TokenType.FUNGIBLE:
+      case TokenType.FUNGIBLE: {
         // Not approved means 0 allowance; approved with no allowance means unlimited allowance
         const allowance = !dto.approved ? '0' : dto.config?.allowance ?? UINT256_MAX.toString();
         params.push(dto.operator, allowance);
         methodAbi = this.getMethodAbi(schema, 'APPROVE');
         break;
+      }
       case TokenType.NONFUNGIBLE:
         if (dto.config?.tokenIndex !== undefined) {
           // Not approved means setting approved operator to 0
@@ -715,16 +713,31 @@ class TokenListener implements EventListener {
     }
   }
 
+  private formatBlockchainEventId(event: Event) {
+    // This intentionally matches the formatting of protocol IDs for blockchain events in FireFly core
+    const blockNumber = event.blockNumber ?? '0';
+    const txIndex = BigInt(event.transactionIndex).toString(10);
+    const logIndex = event.logIndex ?? '0';
+    return [
+      blockNumber.padStart(12, '0'),
+      txIndex.padStart(6, '0'),
+      logIndex.padStart(6, '0'),
+    ].join('/');
+  }
+
+  private stripParamsFromSignature(signature: string) {
+    return signature.substring(0, signature.indexOf('('));
+  }
+
   private async transformTransferEvent(
     subName: string,
     event: TransferEvent,
-    eventIndex?: number,
   ): Promise<WebSocketMessage | undefined> {
-    const { data } = event;
+    const { data: output } = event;
     const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
-    if (data.from === ZERO_ADDRESS && data.to === ZERO_ADDRESS) {
+    if (output.from === ZERO_ADDRESS && output.to === ZERO_ADDRESS) {
       // should not happen
       return undefined;
     }
@@ -733,64 +746,55 @@ class TokenListener implements EventListener {
       return undefined;
     }
 
-    // This intentionally matches the formatting of protocol IDs for blockchain events in FireFly core
-    const blockNumber = event.blockNumber ?? '0';
-    const txIndex = BigInt(event.transactionIndex).toString(10);
-    const logIndex = event.logIndex ?? '0';
-    let transferId = [
-      blockNumber.padStart(12, '0'),
-      txIndex.padStart(6, '0'),
-      logIndex.padStart(6, '0'),
-    ].join('/');
-    if (eventIndex !== undefined) {
-      transferId += '/' + eventIndex.toString(10).padStart(6, '0');
-    }
-
+    const blockchainId = this.formatBlockchainEventId(event);
     const poolId = unpackPoolId(unpackedSub.poolId);
     const commonData = {
-      id: transferId,
-      location: 'address=' + event.address,
-      signature: event.signature,
-      type: poolId.type,
+      id: blockchainId,
       poolId: unpackedSub.poolId,
-      amount: poolId.type === TokenType.FUNGIBLE ? data.value : '1',
+      amount: poolId.type === TokenType.FUNGIBLE ? output.value : '1',
       signer: event.inputSigner,
       data: decodedData,
-      timestamp: event.timestamp,
-      rawOutput: data,
-      transaction: {
-        address: event.address,
-        blockNumber: event.blockNumber,
-        transactionIndex: event.transactionIndex,
-        transactionHash: event.transactionHash,
-        logIndex: event.logIndex,
+      blockchain: {
+        id: blockchainId,
+        name: this.stripParamsFromSignature(event.signature),
+        location: 'address=' + event.address,
         signature: event.signature,
+        timestamp: event.timestamp,
+        output,
+        info: {
+          address: event.address,
+          blockNumber: event.blockNumber,
+          transactionIndex: event.transactionIndex,
+          transactionHash: event.transactionHash,
+          logIndex: event.logIndex,
+          signature: event.signature,
+        },
       },
     } as TokenTransferEvent;
 
-    if (poolId.type === TokenType.NONFUNGIBLE && data.tokenId !== undefined) {
-      commonData.tokenIndex = data.tokenId;
+    if (poolId.type === TokenType.NONFUNGIBLE && output.tokenId !== undefined) {
+      commonData.tokenIndex = output.tokenId;
       commonData.uri = await this.getTokenUri(
-        data.tokenId,
+        output.tokenId,
         event.inputSigner ?? '',
         poolId.address ?? '',
       );
     }
 
-    if (data.from === ZERO_ADDRESS) {
+    if (output.from === ZERO_ADDRESS) {
       return {
         event: 'token-mint',
-        data: { ...commonData, to: data.to } as TokenMintEvent,
+        data: { ...commonData, to: output.to } as TokenMintEvent,
       };
-    } else if (data.to === ZERO_ADDRESS) {
+    } else if (output.to === ZERO_ADDRESS) {
       return {
         event: 'token-burn',
-        data: { ...commonData, from: data.from } as TokenBurnEvent,
+        data: { ...commonData, from: output.from } as TokenBurnEvent,
       };
     } else {
       return {
         event: 'token-transfer',
-        data: { ...commonData, from: data.from, to: data.to } as TokenTransferEvent,
+        data: { ...commonData, from: output.from, to: output.to } as TokenTransferEvent,
       };
     }
   }
@@ -799,7 +803,7 @@ class TokenListener implements EventListener {
     subName: string,
     event: ApprovalEvent,
   ): WebSocketMessage | undefined {
-    const { data } = event;
+    const { data: output } = event;
     const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
@@ -812,34 +816,38 @@ class TokenListener implements EventListener {
     let id: string | undefined;
     let approved = true;
     if (poolId.type === TokenType.FUNGIBLE) {
-      id = `${data.owner}:${data.spender}`;
-      approved = BigInt(data.value ?? 0) > BigInt(0);
+      id = `${output.owner}:${output.spender}`;
+      approved = BigInt(output.value ?? 0) > BigInt(0);
     } else {
-      id = data.tokenId;
-      approved = data.spender !== ZERO_ADDRESS;
+      id = output.tokenId;
+      approved = output.spender !== ZERO_ADDRESS;
     }
 
     return {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id,
-        location: 'address=' + event.address,
-        signature: event.signature,
         type: poolId.type,
         poolId: unpackedSub.poolId,
-        operator: data.spender,
+        operator: output.spender,
         approved,
-        signer: data.owner,
+        signer: output.owner,
         data: decodedData,
-        timestamp: event.timestamp,
-        rawOutput: data,
-        transaction: {
-          blockNumber: event.blockNumber,
-          transactionIndex: event.transactionIndex,
-          transactionHash: event.transactionHash,
-          logIndex: event.logIndex,
-          address: event.address,
+        blockchain: {
+          id: this.formatBlockchainEventId(event),
+          name: this.stripParamsFromSignature(event.signature),
+          location: 'address=' + event.address,
           signature: event.signature,
+          timestamp: event.timestamp,
+          output,
+          info: {
+            blockNumber: event.blockNumber,
+            transactionIndex: event.transactionIndex,
+            transactionHash: event.transactionHash,
+            logIndex: event.logIndex,
+            address: event.address,
+            signature: event.signature,
+          },
         },
       },
     };
@@ -849,7 +857,7 @@ class TokenListener implements EventListener {
     subName: string,
     event: ApprovalForAllEvent,
   ): WebSocketMessage | undefined {
-    const { data } = event;
+    const { data: output } = event;
     const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
@@ -862,24 +870,28 @@ class TokenListener implements EventListener {
     return {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
-        id: `${data.owner}:${data.operator}`,
-        location: 'address=' + event.address,
-        signature: event.signature,
+        id: `${output.owner}:${output.operator}`,
         type: poolId.type,
         poolId: unpackedSub.poolId,
-        operator: data.operator,
-        approved: data.approved,
-        signer: data.owner,
+        operator: output.operator,
+        approved: output.approved,
+        signer: output.owner,
         data: decodedData,
-        timestamp: event.timestamp,
-        rawOutput: data,
-        transaction: {
-          blockNumber: event.blockNumber,
-          transactionIndex: event.transactionIndex,
-          transactionHash: event.transactionHash,
-          logIndex: event.logIndex,
-          address: event.address,
+        blockchain: {
+          id: this.formatBlockchainEventId(event),
+          name: this.stripParamsFromSignature(event.signature),
+          location: 'address=' + event.address,
           signature: event.signature,
+          timestamp: event.timestamp,
+          output,
+          info: {
+            blockNumber: event.blockNumber,
+            transactionIndex: event.transactionIndex,
+            transactionHash: event.transactionHash,
+            logIndex: event.logIndex,
+            address: event.address,
+            signature: event.signature,
+          },
         },
       },
     };

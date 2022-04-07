@@ -114,7 +114,7 @@ export class TokenPoolConfig {
 
   @ApiProperty()
   @IsOptional()
-  blockNumber?: number;
+  blockNumber?: string;
 
   @ApiProperty()
   @IsOptional()
@@ -122,33 +122,33 @@ export class TokenPoolConfig {
 }
 
 export class TokenPool {
-  @ApiProperty()
-  @IsNotEmpty()
-  name: string;
+  @ApiProperty({ enum: TokenType })
+  @IsEnum(TokenType)
+  type: TokenType;
 
   @ApiProperty()
   @IsNotEmpty()
   signer: string;
 
   @ApiProperty()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty()
   @IsOptional()
   symbol?: string;
 
-  @ApiProperty({ enum: TokenType })
-  @IsEnum(TokenType)
-  type: TokenType;
-
-  @ApiProperty()
-  @IsDefined()
-  config: TokenPoolConfig;
+  @ApiProperty({ description: requestIdDescription })
+  @IsOptional()
+  requestId?: string;
 
   @ApiProperty()
   @IsOptional()
   data?: string;
 
-  @ApiProperty({ description: requestIdDescription })
-  @IsOptional()
-  requestId?: string;
+  @ApiProperty()
+  @IsDefined()
+  config: TokenPoolConfig;
 }
 
 export class TokenApprovalConfig {
@@ -191,30 +191,50 @@ export class TokenApproval {
   config?: TokenApprovalConfig;
 }
 
-export class BlockchainTransaction {
+export class BlockLocator {
   @ApiProperty()
   @IsNotEmpty()
   blockNumber: string;
+}
 
+export class BlockchainInfo extends BlockLocator {
   @ApiProperty()
-  @IsNotEmpty()
-  logIndex: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  transactionHash: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
   transactionIndex: string;
 
   @ApiProperty()
-  @IsOptional()
+  transactionHash: string;
+
+  @ApiProperty()
+  logIndex: string;
+
+  @ApiProperty()
   signature: string;
 
   @ApiProperty()
-  @IsOptional()
   address: string;
+}
+
+export class BlockchainEvent {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  output: any;
+
+  @ApiProperty()
+  info: BlockchainInfo;
+
+  @ApiProperty()
+  location: string;
+
+  @ApiProperty()
+  signature: string;
+
+  @ApiProperty()
+  timestamp: string;
 }
 
 export class TokenPoolActivate {
@@ -224,11 +244,11 @@ export class TokenPoolActivate {
 
   @ApiProperty()
   @IsOptional()
-  poolConfig?: TokenPoolConfig;
+  config?: TokenPoolConfig;
 
   @ApiProperty()
   @IsOptional()
-  transaction?: BlockchainTransaction;
+  locator?: BlockLocator;
 
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
@@ -237,8 +257,8 @@ export class TokenPoolActivate {
 
 export class TokenTransfer {
   @ApiProperty()
-  @IsOptional()
-  amount?: string;
+  @IsNotEmpty()
+  poolId: string;
 
   @ApiProperty()
   @IsOptional()
@@ -246,15 +266,11 @@ export class TokenTransfer {
 
   @ApiProperty()
   @IsNotEmpty()
-  from: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
   signer: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  poolId: string;
+  from: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -262,11 +278,15 @@ export class TokenTransfer {
 
   @ApiProperty()
   @IsOptional()
-  data?: string;
+  amount?: string;
 
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
   requestId?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  data?: string;
 }
 
 export class TokenMint extends OmitType(TokenTransfer, ['from']) {}
@@ -276,31 +296,16 @@ export class TokenBurn extends OmitType(TokenTransfer, ['to']) {}
 
 class tokenEventBase {
   @ApiProperty()
-  data?: string;
+  poolId: string;
 
   @ApiProperty()
   signer?: string;
 
   @ApiProperty()
-  rawOutput?: any;
+  data?: string;
 
   @ApiProperty()
-  poolId: string;
-
-  @ApiProperty()
-  timestamp: string;
-
-  @ApiProperty()
-  transaction?: BlockchainTransaction;
-
-  @ApiProperty()
-  type: TokenType;
-
-  @ApiProperty()
-  location?: string;
-
-  @ApiProperty()
-  signature?: string;
+  blockchain?: BlockchainEvent;
 }
 
 export class TokenPoolEventInfo {
@@ -315,6 +320,9 @@ export class TokenPoolEventInfo {
 }
 
 export class TokenPoolEvent extends tokenEventBase {
+  @ApiProperty()
+  type: TokenType;
+
   @ApiProperty()
   standard: string;
 
@@ -333,6 +341,9 @@ export class TokenTransferEvent extends tokenEventBase {
   tokenIndex?: string;
 
   @ApiProperty()
+  uri?: string;
+
+  @ApiProperty()
   from: string;
 
   @ApiProperty()
@@ -340,9 +351,6 @@ export class TokenTransferEvent extends tokenEventBase {
 
   @ApiProperty()
   amount: string;
-
-  @ApiProperty()
-  uri?: string;
 }
 
 export class TokenMintEvent extends OmitType(TokenTransferEvent, ['from']) {}
@@ -354,27 +362,6 @@ export class TokenApprovalEvent extends tokenEventBase {
 
   @ApiProperty()
   approved: boolean;
-}
-
-export interface TransactionDetails {
-  blockHash: string;
-  blockNumber: string;
-  blockNumberHex: string;
-  from: string;
-  to: string;
-  gas: string;
-  gasHex: string;
-  gasPrice: string;
-  gasPriceHex: string;
-  hash: string;
-  nonce: string;
-  nonceHex: string;
-  transactionIndex: string;
-  transactionIndexHex: string;
-  value: string;
-  valueHex: string;
-  input: string;
-  inputArgs: any;
 }
 
 export interface IAbiInput {

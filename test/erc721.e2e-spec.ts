@@ -166,7 +166,6 @@ describe('ERC721 - e2e', () => {
         data: `{"tx":${TX}}`,
         poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
         standard: 'ERC721',
-        timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -198,7 +197,6 @@ describe('ERC721 - e2e', () => {
         data: `{"tx":${TX}}`,
         poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
         standard: 'ERC721',
-        timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
         info: {
@@ -332,7 +330,6 @@ describe('ERC721 - e2e', () => {
         data: `{"tx":${TX}}`,
         poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
         standard: 'ERC721',
-        timestamp: expect.any(String),
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
         info: {
