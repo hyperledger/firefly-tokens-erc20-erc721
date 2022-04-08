@@ -18,8 +18,8 @@ jobs:
             --label commit=$GITHUB_SHA \
             --label build_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
             --label tag=${GITHUB_REF##*/} \
-            --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721:${GITHUB_REF##*/}" \
-            --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721:head" \
+            --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721:${GITHUB_REF##*/} \
+            --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721:head \
             .
 
       - name: Tag release
