@@ -209,7 +209,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
       data: <TokenMintEvent>{
-        id: '000000000001/000000/000001',
+        subject: '000000000001/000000/000001',
         poolId: ERC20_POOL_ID,
         to: 'A',
         amount: '5',
@@ -263,7 +263,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
       data: <TokenMintEvent>{
-        id: '000000000001/000000/000001',
+        subject: '000000000001/000000/000001',
         poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
         to: 'A',
         amount: '5',
@@ -344,7 +344,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
       data: <TokenMintEvent>{
-        id: '000000000001/000000/000001',
+        subject: '000000000001/000000/000001',
         poolId: ERC721_POOL_ID,
         to: 'A',
         amount: '1',
@@ -397,7 +397,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockTransferWebSocketMessage: WebSocketMessage = {
       event: 'token-transfer',
       data: <TokenTransferEvent>{
-        id: '000000000001/000000/000001',
+        subject: '000000000001/000000/000001',
         poolId: ERC20_POOL_ID,
         from: 'A',
         to: 'B',
@@ -480,7 +480,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockTransferWebSocketMessage: WebSocketMessage = {
       event: 'token-transfer',
       data: <TokenTransferEvent>{
-        id: '000000000001/000000/000001',
+        subject: '000000000001/000000/000001',
         poolId: ERC721_POOL_ID,
         from: 'A',
         to: 'B',
@@ -534,7 +534,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockBurnWebSocketMessage: WebSocketMessage = {
       event: 'token-burn',
       data: <TokenBurnEvent>{
-        id: '000000000001/000000/000001',
+        subject: '000000000001/000000/000001',
         poolId: ERC20_POOL_ID,
         from: 'B',
         amount: '5',
@@ -615,7 +615,7 @@ describe('WebSocket AppController (e2e)', () => {
     const mockBurnWebSocketMessage: WebSocketMessage = {
       event: 'token-burn',
       data: <TokenBurnEvent>{
-        id: '000000000001/000000/000001',
+        subject: '000000000001/000000/000001',
         poolId: ERC721_POOL_ID,
         from: 'B',
         amount: '1',

@@ -749,7 +749,7 @@ class TokenListener implements EventListener {
     const blockchainId = this.formatBlockchainEventId(event);
     const poolId = unpackPoolId(unpackedSub.poolId);
     const commonData = {
-      id: blockchainId,
+      subject: blockchainId,
       poolId: unpackedSub.poolId,
       amount: poolId.type === TokenType.FUNGIBLE ? output.value : '1',
       signer: event.inputSigner,
@@ -813,20 +813,20 @@ class TokenListener implements EventListener {
     }
     const poolId = unpackPoolId(unpackedSub.poolId);
 
-    let id: string | undefined;
+    let subject: string | undefined;
     let approved = true;
     if (poolId.type === TokenType.FUNGIBLE) {
-      id = `${output.owner}:${output.spender}`;
+      subject = `${output.owner}:${output.spender}`;
       approved = BigInt(output.value ?? 0) > BigInt(0);
     } else {
-      id = output.tokenId;
+      subject = output.tokenId;
       approved = output.spender !== ZERO_ADDRESS;
     }
 
     return {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
-        id,
+        subject,
         type: poolId.type,
         poolId: unpackedSub.poolId,
         operator: output.spender,
@@ -870,7 +870,7 @@ class TokenListener implements EventListener {
     return {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
-        id: `${output.owner}:${output.operator}`,
+        subject: `${output.owner}:${output.operator}`,
         type: poolId.type,
         poolId: unpackedSub.poolId,
         operator: output.operator,
