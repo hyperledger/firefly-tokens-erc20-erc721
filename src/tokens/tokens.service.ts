@@ -37,14 +37,13 @@ import {
   ApprovalEvent,
   ApprovalForAllEvent,
   AsyncResponse,
-  BlockLocator,
   ContractSchema,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
   EthConnectReturn,
   IAbiMethod,
-  ITokenPool,
-  IValidTokenPool,
+  IPoolLocator,
+  IValidPoolLocator,
   TokenApproval,
   TokenApprovalEvent,
   TokenBurn,
@@ -63,9 +62,9 @@ import {
 import {
   decodeHex,
   encodeHex,
-  packPoolId,
+  packPoolLocator,
   packSubscriptionName,
-  unpackPoolId,
+  unpackPoolLocator,
   unpackSubscriptionName,
 } from './tokens.util';
 
@@ -240,8 +239,8 @@ export class TokensService {
     return dto.tokenIndex;
   }
 
-  private validatePoolId(poolId: ITokenPool): poolId is IValidTokenPool {
-    return poolId.address !== null && poolId.schema !== null && poolId.type !== null;
+  private validatePoolLocator(poolLocator: IPoolLocator): poolLocator is IValidPoolLocator {
+    return poolLocator.address !== null && poolLocator.schema !== null && poolLocator.type !== null;
   }
 
   /**
@@ -280,29 +279,29 @@ export class TokensService {
     const mappedSubs: Record<string, EventStreamSubscription[]> = {};
     for (const sub of subscriptions.filter(s => s.stream === existingStream.id)) {
       const parts = unpackSubscriptionName(this.topic, sub.name);
-      if (parts.poolId !== undefined) {
-        if (mappedSubs[parts.poolId] === undefined) {
-          mappedSubs[parts.poolId] = [];
+      if (parts.poolLocator !== undefined) {
+        if (mappedSubs[parts.poolLocator] === undefined) {
+          mappedSubs[parts.poolLocator] = [];
         }
-        mappedSubs[parts.poolId].push(sub);
+        mappedSubs[parts.poolLocator].push(sub);
       } else {
         this.logger.warn(`Unable to parse subscription ${sub.name} - deleting`);
         await this.eventstream.deleteSubscription(sub.id);
       }
     }
 
-    for (const poolId in mappedSubs) {
+    for (const poolLocator in mappedSubs) {
       const foundEvents = new Set<string>();
-      for (const sub of mappedSubs[poolId]) {
+      for (const sub of mappedSubs[poolLocator]) {
         const parts = unpackSubscriptionName(this.topic, sub.name);
         if (parts.event !== undefined && parts.event !== '') {
           foundEvents.add(parts.event);
         }
       }
 
-      const unpackedPoolId = unpackPoolId(poolId);
-      if (this.validatePoolId(unpackedPoolId)) {
-        const abiEvents = abiEventMap.get(unpackedPoolId.schema as ContractSchemaStrings);
+      const unpackedLocator = unpackPoolLocator(poolLocator);
+      if (this.validatePoolLocator(unpackedLocator)) {
+        const abiEvents = abiEventMap.get(unpackedLocator.schema as ContractSchemaStrings);
         if (abiEvents !== undefined) {
           // Expect to have found subscriptions for each of the events
           const allEvents = [abiEvents.TRANSFER, abiEvents.APPROVAL, abiEvents.APPROVALFORALL];
@@ -313,12 +312,12 @@ export class TokensService {
       }
 
       this.logger.warn(
-        `Incorrect event stream subscriptions found for ${poolId} - deleting and recreating`,
+        `Incorrect event stream subscriptions found for ${poolLocator} - deleting and recreating`,
       );
-      for (const sub of mappedSubs[poolId]) {
+      for (const sub of mappedSubs[poolLocator]) {
         await this.eventstream.deleteSubscription(sub.id);
       }
-      await this.activatePool({ poolId });
+      await this.activatePool({ poolLocator: poolLocator });
     }
   }
 
@@ -345,8 +344,8 @@ export class TokensService {
     return requestOptions;
   }
 
-  private async queryPool(poolId: IValidTokenPool) {
-    const schema = poolId.schema as ContractSchemaStrings;
+  private async queryPool(poolLocator: IValidPoolLocator) {
+    const schema = poolLocator.schema as ContractSchemaStrings;
     const nameResponse = await lastValueFrom(
       this.http.post<EthConnectReturn>(
         `${this.baseUrl}`,
@@ -354,7 +353,7 @@ export class TokensService {
           headers: {
             type: queryHeader,
           },
-          to: poolId.address,
+          to: poolLocator.address,
           method: this.getMethodAbi(schema, 'NAME'),
           params: [],
         } as EthConnectMsgRequest,
@@ -368,7 +367,7 @@ export class TokensService {
           headers: {
             type: queryHeader,
           },
-          to: poolId.address,
+          to: poolLocator.address,
           method: this.getMethodAbi(schema, 'SYMBOL'),
           params: [],
         } as EthConnectMsgRequest,
@@ -383,17 +382,15 @@ export class TokensService {
 
   async createPool(dto: TokenPool): Promise<TokenPoolEvent> {
     const schema = this.getTokenSchema(dto.type, dto.config.withData);
-    const poolId: ITokenPool = {
+    const poolLocator: IPoolLocator = {
       address: dto.config.address,
       type: dto.type,
       schema,
     };
-    if (!this.validatePoolId(poolId)) {
-      throw new BadRequestException('Invalid poolId');
+    if (!this.validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
     }
-    const encodedPoolId = packPoolId(poolId);
-
-    const nameAndSymbol = await this.queryPool(poolId);
+    const nameAndSymbol = await this.queryPool(poolLocator);
     if (dto.symbol !== undefined && dto.symbol !== '' && dto.symbol !== nameAndSymbol.symbol) {
       throw new BadRequestException(
         `Supplied symbol '${dto.symbol}' does not match expected '${nameAndSymbol.symbol}'`,
@@ -402,7 +399,7 @@ export class TokensService {
 
     const tokenPoolEvent: TokenPoolEvent = {
       data: dto.data,
-      poolId: encodedPoolId.toString(),
+      poolLocator: packPoolLocator(poolLocator),
       standard: dto.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
       type: dto.type,
       symbol: nameAndSymbol.symbol,
@@ -416,23 +413,21 @@ export class TokensService {
     return tokenPoolEvent;
   }
 
-  getSubscriptionBlockNumber(config?: TokenPoolConfig, transaction?: BlockLocator): string {
+  getSubscriptionBlockNumber(config?: TokenPoolConfig): string {
     if (config?.blockNumber !== undefined && config.blockNumber !== '') {
       return config.blockNumber;
-    } else if (transaction?.blockNumber !== undefined && transaction.blockNumber !== '') {
-      return transaction.blockNumber;
     } else {
       return '0';
     }
   }
 
   async activatePool(dto: TokenPoolActivate) {
-    const poolId = unpackPoolId(dto.poolId);
-    if (!this.validatePoolId(poolId)) {
-      throw new BadRequestException('Invalid poolId');
+    const poolLocator = unpackPoolLocator(dto.poolLocator);
+    if (!this.validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
     }
 
-    const schema = poolId.schema as ContractSchemaStrings;
+    const schema = poolLocator.schema as ContractSchemaStrings;
     const stream = await this.getStream();
     const transferAbi = this.getEventAbi(schema, 'TRANSFER');
     if (!transferAbi) {
@@ -443,11 +438,11 @@ export class TokensService {
       throw new NotFoundException('Approval event ABI not found');
     }
 
-    const abiMethods = abiMethodMap.get(poolId.schema as ContractSchemaStrings);
-    const abiEvents = abiEventMap.get(poolId.schema as ContractSchemaStrings);
+    const abiMethods = abiMethodMap.get(poolLocator.schema as ContractSchemaStrings);
+    const abiEvents = abiEventMap.get(poolLocator.schema as ContractSchemaStrings);
     const contractAbi = abiSchemaMap.get(schema);
     if (abiMethods === undefined || abiEvents === undefined || contractAbi === undefined) {
-      throw new BadRequestException(`Unknown schema: ${poolId.schema}`);
+      throw new BadRequestException(`Unknown schema: ${poolLocator.schema}`);
     }
 
     const possibleMethods: string[] = Object.values(abiMethods);
@@ -461,20 +456,20 @@ export class TokensService {
         transferAbi,
         stream.id,
         abiEvents.TRANSFER,
-        packSubscriptionName(this.topic, dto.poolId, abiEvents.TRANSFER),
-        poolId.address,
+        packSubscriptionName(this.topic, dto.poolLocator, abiEvents.TRANSFER),
+        poolLocator.address,
         methodsToSubTo,
-        this.getSubscriptionBlockNumber(dto.config, dto.locator),
+        this.getSubscriptionBlockNumber(dto.config),
       ),
       this.eventstream.getOrCreateSubscription(
         `${this.baseUrl}`,
         approvalAbi,
         stream.id,
         abiEvents.APPROVAL,
-        packSubscriptionName(this.topic, dto.poolId, abiEvents.APPROVAL),
-        poolId.address,
+        packSubscriptionName(this.topic, dto.poolLocator, abiEvents.APPROVAL),
+        poolLocator.address,
         methodsToSubTo,
-        this.getSubscriptionBlockNumber(dto.config, dto.locator),
+        this.getSubscriptionBlockNumber(dto.config),
       ),
     ];
     if (abiEvents.APPROVALFORALL !== null) {
@@ -488,25 +483,25 @@ export class TokensService {
           approvalForAllAbi,
           stream.id,
           abiEvents.APPROVALFORALL,
-          packSubscriptionName(this.topic, dto.poolId, abiEvents.APPROVALFORALL),
-          poolId.address,
+          packSubscriptionName(this.topic, dto.poolLocator, abiEvents.APPROVALFORALL),
+          poolLocator.address,
           methodsToSubTo,
-          this.getSubscriptionBlockNumber(dto.config, dto.locator),
+          this.getSubscriptionBlockNumber(dto.config),
         ),
       );
     }
     await Promise.all(promises);
 
-    const nameAndSymbol = await this.queryPool(poolId);
+    const nameAndSymbol = await this.queryPool(poolLocator);
     const tokenPoolEvent: TokenPoolEvent = {
-      poolId: dto.poolId,
-      standard: poolId.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
-      type: poolId.type,
+      poolLocator: dto.poolLocator,
+      standard: poolLocator.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
+      type: poolLocator.type,
       symbol: nameAndSymbol.symbol,
       info: {
         name: nameAndSymbol.name,
-        address: poolId.address,
-        schema: poolId.schema,
+        address: poolLocator.address,
+        schema: poolLocator.schema,
       },
     };
 
@@ -514,15 +509,15 @@ export class TokensService {
   }
 
   async mint(dto: TokenMint): Promise<AsyncResponse> {
-    const poolId = unpackPoolId(dto.poolId);
-    if (!this.validatePoolId(poolId)) {
-      throw new BadRequestException('Invalid poolId');
+    const poolLocator = unpackPoolLocator(dto.poolLocator);
+    if (!this.validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
     }
 
-    const schema = poolId.schema as ContractSchemaStrings;
+    const schema = poolLocator.schema as ContractSchemaStrings;
     const methodAbi = this.getMethodAbi(schema, 'MINT');
-    const params = [dto.to, this.getAmountOrTokenID(dto, poolId.type)];
-    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    const params = [dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
+    poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
@@ -532,7 +527,7 @@ export class TokensService {
             type: sendTransactionHeader,
           },
           from: dto.signer,
-          to: poolId.address,
+          to: poolLocator.address,
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
@@ -544,15 +539,15 @@ export class TokensService {
   }
 
   async transfer(dto: TokenTransfer): Promise<AsyncResponse> {
-    const poolId = unpackPoolId(dto.poolId);
-    if (!this.validatePoolId(poolId)) {
-      throw new BadRequestException('Invalid poolId');
+    const poolLocator = unpackPoolLocator(dto.poolLocator);
+    if (!this.validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
     }
 
-    const schema = poolId.schema as ContractSchemaStrings;
+    const schema = poolLocator.schema as ContractSchemaStrings;
     const methodAbi = this.getMethodAbi(schema, 'TRANSFER');
-    const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, poolId.type)];
-    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
+    poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
@@ -562,7 +557,7 @@ export class TokensService {
             type: sendTransactionHeader,
           },
           from: dto.signer,
-          to: poolId.address,
+          to: poolLocator.address,
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
@@ -573,15 +568,15 @@ export class TokensService {
   }
 
   async burn(dto: TokenBurn): Promise<AsyncResponse> {
-    const poolId = unpackPoolId(dto.poolId);
-    if (!this.validatePoolId(poolId)) {
-      throw new BadRequestException('Invalid poolId');
+    const poolLocator = unpackPoolLocator(dto.poolLocator);
+    if (!this.validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
     }
 
-    const schema = poolId.schema as ContractSchemaStrings;
+    const schema = poolLocator.schema as ContractSchemaStrings;
     const methodAbi = this.getMethodAbi(schema, 'BURN');
-    const params = [dto.from, this.getAmountOrTokenID(dto, poolId.type)];
-    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    const params = [dto.from, this.getAmountOrTokenID(dto, poolLocator.type)];
+    poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(
@@ -591,7 +586,7 @@ export class TokensService {
             type: sendTransactionHeader,
           },
           from: dto.signer,
-          to: poolId.address,
+          to: poolLocator.address,
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
@@ -602,16 +597,16 @@ export class TokensService {
   }
 
   async approval(dto: TokenApproval): Promise<AsyncResponse> {
-    const poolId = unpackPoolId(dto.poolId);
-    if (!this.validatePoolId(poolId)) {
-      throw new BadRequestException('Invalid poolId');
+    const poolLocator = unpackPoolLocator(dto.poolLocator);
+    if (!this.validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
     }
 
     let methodAbi: IAbiMethod | undefined;
     const params: any[] = [];
-    const schema = poolId.schema as ContractSchemaStrings;
+    const schema = poolLocator.schema as ContractSchemaStrings;
 
-    switch (poolId.type) {
+    switch (poolLocator.type) {
       case TokenType.FUNGIBLE: {
         // Not approved means 0 allowance; approved with no allowance means unlimited allowance
         const allowance = !dto.approved ? '0' : dto.config?.allowance ?? UINT256_MAX.toString();
@@ -632,14 +627,14 @@ export class TokensService {
         break;
     }
 
-    poolId.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
     const response = await lastValueFrom(
       this.http.post<EthConnectAsyncResponse>(`${this.baseUrl}`, {
         headers: {
           type: sendTransactionHeader,
         },
         from: dto.signer,
-        to: poolId.address,
+        to: poolLocator.address,
         method: methodAbi,
         params,
       } as EthConnectMsgRequest),
@@ -741,17 +736,17 @@ class TokenListener implements EventListener {
       // should not happen
       return undefined;
     }
-    if (unpackedSub.poolId === undefined) {
+    if (unpackedSub.poolLocator === undefined) {
       // should not happen
       return undefined;
     }
 
     const blockchainId = this.formatBlockchainEventId(event);
-    const poolId = unpackPoolId(unpackedSub.poolId);
+    const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
     const commonData = {
       subject: blockchainId,
-      poolId: unpackedSub.poolId,
-      amount: poolId.type === TokenType.FUNGIBLE ? output.value : '1',
+      poolLocator: unpackedSub.poolLocator,
+      amount: poolLocator.type === TokenType.FUNGIBLE ? output.value : '1',
       signer: event.inputSigner,
       data: decodedData,
       blockchain: {
@@ -772,12 +767,12 @@ class TokenListener implements EventListener {
       },
     } as TokenTransferEvent;
 
-    if (poolId.type === TokenType.NONFUNGIBLE && output.tokenId !== undefined) {
+    if (poolLocator.type === TokenType.NONFUNGIBLE && output.tokenId !== undefined) {
       commonData.tokenIndex = output.tokenId;
       commonData.uri = await this.getTokenUri(
         output.tokenId,
         event.inputSigner ?? '',
-        poolId.address ?? '',
+        poolLocator.address ?? '',
       );
     }
 
@@ -807,15 +802,15 @@ class TokenListener implements EventListener {
     const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
-    if (unpackedSub.poolId === undefined) {
+    if (unpackedSub.poolLocator === undefined) {
       // should not happen
       return undefined;
     }
-    const poolId = unpackPoolId(unpackedSub.poolId);
+    const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
 
     let subject: string | undefined;
     let approved = true;
-    if (poolId.type === TokenType.FUNGIBLE) {
+    if (poolLocator.type === TokenType.FUNGIBLE) {
       subject = `${output.owner}:${output.spender}`;
       approved = BigInt(output.value ?? 0) > BigInt(0);
     } else {
@@ -827,8 +822,8 @@ class TokenListener implements EventListener {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         subject,
-        type: poolId.type,
-        poolId: unpackedSub.poolId,
+        type: poolLocator.type,
+        poolLocator: unpackedSub.poolLocator,
         operator: output.spender,
         approved,
         signer: output.owner,
@@ -861,18 +856,18 @@ class TokenListener implements EventListener {
     const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
-    if (unpackedSub.poolId === undefined) {
+    if (unpackedSub.poolLocator === undefined) {
       // should not happen
       return undefined;
     }
-    const poolId = unpackPoolId(unpackedSub.poolId);
+    const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
 
     return {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         subject: `${output.owner}:${output.operator}`,
-        type: poolId.type,
-        poolId: unpackedSub.poolId,
+        type: poolLocator.type,
+        poolLocator: unpackedSub.poolLocator,
         operator: output.operator,
         approved: output.approved,
         signer: output.owner,

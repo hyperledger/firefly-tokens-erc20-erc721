@@ -166,7 +166,7 @@ describe('ERC20 - e2e', () => {
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
@@ -218,7 +218,7 @@ describe('ERC20 - e2e', () => {
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
@@ -249,7 +249,7 @@ describe('ERC20 - e2e', () => {
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
@@ -271,7 +271,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenMint = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_WITH_DATA_POOL_ID,
+        poolLocator: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -302,7 +302,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenTransfer = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_WITH_DATA_POOL_ID,
+        poolLocator: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
       };
@@ -336,7 +336,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenBurn = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_WITH_DATA_POOL_ID,
+        poolLocator: ERC20_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
 
@@ -379,7 +379,7 @@ describe('ERC20 - e2e', () => {
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
@@ -430,7 +430,7 @@ describe('ERC20 - e2e', () => {
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
@@ -452,7 +452,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenMint = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_NO_DATA_POOL_ID,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -483,7 +483,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenTransfer = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_NO_DATA_POOL_ID,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
       };
@@ -515,7 +515,7 @@ describe('ERC20 - e2e', () => {
       const request: TokenBurn = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_NO_DATA_POOL_ID,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
 

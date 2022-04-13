@@ -218,7 +218,7 @@ describe('TokensService', () => {
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
-          poolId: ERC20_NO_DATA_POOL_ID,
+          poolLocator: ERC20_NO_DATA_POOL_ID,
           standard: 'ERC20',
           type: 'fungible',
           symbol: SYMBOL,
@@ -233,7 +233,7 @@ describe('TokensService', () => {
 
     it('should activate ERC20NoData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
-        poolId: ERC20_NO_DATA_POOL_ID,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
       };
 
       const mockEventStream: EventStream = {
@@ -242,7 +242,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
-        poolId: ERC20_NO_DATA_POOL_ID,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
@@ -280,7 +280,7 @@ describe('TokensService', () => {
       const request: TokenMint = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_NO_DATA_POOL_ID,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -310,7 +310,7 @@ describe('TokensService', () => {
       const request: TokenTransfer = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_NO_DATA_POOL_ID,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
       };
@@ -343,7 +343,7 @@ describe('TokensService', () => {
       const request: TokenBurn = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_NO_DATA_POOL_ID,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
 
@@ -387,7 +387,7 @@ describe('TokensService', () => {
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
-          poolId: ERC20_WITH_DATA_POOL_ID,
+          poolLocator: ERC20_WITH_DATA_POOL_ID,
           standard: 'ERC20',
           type: 'fungible',
           symbol: SYMBOL,
@@ -416,7 +416,7 @@ describe('TokensService', () => {
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
-          poolId: ERC20_WITH_DATA_POOL_ID,
+          poolLocator: ERC20_WITH_DATA_POOL_ID,
           standard: 'ERC20',
           type: 'fungible',
           symbol: SYMBOL,
@@ -431,7 +431,7 @@ describe('TokensService', () => {
 
     it('should activate ERC20WithData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
-        poolId: ERC20_WITH_DATA_POOL_ID,
+        poolLocator: ERC20_WITH_DATA_POOL_ID,
       };
 
       const mockEventStream: EventStream = {
@@ -440,7 +440,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
-        poolId: ERC20_WITH_DATA_POOL_ID,
+        poolLocator: ERC20_WITH_DATA_POOL_ID,
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
@@ -476,7 +476,7 @@ describe('TokensService', () => {
       const request: TokenMint = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_WITH_DATA_POOL_ID,
+        poolLocator: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -506,7 +506,7 @@ describe('TokensService', () => {
       const request: TokenTransfer = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_WITH_DATA_POOL_ID,
+        poolLocator: ERC20_WITH_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
       };
@@ -537,7 +537,7 @@ describe('TokensService', () => {
       const request: TokenBurn = {
         amount: '20',
         signer: IDENTITY,
-        poolId: ERC20_WITH_DATA_POOL_ID,
+        poolLocator: ERC20_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
 
@@ -581,7 +581,7 @@ describe('TokensService', () => {
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
-          poolId: ERC721_NO_DATA_POOL_ID,
+          poolLocator: ERC721_NO_DATA_POOL_ID,
           standard: 'ERC721',
           type: 'nonfungible',
           symbol: SYMBOL,
@@ -596,7 +596,7 @@ describe('TokensService', () => {
 
     it('should activate ERC721NoData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
       };
 
       const mockEventStream: EventStream = {
@@ -605,7 +605,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
         standard: 'ERC721',
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
@@ -644,7 +644,7 @@ describe('TokensService', () => {
         amount: '2',
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
       };
       await expect(service.mint(request)).rejects.toThrowError(
@@ -656,7 +656,7 @@ describe('TokensService', () => {
       const request: TokenMint = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -686,7 +686,7 @@ describe('TokensService', () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
       };
@@ -719,7 +719,7 @@ describe('TokensService', () => {
       const request: TokenBurn = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
 
@@ -763,7 +763,7 @@ describe('TokensService', () => {
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
-          poolId: ERC721_WITH_DATA_POOL_ID,
+          poolLocator: ERC721_WITH_DATA_POOL_ID,
           standard: 'ERC721',
           type: 'nonfungible',
           symbol: SYMBOL,
@@ -792,7 +792,7 @@ describe('TokensService', () => {
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
           data: `{"tx":${TX}}`,
-          poolId: ERC721_WITH_DATA_POOL_ID,
+          poolLocator: ERC721_WITH_DATA_POOL_ID,
           standard: 'ERC721',
           type: 'nonfungible',
           symbol: SYMBOL,
@@ -807,7 +807,7 @@ describe('TokensService', () => {
 
     it('should activate ERC721WithData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
       };
 
       const mockEventStream: EventStream = {
@@ -816,7 +816,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
         standard: 'ERC721',
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
@@ -853,7 +853,7 @@ describe('TokensService', () => {
         amount: '2',
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
       };
       await expect(service.mint(request)).rejects.toThrowError(
@@ -865,7 +865,7 @@ describe('TokensService', () => {
       const request: TokenMint = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -895,7 +895,7 @@ describe('TokensService', () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
         from: IDENTITY,
         to: '0x123',
       };
@@ -928,7 +928,7 @@ describe('TokensService', () => {
       const request: TokenBurn = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
 
@@ -958,19 +958,19 @@ describe('TokensService', () => {
   describe('Miscellaneous', () => {
     it('should throw 404 exception if ABI method is not found when activating pool', async () => {
       const request: TokenPoolActivate = {
-        poolId: 'address=0x123&standard=notAStandard&type=fungible',
+        poolLocator: 'address=0x123&standard=notAStandard&type=fungible',
       };
       await expect(service.activatePool(request)).rejects.toThrowError(
         new HttpException('Transfer event ABI not found', HttpStatus.NOT_FOUND),
       );
     });
 
-    it('should throw 400 exception if poolID is malformed when activating pool', async () => {
+    it('should throw 400 exception if locator is malformed when activating pool', async () => {
       const request: TokenPoolActivate = {
-        poolId: 'address=0x123&type=fungible',
+        poolLocator: 'address=0x123&type=fungible',
       };
       await expect(service.activatePool(request)).rejects.toThrowError(
-        new HttpException('Invalid poolId', HttpStatus.BAD_REQUEST),
+        new HttpException('Invalid pool locator', HttpStatus.BAD_REQUEST),
       );
     });
 
