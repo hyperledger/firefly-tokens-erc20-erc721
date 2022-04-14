@@ -629,15 +629,19 @@ export class TokensService {
 
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
     const response = await lastValueFrom(
-      this.http.post<EthConnectAsyncResponse>(`${this.baseUrl}`, {
-        headers: {
-          type: sendTransactionHeader,
-        },
-        from: dto.signer,
-        to: poolLocator.address,
-        method: methodAbi,
-        params,
-      } as EthConnectMsgRequest),
+      this.http.post<EthConnectAsyncResponse>(
+        `${this.baseUrl}`,
+        {
+          headers: {
+            type: sendTransactionHeader,
+          },
+          from: dto.signer,
+          to: poolLocator.address,
+          method: methodAbi,
+          params,
+        } as EthConnectMsgRequest,
+        this.postOptions(dto.signer, dto.requestId),
+      ),
     );
     return { id: response.data.id };
   }
