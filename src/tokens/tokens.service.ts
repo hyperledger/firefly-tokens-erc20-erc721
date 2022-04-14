@@ -708,8 +708,11 @@ class TokenListener implements EventListener {
     }
   }
 
+  /**
+   * Generate an event ID in the recognized FireFly format for Ethereum
+   * (zero-padded block number, transaction index, and log index)
+   */
   private formatBlockchainEventId(event: Event) {
-    // This intentionally matches the formatting of protocol IDs for blockchain events in FireFly core
     const blockNumber = event.blockNumber ?? '0';
     const txIndex = BigInt(event.transactionIndex).toString(10);
     const logIndex = event.logIndex ?? '0';
@@ -741,16 +744,16 @@ class TokenListener implements EventListener {
       return undefined;
     }
 
-    const blockchainId = this.formatBlockchainEventId(event);
+    const eventId = this.formatBlockchainEventId(event);
     const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
     const commonData = {
-      subject: blockchainId,
+      id: eventId,
       poolLocator: unpackedSub.poolLocator,
       amount: poolLocator.type === TokenType.FUNGIBLE ? output.value : '1',
       signer: event.inputSigner,
       data: decodedData,
       blockchain: {
-        id: blockchainId,
+        id: eventId,
         name: this.stripParamsFromSignature(event.signature),
         location: 'address=' + event.address,
         signature: event.signature,
@@ -818,9 +821,11 @@ class TokenListener implements EventListener {
       approved = output.spender !== ZERO_ADDRESS;
     }
 
+    const eventId = this.formatBlockchainEventId(event);
     return {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
+        id: eventId,
         subject,
         type: poolLocator.type,
         poolLocator: unpackedSub.poolLocator,
@@ -829,7 +834,7 @@ class TokenListener implements EventListener {
         signer: output.owner,
         data: decodedData,
         blockchain: {
-          id: this.formatBlockchainEventId(event),
+          id: eventId,
           name: this.stripParamsFromSignature(event.signature),
           location: 'address=' + event.address,
           signature: event.signature,
@@ -862,9 +867,11 @@ class TokenListener implements EventListener {
     }
     const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
 
+    const eventId = this.formatBlockchainEventId(event);
     return {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
+        id: eventId,
         subject: `${output.owner}:${output.operator}`,
         type: poolLocator.type,
         poolLocator: unpackedSub.poolLocator,
@@ -873,7 +880,7 @@ class TokenListener implements EventListener {
         signer: output.owner,
         data: decodedData,
         blockchain: {
-          id: this.formatBlockchainEventId(event),
+          id: eventId,
           name: this.stripParamsFromSignature(event.signature),
           location: 'address=' + event.address,
           signature: event.signature,
