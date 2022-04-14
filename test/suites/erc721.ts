@@ -14,18 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Server } from 'http';
-import { HttpService } from '@nestjs/axios';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { WsAdapter } from '@nestjs/platform-ws';
-import { Test, TestingModule } from '@nestjs/testing';
-import { AxiosResponse } from 'axios';
-import { Observer } from 'rxjs';
-import request from 'superwstest';
-import ERC721NoDataABI from '../src/abi/ERC721NoData.json';
-import ERC721WithDataABI from '../src/abi/ERC721WithData.json';
-import { EventStreamService } from '../src/event-stream/event-stream.service';
-import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
+import ERC721NoDataABI from '../../src/abi/ERC721NoData.json';
+import ERC721WithDataABI from '../../src/abi/ERC721WithData.json';
 import {
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
@@ -37,9 +27,8 @@ import {
   TokenPoolEvent,
   TokenTransfer,
   TokenType,
-} from '../src/tokens/tokens.interfaces';
-import { TokensService } from '../src/tokens/tokens.service';
-import { AppModule } from './../src/app.module';
+} from '../../src/tokens/tokens.interfaces';
+import { FakeObservable, TestContext } from '../app.e2e-context';
 
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
@@ -51,8 +40,6 @@ const OPTIONS = {
     'fly-sync': 'false',
   },
 };
-const PREFIX = 'fly';
-const TOPIC = 'tokentest';
 const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';
@@ -74,37 +61,9 @@ const standardAbiMap = {
   ERC721WithData: ERC721WithDataABI.abi as IAbiMethod[],
 };
 
-class FakeObservable<T> {
-  constructor(public data: T) {}
-
-  subscribe(observer?: Partial<Observer<AxiosResponse<T>>>) {
-    observer?.next &&
-      observer?.next({
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {},
-        data: this.data,
-      });
-    observer?.complete && observer?.complete();
-  }
-}
-
-describe('ERC721 - e2e', () => {
-  let app: INestApplication;
-  let server: ReturnType<typeof request>;
-  let http: {
-    get: ReturnType<typeof jest.fn>;
-    post: ReturnType<typeof jest.fn>;
-    subscribe: ReturnType<typeof jest.fn>;
-  };
-
-  const eventstream = {
-    getSubscription: jest.fn(),
-  };
-
+export default (context: TestContext) => {
   const mockNameAndSymbolQuery = () => {
-    http.post
+    context.http.post
       .mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
           output: NAME,
@@ -116,39 +75,6 @@ describe('ERC721 - e2e', () => {
         }),
       );
   };
-
-  beforeEach(async () => {
-    http = {
-      get: jest.fn(),
-      post: jest.fn(),
-      subscribe: jest.fn(),
-    };
-    eventstream.getSubscription.mockReset();
-
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(HttpService)
-      .useValue(http)
-      .overrideProvider(EventStreamService)
-      .useValue(eventstream)
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-    app.useWebSocketAdapter(new WsAdapter(app));
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-    await app.init();
-
-    app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    app.get(TokensService).configure(BASE_URL, TOPIC, PREFIX, '', '');
-
-    (app.getHttpServer() as Server).listen();
-    server = request(app.getHttpServer());
-  });
-
-  afterEach(async () => {
-    await app.close();
-  });
 
   describe('ERC721WithData', () => {
     it('Create ERC721WithData pool - correct fields', async () => {
@@ -176,9 +102,9 @@ describe('ERC721 - e2e', () => {
       });
 
       mockNameAndSymbolQuery();
-      http.get = jest.fn(() => new FakeObservable(expectedResponse));
+      context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
-      const response = await server.post('/createpool').send(request).expect(200);
+      const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
 
@@ -207,9 +133,9 @@ describe('ERC721 - e2e', () => {
       });
 
       mockNameAndSymbolQuery();
-      http.get = jest.fn(() => new FakeObservable(expectedResponse));
+      context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
-      const response = await server.post('/createpool').send(request).expect(200);
+      const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
 
@@ -238,12 +164,12 @@ describe('ERC721 - e2e', () => {
         sent: true,
       };
 
-      http.post = jest.fn(() => new FakeObservable(response));
+      context.http.post = jest.fn(() => new FakeObservable(response));
 
-      await server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
+      await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
 
-      expect(http.post).toHaveBeenCalledTimes(1);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
     it('Transfer ERC721WithData token', async () => {
@@ -272,12 +198,12 @@ describe('ERC721 - e2e', () => {
         sent: true,
       };
 
-      http.post = jest.fn(() => new FakeObservable(response));
+      context.http.post = jest.fn(() => new FakeObservable(response));
 
-      await server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
+      await context.server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
 
-      expect(http.post).toHaveBeenCalledTimes(1);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
     it('Burn ERC721NoData token', async () => {
@@ -305,12 +231,12 @@ describe('ERC721 - e2e', () => {
         sent: true,
       };
 
-      http.post = jest.fn(() => new FakeObservable(response));
+      context.http.post = jest.fn(() => new FakeObservable(response));
 
-      await server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
+      await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
 
-      expect(http.post).toHaveBeenCalledTimes(1);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
   });
 
@@ -340,9 +266,9 @@ describe('ERC721 - e2e', () => {
       });
 
       mockNameAndSymbolQuery();
-      http.get = jest.fn(() => new FakeObservable(expectedResponse));
+      context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
-      const response = await server.post('/createpool').send(request).expect(200);
+      const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
 
@@ -369,12 +295,12 @@ describe('ERC721 - e2e', () => {
         sent: true,
       };
 
-      http.post = jest.fn(() => new FakeObservable(response));
+      context.http.post = jest.fn(() => new FakeObservable(response));
 
-      await server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
+      await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
 
-      expect(http.post).toHaveBeenCalledTimes(1);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
     it('Transfer ERC721NoData token', async () => {
@@ -403,12 +329,12 @@ describe('ERC721 - e2e', () => {
         sent: true,
       };
 
-      http.post = jest.fn(() => new FakeObservable(response));
+      context.http.post = jest.fn(() => new FakeObservable(response));
 
-      await server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
+      await context.server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
 
-      expect(http.post).toHaveBeenCalledTimes(1);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
     it('Burn ERC721NoData token', async () => {
@@ -434,12 +360,12 @@ describe('ERC721 - e2e', () => {
         sent: true,
       };
 
-      http.post = jest.fn(() => new FakeObservable(response));
+      context.http.post = jest.fn(() => new FakeObservable(response));
 
-      await server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
+      await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
 
-      expect(http.post).toHaveBeenCalledTimes(1);
-      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
   });
-});
+};
