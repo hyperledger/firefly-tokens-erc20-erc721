@@ -58,6 +58,13 @@ export function unpackSubscriptionName(prefix: string, data: string) {
   };
 }
 
+/**
+ * Given a pool locator object, create a packed string representation.
+ *
+ * This should only be called once when the pool is first created! You should
+ * never re-pack a locator during event or request processing (always send
+ * back the one provided as input or unpacked from the subscription).
+ */
 export function packPoolLocator(locator: IValidPoolLocator) {
   const encoded = new URLSearchParams({
     [EncodedPoolLocatorEnum.Address]: locator.address,
@@ -67,6 +74,9 @@ export function packPoolLocator(locator: IValidPoolLocator) {
   return encoded.toString();
 }
 
+/**
+ * Unpack a pool locator string into its meaningful parts.
+ */
 export function unpackPoolLocator(data: string): IPoolLocator {
   const encoded = new URLSearchParams(data);
   return {
