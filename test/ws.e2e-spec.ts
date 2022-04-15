@@ -210,7 +210,7 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-mint',
       data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
-        poolId: ERC20_POOL_ID,
+        poolLocator: ERC20_POOL_ID,
         to: 'A',
         amount: '5',
         signer: IDENTITY,
@@ -252,7 +252,7 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: ERC20 token mint event with old poolId', async () => {
+  it('Websocket: ERC20 token mint event with old locator', async () => {
     eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name:
         TOPIC +
@@ -264,7 +264,7 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-mint',
       data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
-        poolId: `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
         to: 'A',
         amount: '5',
         signer: IDENTITY,
@@ -345,7 +345,7 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-mint',
       data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
-        poolId: ERC721_POOL_ID,
+        poolLocator: ERC721_POOL_ID,
         to: 'A',
         amount: '1',
         signer: IDENTITY,
@@ -398,7 +398,7 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-transfer',
       data: <TokenTransferEvent>{
         id: '000000000001/000000/000001',
-        poolId: ERC20_POOL_ID,
+        poolLocator: ERC20_POOL_ID,
         from: 'A',
         to: 'B',
         amount: '5',
@@ -481,7 +481,7 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-transfer',
       data: <TokenTransferEvent>{
         id: '000000000001/000000/000001',
-        poolId: ERC721_POOL_ID,
+        poolLocator: ERC721_POOL_ID,
         from: 'A',
         to: 'B',
         amount: '1',
@@ -535,7 +535,7 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-burn',
       data: <TokenBurnEvent>{
         id: '000000000001/000000/000001',
-        poolId: ERC20_POOL_ID,
+        poolLocator: ERC20_POOL_ID,
         from: 'B',
         amount: '5',
         signer: IDENTITY,
@@ -616,7 +616,7 @@ describe('WebSocket AppController (e2e)', () => {
       event: 'token-burn',
       data: <TokenBurnEvent>{
         id: '000000000001/000000/000001',
-        poolId: ERC721_POOL_ID,
+        poolLocator: ERC721_POOL_ID,
         from: 'B',
         amount: '1',
         signer: IDENTITY,

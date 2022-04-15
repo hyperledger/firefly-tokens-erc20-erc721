@@ -10,13 +10,13 @@ calls, and maps ethconnect events to outgoing websocket events.
 
 ## POST APIs
 
-The following POST APIs are exposed under `/api/v1`. Note that the term `poolId` is the term we use for the address of contract instance:
+The following POST APIs are exposed under `/api/v1`:
 
 * `POST /createpool` - Create a new instance of an ERC20 contract (inputs: name, symbol, data)
-* `POST /activatepool` - Activate a token contract to begin receiving transfers (inputs: poolId)
-* `POST /mint` - Mint new tokens (inputs: poolId, to, amount, data)
-* `POST /burn` - Burn tokens (inputs: poolId, tokenIndex, from, amount, data)
-* `POST /transfer` - Transfer tokens (inputs: poolId, tokenIndex, from, to, amount, data)
+* `POST /activatepool` - Activate a token contract to begin receiving transfers (inputs: poolLocator)
+* `POST /mint` - Mint new tokens (inputs: poolLocator, to, amount, data)
+* `POST /burn` - Burn tokens (inputs: poolLocator, tokenIndex, from, amount, data)
+* `POST /transfer` - Transfer tokens (inputs: poolLocator, tokenIndex, from, to, amount, data)
 
 All requests may be optionally accompanied by a `requestId`, which must be unique for every
 request and will be returned in the "receipt" websocket event.
@@ -39,10 +39,11 @@ not require any acknowledgment).
 Successful POST operations will also result in a detailed event corresponding to the type of
 transaction that was performed. The events and corresponding data items are:
 
-* `token-pool` - Token pool created (outputs: poolId, signer, data)
-* `token-mint` - Tokens minted (outputs: id, poolId, tokenIndex, signer, to, amount, data)
-* `token-burn` - Tokens burned (outputs: id, poolId, tokenIndex, signer, from, amount, data)
-* `token-transfer` - Tokens transferred (outputs: id, poolId, signer, from, to, amount, data)
+* `token-pool` - Token pool created (outputs: poolLocator, signer, data)
+* `token-mint` - Tokens minted (outputs: id, poolLocator, tokenIndex, signer, to, amount, data)
+* `token-burn` - Tokens burned (outputs: id, poolLocator, tokenIndex, signer, from, amount, data)
+* `token-transfer` - Tokens transferred (outputs: id, poolLocator, signer, from, to, amount, data)
+* `token-approval` - Tokens approved (outputs: id, subject, poolLocator, signer, operator, approved, data)
 
 If multiple websocket clients are connected, only one will receive these events.
 Each one of these _must_ be acknowledged by replying on the websocket with `{event: "ack", data: {id}}`.
@@ -51,7 +52,6 @@ Each one of these _must_ be acknowledged by replying on the websocket with `{eve
 
 The following GET APIs are exposed under `/api/v1`:
 
-* `GET /balance` - Get token balance (inputs: poolId, tokenIndex, account)
 * `GET /receipt/:id` - Get receipt for a previous request
 
 ## Running the service

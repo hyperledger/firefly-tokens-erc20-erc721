@@ -14,13 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ITokenPool, TokenType } from './tokens.interfaces';
+import { IPoolLocator, TokenType } from './tokens.interfaces';
 import {
   decodeHex,
   encodeHex,
-  packPoolId,
+  packPoolLocator,
   packSubscriptionName,
-  unpackPoolId,
+  unpackPoolLocator,
   unpackSubscriptionName,
 } from './tokens.util';
 
@@ -56,23 +56,23 @@ describe('Util', () => {
   it('unpackSubscriptionName', () => {
     expect(unpackSubscriptionName('token', 'token:0x123456')).toEqual({
       prefix: 'token',
-      poolId: '0x123456',
+      poolLocator: '0x123456',
     });
     expect(unpackSubscriptionName('token', 'token:0x123456:create')).toEqual({
       prefix: 'token',
-      poolId: '0x123456',
+      poolLocator: '0x123456',
       event: 'create',
     });
     expect(unpackSubscriptionName('tok:en', 'tok:en:0x123456:create')).toEqual({
       prefix: 'tok:en',
-      poolId: '0x123456',
+      poolLocator: '0x123456',
       event: 'create',
     });
   });
 
-  it('packPoolId', () => {
+  it('packPoolLocator', () => {
     expect(
-      packPoolId({
+      packPoolLocator({
         address: '0x12345',
         schema: 'ERC20WithData',
         type: TokenType.FUNGIBLE,
@@ -80,15 +80,17 @@ describe('Util', () => {
     ).toEqual('address=0x12345&schema=ERC20WithData&type=fungible');
   });
 
-  it('unpackPoolId', () => {
-    expect(unpackPoolId('address=0x12345&schema=ERC20WithData&type=fungible')).toEqual(<ITokenPool>{
+  it('unpackPoolLocator', () => {
+    expect(unpackPoolLocator('address=0x12345&schema=ERC20WithData&type=fungible')).toEqual(<
+      IPoolLocator
+    >{
       address: '0x12345',
       schema: 'ERC20WithData',
       type: TokenType.FUNGIBLE,
     });
 
-    expect(unpackPoolId('address=0x12345&standard=ERC20WithData&type=fungible')).toEqual(<
-      ITokenPool
+    expect(unpackPoolLocator('address=0x12345&standard=ERC20WithData&type=fungible')).toEqual(<
+      IPoolLocator
     >{
       address: '0x12345',
       schema: 'ERC20WithData',

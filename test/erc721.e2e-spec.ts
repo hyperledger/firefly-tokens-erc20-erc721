@@ -164,7 +164,7 @@ describe('ERC721 - e2e', () => {
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
         standard: 'ERC721',
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
@@ -195,7 +195,7 @@ describe('ERC721 - e2e', () => {
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
         standard: 'ERC721',
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
@@ -217,7 +217,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenMint = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -250,7 +250,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
       };
@@ -284,7 +284,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenBurn = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_WITH_DATA_POOL_ID,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
 
@@ -328,7 +328,7 @@ describe('ERC721 - e2e', () => {
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
-        poolId: `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
         standard: 'ERC721',
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
@@ -350,7 +350,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenMint = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
       };
 
@@ -381,7 +381,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenTransfer = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
       };
@@ -415,7 +415,7 @@ describe('ERC721 - e2e', () => {
       const request: TokenBurn = {
         tokenIndex: '721',
         signer: IDENTITY,
-        poolId: ERC721_NO_DATA_POOL_ID,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
 

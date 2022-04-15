@@ -73,17 +73,11 @@ export enum ContractMethod {
   ERC20WithDataBurnWithData = 'burnWithData',
 }
 
-export enum EncodedPoolIdEnum {
+export enum EncodedPoolLocatorEnum {
   Address = 'address',
   Standard = 'standard', // deprecated in favor of "schema" below
   Schema = 'schema',
   Type = 'type',
-}
-
-export interface IPoolId {
-  address: string;
-  standard: string;
-  type: string;
 }
 
 export enum TokenType {
@@ -91,13 +85,13 @@ export enum TokenType {
   NONFUNGIBLE = 'nonfungible',
 }
 
-export interface ITokenPool {
+export interface IPoolLocator {
   address: string | null;
   schema: string | null;
   type: TokenType | null;
 }
 
-export interface IValidTokenPool {
+export interface IValidPoolLocator {
   address: string;
   schema: string;
   type: TokenType;
@@ -164,7 +158,7 @@ export class TokenApprovalConfig {
 export class TokenApproval {
   @ApiProperty()
   @IsNotEmpty()
-  poolId: string;
+  poolLocator: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -191,13 +185,11 @@ export class TokenApproval {
   config?: TokenApprovalConfig;
 }
 
-export class BlockLocator {
+export class BlockchainInfo {
   @ApiProperty()
   @IsNotEmpty()
   blockNumber: string;
-}
 
-export class BlockchainInfo extends BlockLocator {
   @ApiProperty()
   transactionIndex: string;
 
@@ -240,15 +232,11 @@ export class BlockchainEvent {
 export class TokenPoolActivate {
   @ApiProperty()
   @IsNotEmpty()
-  poolId: string;
+  poolLocator: string;
 
   @ApiProperty()
   @IsOptional()
   config?: TokenPoolConfig;
-
-  @ApiProperty()
-  @IsOptional()
-  locator?: BlockLocator;
 
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
@@ -258,7 +246,7 @@ export class TokenPoolActivate {
 export class TokenTransfer {
   @ApiProperty()
   @IsNotEmpty()
-  poolId: string;
+  poolLocator: string;
 
   @ApiProperty()
   @IsOptional()
@@ -296,7 +284,7 @@ export class TokenBurn extends OmitType(TokenTransfer, ['to']) {}
 
 class tokenEventBase {
   @ApiProperty()
-  poolId: string;
+  poolLocator: string;
 
   @ApiProperty()
   signer?: string;
@@ -358,11 +346,19 @@ export class TokenBurnEvent extends OmitType(TokenTransferEvent, ['to']) {}
 
 export class TokenApprovalEvent extends tokenEventBase {
   @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  subject: string;
+
+  @ApiProperty()
   operator: string;
 
   @ApiProperty()
   approved: boolean;
 }
+
+// ABI format
 
 export interface IAbiInput {
   indexed?: boolean;
