@@ -22,12 +22,7 @@ import ERC20NoDataABI from '../abi/ERC20NoData.json';
 import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
 import ERC721WithDataABI from '../abi/ERC721WithData.json';
-import {
-  Event,
-  EventStream,
-  EventStreamReply,
-  EventStreamSubscription,
-} from '../event-stream/event-stream.interfaces';
+import { Event, EventStream, EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
 import { EventListener, EventProcessor } from '../eventstream-proxy/eventstream-proxy.interfaces';
