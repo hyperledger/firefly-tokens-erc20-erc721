@@ -258,67 +258,76 @@ export class TokensService {
   }
 
   /**
-   * If there is an existing event stream whose subscriptions don't match the current
-   * events and naming format, delete the stream so we'll start over.
-   * This will cause redelivery of all token events, which will poke FireFly to
-   * (re)activate pools and (re)process all transfers.
+   * Check for existing event streams and subscriptions that don't match the current
+   * expected format (ie incorrect names, missing event subscriptions).
    *
-   * TODO: eventually this migration logic can be pruned
+   * Log a warning if any potential issues are flagged. User may need to delete
+   * subscriptions manually and reactivate the pool directly.
    */
-  async migrate() {
+  async migrationCheck(): Promise<boolean> {
     const streams = await this.eventstream.getStreams();
     const existingStream = streams.find(s => s.name === this.topic);
     if (existingStream === undefined) {
-      return;
-    }
-    const subscriptions = await this.eventstream.getSubscriptions();
-    if (subscriptions.length === 0) {
-      return;
+      return false;
     }
 
-    const mappedSubs: Record<string, EventStreamSubscription[]> = {};
+    const allSubscriptions = await this.eventstream.getSubscriptions();
+    const streamId = existingStream.id;
+    const subscriptions = allSubscriptions.filter(s => s.stream === streamId);
+    if (subscriptions.length === 0) {
+      return false;
+    }
+
+    const foundEvents = new Map<string, string[]>();
     for (const sub of subscriptions.filter(s => s.stream === existingStream.id)) {
       const parts = unpackSubscriptionName(this.topic, sub.name);
-      if (parts.poolLocator !== undefined) {
-        if (mappedSubs[parts.poolLocator] === undefined) {
-          mappedSubs[parts.poolLocator] = [];
-        }
-        mappedSubs[parts.poolLocator].push(sub);
+      if (parts.poolLocator === undefined || parts.event === undefined) {
+        this.logger.warn(
+          `Non-parseable subscription names found in event stream ${existingStream.name}.` +
+            `It is recommended to delete all subscriptions and activate all pools again.`,
+        );
+        return true;
+      }
+      const existing = foundEvents.get(parts.poolLocator);
+      if (existing !== undefined) {
+        existing.push(parts.event);
       } else {
-        this.logger.warn(`Unable to parse subscription ${sub.name} - deleting`);
-        await this.eventstream.deleteSubscription(sub.id);
+        foundEvents.set(parts.poolLocator, [parts.event]);
       }
     }
 
-    for (const poolLocator in mappedSubs) {
-      const foundEvents = new Set<string>();
-      for (const sub of mappedSubs[poolLocator]) {
-        const parts = unpackSubscriptionName(this.topic, sub.name);
-        if (parts.event !== undefined && parts.event !== '') {
-          foundEvents.add(parts.event);
-        }
-      }
-
+    // Expect to have found subscriptions for each of the events.
+    for (const [poolLocator, events] of foundEvents) {
       const unpackedLocator = unpackPoolLocator(poolLocator);
-      if (this.validatePoolLocator(unpackedLocator)) {
-        const abiEvents = abiEventMap.get(unpackedLocator.schema as ContractSchemaStrings);
-        if (abiEvents !== undefined) {
-          // Expect to have found subscriptions for each of the events
-          const allEvents = [abiEvents.TRANSFER, abiEvents.APPROVAL, abiEvents.APPROVALFORALL];
-          if (allEvents.every(e => e === null || foundEvents.has(e))) {
-            continue;
-          }
-        }
+      if (!this.validatePoolLocator(unpackedLocator)) {
+        this.logger.warn(
+          `Could not parse pool locator: ${poolLocator}. ` +
+            `It is recommended to delete subscriptions for this pool and activate the pool again.`,
+        );
+        return true;
       }
-
-      this.logger.warn(
-        `Incorrect event stream subscriptions found for ${poolLocator} - deleting and recreating`,
-      );
-      for (const sub of mappedSubs[poolLocator]) {
-        await this.eventstream.deleteSubscription(sub.id);
+      const abiEvents = abiEventMap.get(unpackedLocator.schema as ContractSchemaStrings);
+      if (abiEvents === undefined) {
+        this.logger.warn(
+          `Could not parse schema from pool locator: ${poolLocator}. ` +
+            `It is recommended to delete subscriptions for this pool and activate the pool again.`,
+        );
+        return true;
       }
-      await this.activatePool({ poolLocator: poolLocator });
+      const allEvents = [abiEvents.TRANSFER, abiEvents.APPROVAL, abiEvents.APPROVALFORALL];
+      if (
+        allEvents.length !== events.length ||
+        !allEvents.every(event => event == null || events.includes(event))
+      ) {
+        this.logger.warn(
+          `Event stream subscriptions for pool ${poolLocator} do not include all expected events ` +
+            `(${allEvents}). Events may not be properly delivered to this pool. ` +
+            `It is recommended to delete its subscriptions and activate the pool again.`,
+        );
+        return true;
+      }
     }
+    return false;
   }
 
   private postOptions(signer: string, requestId?: string) {
