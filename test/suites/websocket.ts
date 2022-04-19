@@ -14,23 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Server } from 'http';
-import { HttpService } from '@nestjs/axios';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { WsAdapter } from '@nestjs/platform-ws';
-import { Test, TestingModule } from '@nestjs/testing';
-import request from 'superwstest';
-import { Observer } from 'rxjs';
-import { AxiosResponse } from '@nestjs/terminus/dist/health-indicator/http/axios.interfaces';
-import { AppModule } from '../src/app.module';
 import {
-  Event,
   EventStreamReply,
   EventStreamSubscription,
-} from '../src/event-stream/event-stream.interfaces';
-import { EventStreamService } from '../src/event-stream/event-stream.service';
-import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
-import { ReceiptEvent } from '../src/eventstream-proxy/eventstream-proxy.interfaces';
+} from '../../src/event-stream/event-stream.interfaces';
+import { ReceiptEvent } from '../../src/eventstream-proxy/eventstream-proxy.interfaces';
 import {
   EthConnectReturn,
   TokenBurnEvent,
@@ -38,14 +26,12 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
-} from '../src/tokens/tokens.interfaces';
-import { TokensService } from '../src/tokens/tokens.service';
-import { WebSocketMessage } from '../src/websocket-events/websocket-events.base';
+} from '../../src/tokens/tokens.interfaces';
+import { WebSocketMessage } from '../../src/websocket-events/websocket-events.base';
+import { FakeObservable, TestContext } from '../app.e2e-context';
 
-const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x321';
-const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const ERC20_STANDARD = 'ERC20WithData';
 const ERC20_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`;
@@ -129,80 +115,9 @@ const mockERC20BurnEvent: TransferEvent = {
   inputSigner: IDENTITY,
 };
 
-class FakeObservable<T> {
-  constructor(public data: T) {}
-
-  subscribe(observer?: Partial<Observer<AxiosResponse<T>>>) {
-    observer?.next &&
-      observer?.next({
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {},
-        data: this.data,
-      });
-    observer?.complete && observer?.complete();
-  }
-}
-
-describe('WebSocket AppController (e2e)', () => {
-  let app: INestApplication;
-  let server: ReturnType<typeof request>;
-  let http: {
-    get: ReturnType<typeof jest.fn>;
-    post: ReturnType<typeof jest.fn>;
-  };
-  let eventHandler: (events: Event[]) => void;
-  let receiptHandler: (receipt: EventStreamReply) => void;
-
-  const eventstream = {
-    connect: (
-      url: string,
-      topic: string,
-      handleEvents: (events: Event[]) => void,
-      handleReceipt: (receipt: EventStreamReply) => void,
-    ) => {
-      eventHandler = handleEvents;
-      receiptHandler = handleReceipt;
-    },
-
-    getSubscription: jest.fn(),
-  };
-
-  beforeEach(async () => {
-    http = {
-      get: jest.fn(),
-      post: jest.fn(),
-    };
-    eventstream.getSubscription.mockReset();
-
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(HttpService)
-      .useValue(http)
-      .overrideProvider(EventStreamService)
-      .useValue(eventstream)
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-    app.useWebSocketAdapter(new WsAdapter(app));
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-    await app.init();
-
-    app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    app.get(TokensService).configure(BASE_URL, TOPIC, PREFIX, '', '');
-
-    (app.getHttpServer() as Server).listen();
-    server = request(app.getHttpServer());
-  });
-
-  afterEach(async () => {
-    await app.close();
-  });
-
-  it('Websocket: ERC20 token mint event', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+export default (context: TestContext) => {
+  it('ERC20 token mint event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + ERC20_POOL_ID,
     });
 
@@ -238,11 +153,11 @@ describe('WebSocket AppController (e2e)', () => {
       },
     };
 
-    await server
+    await context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC20MintTransferEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC20MintTransferEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -252,8 +167,8 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: ERC20 token mint event with old locator', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+  it('ERC20 token mint event with old locator', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name:
         TOPIC +
         ':' +
@@ -292,11 +207,11 @@ describe('WebSocket AppController (e2e)', () => {
       },
     };
 
-    await server
+    await context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC20MintTransferEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC20MintTransferEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -306,8 +221,8 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: ERC721 token mint event', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+  it('ERC721 token mint event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + ERC721_POOL_ID,
     });
 
@@ -315,7 +230,7 @@ describe('WebSocket AppController (e2e)', () => {
       output: ERC721_BASE_URI,
     };
 
-    http.post = jest.fn(() => new FakeObservable(baseUriResponse));
+    context.http.post = jest.fn(() => new FakeObservable(baseUriResponse));
 
     const mockERC721MintTransferEvent: TransferEvent = {
       subId: 'sb-123',
@@ -375,11 +290,11 @@ describe('WebSocket AppController (e2e)', () => {
       },
     };
 
-    await server
+    await context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC721MintTransferEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC721MintTransferEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -389,8 +304,8 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: ERC20 token transfer event', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+  it('ERC20 token transfer event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + ERC20_POOL_ID,
     });
 
@@ -427,11 +342,11 @@ describe('WebSocket AppController (e2e)', () => {
       },
     };
 
-    await server
+    await context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC20TransferEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC20TransferEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -441,8 +356,8 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: ERC721 token transfer event', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+  it('ERC721 token transfer event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + ERC721_POOL_ID,
     });
 
@@ -450,7 +365,7 @@ describe('WebSocket AppController (e2e)', () => {
       output: ERC721_BASE_URI,
     };
 
-    http.post = jest.fn(() => new FakeObservable(baseUriResponse));
+    context.http.post = jest.fn(() => new FakeObservable(baseUriResponse));
 
     const mockERC721TransferEvent: TransferEvent = {
       subId: 'sb-123',
@@ -512,11 +427,11 @@ describe('WebSocket AppController (e2e)', () => {
       },
     };
 
-    await server
+    await context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC721TransferEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC721TransferEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -526,8 +441,8 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: ERC20 token burn event', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+  it('ERC20 token burn event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + ERC20_POOL_ID,
     });
 
@@ -563,11 +478,11 @@ describe('WebSocket AppController (e2e)', () => {
       },
     };
 
-    await server
+    await context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC20BurnEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC20BurnEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -577,8 +492,8 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: ERC721 token burn event', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+  it('ERC721 token burn event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + ERC721_POOL_ID,
     });
 
@@ -586,7 +501,7 @@ describe('WebSocket AppController (e2e)', () => {
       output: '',
     };
 
-    http.post = jest.fn(() => new FakeObservable(baseUriResponse));
+    context.http.post = jest.fn(() => new FakeObservable(baseUriResponse));
 
     const mockERC721BurnEvent: TransferEvent = {
       subId: 'sb-123',
@@ -646,11 +561,11 @@ describe('WebSocket AppController (e2e)', () => {
       },
     };
 
-    await server
+    await context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC721BurnEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC721BurnEvent]);
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -660,12 +575,12 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: success receipt', () => {
-    return server
+  it('Success receipt', () => {
+    return context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(receiptHandler).toBeDefined();
-        receiptHandler(<EventStreamReply>{
+        expect(context.receiptHandler).toBeDefined();
+        context.receiptHandler(<EventStreamReply>{
           headers: {
             requestId: '1',
             type: 'TransactionSuccess',
@@ -684,12 +599,12 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: error receipt', () => {
-    return server
+  it('Error receipt', () => {
+    return context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(receiptHandler).toBeDefined();
-        receiptHandler(<EventStreamReply>{
+        expect(context.receiptHandler).toBeDefined();
+        context.receiptHandler(<EventStreamReply>{
           headers: {
             requestId: '1',
             type: 'Error',
@@ -710,16 +625,16 @@ describe('WebSocket AppController (e2e)', () => {
       });
   });
 
-  it('Websocket: disconnect and reconnect', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+  it('Disconnect and reconnect', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
-    await server
+    await context.server
       .ws('/api/ws')
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC20MintTransferEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC20MintTransferEvent]);
       })
       .expectJson(message => {
         expect(message.event).toEqual('token-mint');
@@ -727,24 +642,24 @@ describe('WebSocket AppController (e2e)', () => {
       })
       .close();
 
-    await server.ws('/api/ws').expectJson(message => {
+    await context.server.ws('/api/ws').expectJson(message => {
       expect(message.event).toEqual('token-mint');
       return true;
     });
   });
 
-  it('Websocket: client switchover', async () => {
-    eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+  it('Client switchover', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
       name: TOPIC + ':' + CONTRACT_ADDRESS,
     });
 
-    const ws1 = server.ws('/api/ws');
-    const ws2 = server.ws('/api/ws');
+    const ws1 = context.server.ws('/api/ws');
+    const ws2 = context.server.ws('/api/ws');
 
     await ws1
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC20MintTransferEvent]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC20MintTransferEvent]);
       })
       .expectJson(message => {
         expect(message.event).toEqual('token-mint');
@@ -758,7 +673,7 @@ describe('WebSocket AppController (e2e)', () => {
     });
   });
 
-  it('Websocket: batch + ack + client switchover', async () => {
+  it('Batch + ack + client switchover', async () => {
     const tokenMintMessage: TransferEvent = {
       subId: 'sb-123',
       signature: transferEventSignature,
@@ -783,18 +698,18 @@ describe('WebSocket AppController (e2e)', () => {
       inputSigner: IDENTITY,
     };
 
-    eventstream.getSubscription
+    context.eventstream.getSubscription
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
       .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
 
-    const ws1 = server.ws('/api/ws');
-    const ws2 = server.ws('/api/ws');
+    const ws1 = context.server.ws('/api/ws');
+    const ws2 = context.server.ws('/api/ws');
     let messageID1: string;
 
     await ws1
       .exec(() => {
-        expect(eventHandler).toBeDefined();
-        eventHandler([mockERC20TransferEvent, tokenMintMessage]);
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC20TransferEvent, tokenMintMessage]);
       })
       .expectJson(message => {
         expect(message.event).toEqual('token-transfer');
@@ -820,4 +735,4 @@ describe('WebSocket AppController (e2e)', () => {
       return true;
     });
   });
-});
+};
