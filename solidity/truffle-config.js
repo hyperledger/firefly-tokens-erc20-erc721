@@ -13,6 +13,12 @@ module.exports = {
     solc: {
       version: '^0.8.0', // Fetch exact version from solc-bin (default: truffle's version)
       evmVersion: 'constantinople',
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 1500,
+        },
+      },
     },
   },
 };

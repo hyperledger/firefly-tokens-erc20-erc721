@@ -14,8 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Res } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Response } from 'express';
 import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import {
   AsyncResponse,
@@ -24,6 +25,7 @@ import {
   TokenMint,
   TokenPool,
   TokenPoolActivate,
+  TokenPoolEvent,
   TokenTransfer,
 } from './tokens.interfaces';
 import { TokensService } from './tokens.service';
@@ -46,9 +48,16 @@ export class TokensController {
     description: 'The contract must be deployed on-chain before calling this method',
   })
   @ApiBody({ type: TokenPool })
+  @ApiResponse({ status: 200, type: TokenPoolEvent })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  createPool(@Body() dto: TokenPool) {
-    return this.service.createPool(dto);
+  async createPool(@Body() dto: TokenPool, @Res({ passthrough: true }) res: Response) {
+    const pool = await this.service.createPool(dto);
+    if ('poolLocator' in pool) {
+      res.status(HttpStatus.OK);
+    } else {
+      res.status(HttpStatus.ACCEPTED);
+    }
+    return pool;
   }
 
   @Post('activatepool')

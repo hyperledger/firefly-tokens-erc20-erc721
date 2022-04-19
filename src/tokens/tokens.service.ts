@@ -22,6 +22,7 @@ import ERC20NoDataABI from '../abi/ERC20NoData.json';
 import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
 import ERC721WithDataABI from '../abi/ERC721WithData.json';
+import TokenFactoryABI from '../abi/TokenFactory.json';
 import { Event, EventStream, EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
@@ -43,6 +44,7 @@ import {
   TokenApprovalEvent,
   TokenBurn,
   TokenBurnEvent,
+  TokenCreateEvent,
   TokenMint,
   TokenMintEvent,
   TokenPool,
@@ -57,10 +59,12 @@ import {
 import {
   decodeHex,
   encodeHex,
+  getTokenSchema,
   packPoolLocator,
   packSubscriptionName,
   unpackPoolLocator,
   unpackSubscriptionName,
+  validatePoolLocator,
 } from './tokens.util';
 
 export const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
@@ -145,6 +149,10 @@ abiEventMap.set('ERC721WithData', {
   APPROVALFORALL: 'ApprovalForAll',
 });
 
+const tokenCreateMethod = 'create';
+const tokenCreateEvent = 'TokenCreate';
+const tokenCreateEventSignature = 'TokenCreate(address,string,string,bool,bytes)';
+
 const UINT256_MAX = BigInt(2) ** BigInt(256) - BigInt(1);
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -166,6 +174,7 @@ export class TokensService {
   stream: EventStream;
   username: string;
   password: string;
+  factoryAddress = '';
 
   constructor(
     public http: HttpService,
@@ -179,12 +188,14 @@ export class TokensService {
     shortPrefix: string,
     username: string,
     password: string,
+    factoryAddress: string,
   ) {
     this.baseUrl = baseUrl;
     this.topic = topic;
     this.shortPrefix = shortPrefix;
     this.username = username;
     this.password = password;
+    this.factoryAddress = factoryAddress.toLowerCase();
     this.proxy.addListener(new TokenListener(this));
   }
 
@@ -212,13 +223,6 @@ export class TokensService {
     return contractAbi.find(abi => abi.name === abiEvents[operation]);
   }
 
-  private getTokenSchema(type: TokenType, withData = true): string {
-    if (type === TokenType.FUNGIBLE) {
-      return withData ? 'ERC20WithData' : 'ERC20NoData';
-    }
-    return withData ? 'ERC721WithData' : 'ERC721NoData';
-  }
-
   private getAmountOrTokenID(
     dto: TokenMint | TokenTransfer | TokenBurn,
     type: TokenType,
@@ -234,15 +238,28 @@ export class TokensService {
     return dto.tokenIndex;
   }
 
-  private validatePoolLocator(poolLocator: IPoolLocator): poolLocator is IValidPoolLocator {
-    return poolLocator.address !== null && poolLocator.schema !== null && poolLocator.type !== null;
-  }
-
   /**
    * One-time initialization of event stream and base subscription.
    */
-  init() {
-    return;
+  async init() {
+    this.stream = await this.getStream();
+
+    if (this.factoryAddress !== '') {
+      const eventABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateEvent);
+      const methodABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
+      if (eventABI !== undefined && methodABI !== undefined) {
+        await this.eventstream.getOrCreateSubscription(
+          this.baseUrl,
+          eventABI,
+          this.stream.id,
+          tokenCreateEvent,
+          packSubscriptionName(this.topic, this.factoryAddress, tokenCreateEvent),
+          this.factoryAddress,
+          [methodABI],
+          '0',
+        );
+      }
+    }
   }
 
   private async getStream() {
@@ -293,8 +310,12 @@ export class TokensService {
 
     // Expect to have found subscriptions for each of the events.
     for (const [poolLocator, events] of foundEvents) {
+      if (poolLocator === this.factoryAddress) {
+        continue;
+      }
+
       const unpackedLocator = unpackPoolLocator(poolLocator);
-      if (!this.validatePoolLocator(unpackedLocator)) {
+      if (!validatePoolLocator(unpackedLocator)) {
         this.logger.warn(
           `Could not parse pool locator: ${poolLocator}. ` +
             `It is recommended to delete subscriptions for this pool and activate the pool again.`,
@@ -312,7 +333,7 @@ export class TokensService {
       const allEvents = [abiEvents.TRANSFER, abiEvents.APPROVAL, abiEvents.APPROVALFORALL];
       if (
         allEvents.length !== events.length ||
-        !allEvents.every(event => event == null || events.includes(event))
+        !allEvents.every(event => event === null || events.includes(event))
       ) {
         this.logger.warn(
           `Event stream subscriptions for pool ${poolLocator} do not include all expected events ` +
@@ -384,14 +405,28 @@ export class TokensService {
     };
   }
 
-  async createPool(dto: TokenPool): Promise<TokenPoolEvent> {
-    const schema = this.getTokenSchema(dto.type, dto.config.withData);
-    const poolLocator: IPoolLocator = {
-      address: dto.config.address,
-      type: dto.type,
-      schema,
-    };
-    if (!this.validatePoolLocator(poolLocator)) {
+  async createPool(dto: TokenPool): Promise<TokenPoolEvent | AsyncResponse> {
+    if (dto.config?.address !== undefined) {
+      return this.createFromExisting(dto.config.address, dto);
+    }
+
+    if (this.factoryAddress === '') {
+      throw new BadRequestException(
+        'config.address was unspecified, and no token factory is configured!',
+      );
+    }
+    if (dto.config?.withData === false) {
+      throw new BadRequestException(
+        'Factory deployment currently does not support method signatures without data.',
+      );
+    }
+    return this.createFromFactory(dto);
+  }
+
+  async createFromExisting(address: string, dto: TokenPool) {
+    const schema = getTokenSchema(dto.type, dto.config?.withData ?? true);
+    const poolLocator: IPoolLocator = { address, type: dto.type, schema };
+    if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
     const nameAndSymbol = await this.queryPool(poolLocator);
@@ -409,12 +444,37 @@ export class TokensService {
       symbol: nameAndSymbol.symbol,
       info: {
         name: nameAndSymbol.name,
-        address: dto.config.address,
+        address,
         schema,
       },
     };
-
     return tokenPoolEvent;
+  }
+
+  async createFromFactory(dto: TokenPool): Promise<AsyncResponse> {
+    const isFungible = dto.type === TokenType.FUNGIBLE;
+    const encodedData = encodeHex(dto.data ?? '');
+    const method = TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
+    if (method === undefined) {
+      throw new BadRequestException('Failed to parse factory contract ABI');
+    }
+
+    const response = await lastValueFrom(
+      this.http.post<EthConnectAsyncResponse>(
+        `${this.baseUrl}`,
+        {
+          headers: {
+            type: sendTransactionHeader,
+          },
+          from: dto.signer,
+          to: this.factoryAddress,
+          method,
+          params: [dto.name, dto.symbol, isFungible, encodedData],
+        } as EthConnectMsgRequest,
+        this.postOptions(dto.signer, dto.requestId),
+      ),
+    );
+    return { id: response.data.id };
   }
 
   getSubscriptionBlockNumber(config?: TokenPoolConfig): string {
@@ -427,7 +487,7 @@ export class TokensService {
 
   async activatePool(dto: TokenPoolActivate) {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
-    if (!this.validatePoolLocator(poolLocator)) {
+    if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
 
@@ -456,7 +516,7 @@ export class TokensService {
 
     const promises = [
       this.eventstream.getOrCreateSubscription(
-        `${this.baseUrl}`,
+        this.baseUrl,
         transferAbi,
         stream.id,
         abiEvents.TRANSFER,
@@ -466,7 +526,7 @@ export class TokensService {
         this.getSubscriptionBlockNumber(dto.config),
       ),
       this.eventstream.getOrCreateSubscription(
-        `${this.baseUrl}`,
+        this.baseUrl,
         approvalAbi,
         stream.id,
         abiEvents.APPROVAL,
@@ -483,7 +543,7 @@ export class TokensService {
       }
       promises.push(
         this.eventstream.getOrCreateSubscription(
-          `${this.baseUrl}`,
+          this.baseUrl,
           approvalForAllAbi,
           stream.id,
           abiEvents.APPROVALFORALL,
@@ -514,7 +574,7 @@ export class TokensService {
 
   async mint(dto: TokenMint): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
-    if (!this.validatePoolLocator(poolLocator)) {
+    if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
 
@@ -538,13 +598,12 @@ export class TokensService {
         this.postOptions(dto.signer, dto.requestId),
       ),
     );
-
     return { id: response.data.id };
   }
 
   async transfer(dto: TokenTransfer): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
-    if (!this.validatePoolLocator(poolLocator)) {
+    if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
 
@@ -573,7 +632,7 @@ export class TokensService {
 
   async burn(dto: TokenBurn): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
-    if (!this.validatePoolLocator(poolLocator)) {
+    if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
 
@@ -602,7 +661,7 @@ export class TokensService {
 
   async approval(dto: TokenApproval): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
-    if (!this.validatePoolLocator(poolLocator)) {
+    if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
 
@@ -671,6 +730,9 @@ class TokenListener implements EventListener {
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     switch (event.signature) {
+      case tokenCreateEventSignature:
+        process(this.transformTokenCreateEvent(subName, event));
+        break;
       case transferEventSignature:
         process(await this.transformTransferEvent(subName, event));
         break;
@@ -733,6 +795,56 @@ class TokenListener implements EventListener {
 
   private stripParamsFromSignature(signature: string) {
     return signature.substring(0, signature.indexOf('('));
+  }
+
+  private transformTokenCreateEvent(
+    subName: string,
+    event: TokenCreateEvent,
+  ): WebSocketMessage | undefined {
+    const { data: output } = event;
+    const decodedData = decodeHex(output.data ?? '');
+
+    if (event.address.toLowerCase() !== this.service.factoryAddress) {
+      this.logger.warn(`Ignoring token pool creation from unknown address: ${event.address}`);
+      return undefined;
+    }
+
+    const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
+    const schema = getTokenSchema(type, true);
+    const poolLocator: IValidPoolLocator = { address: output.contract_address, type, schema };
+
+    return {
+      event: 'token-pool',
+      data: <TokenPoolEvent>{
+        standard: type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
+        poolLocator: packPoolLocator(poolLocator),
+        type,
+        signer: event.inputSigner,
+        data: decodedData,
+        symbol: output.symbol,
+        info: {
+          name: output.name,
+          address: output.contract_address,
+          schema,
+        },
+        blockchain: {
+          id: this.formatBlockchainEventId(event),
+          name: this.stripParamsFromSignature(event.signature),
+          location: 'address=' + event.address,
+          signature: event.signature,
+          timestamp: event.timestamp,
+          output,
+          info: {
+            blockNumber: event.blockNumber,
+            transactionIndex: event.transactionIndex,
+            transactionHash: event.transactionHash,
+            logIndex: event.logIndex,
+            address: event.address,
+            signature: event.signature,
+          },
+        },
+      },
+    };
   }
 
   private async transformTransferEvent(
