@@ -66,7 +66,7 @@ const abiMethodMap = {
 };
 
 export default (context: TestContext) => {
-  const mockNameAndSymbolQuery = () => {
+  const mockPoolQuery = () => {
     context.http.post
       .mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
@@ -76,6 +76,11 @@ export default (context: TestContext) => {
       .mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
           output: SYMBOL,
+        }),
+      )
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: '18',
         }),
       );
   };
@@ -99,6 +104,7 @@ export default (context: TestContext) => {
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
+        decimals: 18,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -106,7 +112,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -151,6 +157,7 @@ export default (context: TestContext) => {
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
+        decimals: 18,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -158,7 +165,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -189,7 +196,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -353,7 +360,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -404,7 +411,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);

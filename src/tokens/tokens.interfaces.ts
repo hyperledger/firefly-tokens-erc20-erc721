@@ -317,6 +317,9 @@ export class TokenPoolEvent extends tokenEventBase {
   @ApiProperty()
   symbol: string;
 
+  @ApiProperty({ type: 'integer' })
+  decimals: number;
+
   @ApiProperty()
   info: TokenPoolEventInfo;
 }
