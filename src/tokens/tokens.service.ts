@@ -77,6 +77,7 @@ export interface AbiMethods {
   SYMBOL: string;
   APPROVE: string;
   APPROVEFORALL: string | null;
+  DECIMALS: string | null;
 }
 
 export interface AbiEvents {
@@ -94,6 +95,7 @@ abiMethodMap.set('ERC20NoData', {
   APPROVEFORALL: null,
   NAME: 'name',
   SYMBOL: 'symbol',
+  DECIMALS: 'decimals',
 });
 abiMethodMap.set('ERC20WithData', {
   MINT: 'mintWithData',
@@ -103,6 +105,7 @@ abiMethodMap.set('ERC20WithData', {
   APPROVEFORALL: null,
   NAME: 'name',
   SYMBOL: 'symbol',
+  DECIMALS: 'decimals',
 });
 abiMethodMap.set('ERC721WithData', {
   MINT: 'mintWithData',
@@ -112,6 +115,7 @@ abiMethodMap.set('ERC721WithData', {
   APPROVEFORALL: 'setApprovalForAllWithData',
   NAME: 'name',
   SYMBOL: 'symbol',
+  DECIMALS: null,
 });
 abiMethodMap.set('ERC721NoData', {
   MINT: 'mint',
@@ -121,6 +125,7 @@ abiMethodMap.set('ERC721NoData', {
   APPROVEFORALL: 'setApprovalForAll',
   NAME: 'name',
   SYMBOL: 'symbol',
+  DECIMALS: null,
 });
 
 const abiEventMap = new Map<ContractSchemaStrings, AbiEvents>();
@@ -197,7 +202,11 @@ export class TokensService {
     if (contractAbi === undefined || abiMethods === undefined) {
       return undefined;
     }
-    return contractAbi.find(abi => abi.name === abiMethods[operation]);
+    const name = abiMethods[operation] ?? undefined;
+    if (name === undefined) {
+      return undefined;
+    }
+    return contractAbi.find(abi => abi.name === name);
   }
 
   private getEventAbi(
@@ -350,6 +359,7 @@ export class TokensService {
 
   private async queryPool(poolLocator: IValidPoolLocator) {
     const schema = poolLocator.schema as ContractSchemaStrings;
+
     const nameResponse = await lastValueFrom(
       this.http.post<EthConnectReturn>(
         `${this.baseUrl}`,
@@ -364,6 +374,7 @@ export class TokensService {
         this.queryOptions(),
       ),
     );
+
     const symbolResponse = await lastValueFrom(
       this.http.post<EthConnectReturn>(
         `${this.baseUrl}`,
@@ -378,9 +389,34 @@ export class TokensService {
         this.queryOptions(),
       ),
     );
+
+    let decimals = 0;
+    const decimalsMethod = this.getMethodAbi(schema, 'DECIMALS');
+    if (decimalsMethod !== undefined) {
+      const decimalsResponse = await lastValueFrom(
+        this.http.post<EthConnectReturn>(
+          `${this.baseUrl}`,
+          {
+            headers: {
+              type: queryHeader,
+            },
+            to: poolLocator.address,
+            method: decimalsMethod,
+            params: [],
+          } as EthConnectMsgRequest,
+          this.queryOptions(),
+        ),
+      );
+      decimals = parseInt(decimalsResponse.data.output);
+      if (isNaN(decimals)) {
+        decimals = 0;
+      }
+    }
+
     return {
       name: nameResponse.data.output,
       symbol: symbolResponse.data.output,
+      decimals,
     };
   }
 
@@ -394,10 +430,11 @@ export class TokensService {
     if (!this.validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
-    const nameAndSymbol = await this.queryPool(poolLocator);
-    if (dto.symbol !== undefined && dto.symbol !== '' && dto.symbol !== nameAndSymbol.symbol) {
+
+    const poolInfo = await this.queryPool(poolLocator);
+    if (dto.symbol !== undefined && dto.symbol !== '' && dto.symbol !== poolInfo.symbol) {
       throw new BadRequestException(
-        `Supplied symbol '${dto.symbol}' does not match expected '${nameAndSymbol.symbol}'`,
+        `Supplied symbol '${dto.symbol}' does not match expected '${poolInfo.symbol}'`,
       );
     }
 
@@ -406,9 +443,10 @@ export class TokensService {
       poolLocator: packPoolLocator(poolLocator),
       standard: dto.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
       type: dto.type,
-      symbol: nameAndSymbol.symbol,
+      symbol: poolInfo.symbol,
+      decimals: poolInfo.decimals,
       info: {
-        name: nameAndSymbol.name,
+        name: poolInfo.name,
         address: dto.config.address,
         schema,
       },
@@ -449,7 +487,9 @@ export class TokensService {
       throw new BadRequestException(`Unknown schema: ${poolLocator.schema}`);
     }
 
-    const possibleMethods: string[] = Object.values(abiMethods);
+    const possibleMethods: string[] = Object.values(abiMethods).filter(
+      m => !['name', 'symbol', 'decimals'].includes(m),
+    );
     const methodsToSubTo: IAbiMethod[] = contractAbi.filter(
       method => method.name !== undefined && possibleMethods.includes(method.name),
     );
@@ -496,14 +536,15 @@ export class TokensService {
     }
     await Promise.all(promises);
 
-    const nameAndSymbol = await this.queryPool(poolLocator);
+    const poolInfo = await this.queryPool(poolLocator);
     const tokenPoolEvent: TokenPoolEvent = {
       poolLocator: dto.poolLocator,
       standard: poolLocator.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
       type: poolLocator.type,
-      symbol: nameAndSymbol.symbol,
+      symbol: poolInfo.symbol,
+      decimals: poolInfo.decimals,
       info: {
-        name: nameAndSymbol.name,
+        name: poolInfo.name,
         address: poolLocator.address,
         schema: poolLocator.schema,
       },
