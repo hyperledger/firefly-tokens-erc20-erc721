@@ -13,19 +13,12 @@ dotenv.config();
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
-  // solidity: "0.8.4",
-  solidity: {
-    compilers: [
-      {
-        version: '0.8.0',
-      },
-    ],
-  },
+  solidity: "0.8.4",
+  defaultNetwork: "firefly",
   networks: {
-    ropsten: {
-      url: process.env.ROPSTEN_URL || '',
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    },
+    firefly: {
+      url: "http://127.0.0.1:5100"
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
