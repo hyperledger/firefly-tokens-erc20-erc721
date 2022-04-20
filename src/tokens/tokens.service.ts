@@ -321,7 +321,7 @@ export class TokensService {
       const allEvents = [abiEvents.TRANSFER, abiEvents.APPROVAL, abiEvents.APPROVALFORALL];
       if (
         allEvents.length !== events.length ||
-        !allEvents.every(event => event == null || events.includes(event))
+        !allEvents.every(event => event === null || events.includes(event))
       ) {
         this.logger.warn(
           `Event stream subscriptions for pool ${poolLocator} do not include all expected events ` +
