@@ -334,27 +334,8 @@ export class TokensService {
     return false;
   }
 
-  private postOptions(signer: string, requestId?: string) {
-    const from = `${this.shortPrefix}-from`;
-    const sync = `${this.shortPrefix}-sync`;
-    const id = `${this.shortPrefix}-id`;
-
-    const requestOptions: AxiosRequestConfig = {
-      params: {
-        [from]: signer,
-        [sync]: 'false',
-        [id]: requestId,
-      },
-      ...basicAuth(this.username, this.password),
-    };
-    return requestOptions;
-  }
-
-  private queryOptions() {
-    const requestOptions: AxiosRequestConfig = {
-      ...basicAuth(this.username, this.password),
-    };
-    return requestOptions;
+  private requestOptions(): AxiosRequestConfig {
+    return basicAuth(this.username, this.password);
   }
 
   private async queryPool(poolLocator: IValidPoolLocator) {
@@ -371,7 +352,7 @@ export class TokensService {
           method: this.getMethodAbi(schema, 'NAME'),
           params: [],
         } as EthConnectMsgRequest,
-        this.queryOptions(),
+        this.requestOptions(),
       ),
     );
 
@@ -386,7 +367,7 @@ export class TokensService {
           method: this.getMethodAbi(schema, 'SYMBOL'),
           params: [],
         } as EthConnectMsgRequest,
-        this.queryOptions(),
+        this.requestOptions(),
       ),
     );
 
@@ -404,7 +385,7 @@ export class TokensService {
             method: decimalsMethod,
             params: [],
           } as EthConnectMsgRequest,
-          this.queryOptions(),
+          this.requestOptions(),
         ),
       );
       decimals = parseInt(decimalsResponse.data.output);
@@ -569,6 +550,7 @@ export class TokensService {
         `${this.baseUrl}`,
         {
           headers: {
+            id: dto.requestId,
             type: sendTransactionHeader,
           },
           from: dto.signer,
@@ -576,7 +558,7 @@ export class TokensService {
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
-        this.postOptions(dto.signer, dto.requestId),
+        this.requestOptions(),
       ),
     );
 
@@ -599,6 +581,7 @@ export class TokensService {
         `${this.baseUrl}`,
         {
           headers: {
+            id: dto.requestId,
             type: sendTransactionHeader,
           },
           from: dto.signer,
@@ -606,7 +589,7 @@ export class TokensService {
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
-        this.postOptions(dto.signer, dto.requestId),
+        this.requestOptions(),
       ),
     );
     return { id: response.data.id };
@@ -628,6 +611,7 @@ export class TokensService {
         `${this.baseUrl}`,
         {
           headers: {
+            id: dto.requestId,
             type: sendTransactionHeader,
           },
           from: dto.signer,
@@ -635,7 +619,7 @@ export class TokensService {
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
-        this.postOptions(dto.signer, dto.requestId),
+        this.requestOptions(),
       ),
     );
     return { id: response.data.id };
@@ -678,6 +662,7 @@ export class TokensService {
         `${this.baseUrl}`,
         {
           headers: {
+            id: dto.requestId,
             type: sendTransactionHeader,
           },
           from: dto.signer,
@@ -685,7 +670,7 @@ export class TokensService {
           method: methodAbi,
           params,
         } as EthConnectMsgRequest,
-        this.postOptions(dto.signer, dto.requestId),
+        this.requestOptions(),
       ),
     );
     return { id: response.data.id };
