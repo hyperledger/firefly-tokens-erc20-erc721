@@ -56,13 +56,7 @@ export const abiTypeMap = {
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
-const OPTIONS = {
-  params: {
-    'fly-from': IDENTITY,
-    'fly-id': undefined,
-    'fly-sync': 'false',
-  },
-};
+const OPTIONS = {};
 const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const REQUEST = 'request123';
@@ -85,7 +79,6 @@ const ERC721_TRANSFER_NO_DATA = 'safeTransferFrom';
 const BURN_NO_DATA = 'burn';
 const APPROVE_NO_DATA = 'approve';
 const APPROVE_ALL_NO_DATA = 'setApprovalForAll';
-const DECIMALS = 'decimals';
 
 const MINT_WITH_DATA = 'mintWithData';
 const TRANSFER_WITH_DATA = 'transferWithData';
