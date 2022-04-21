@@ -399,6 +399,10 @@ export class TokensService {
       [],
     );
 
+    if (nameResponse?.output === undefined || symbolResponse?.output === undefined) {
+      throw new NotFoundException('Unable to query token contract');
+    }
+
     let decimals = 0;
     const decimalsMethod = this.getMethodAbi(schema, 'DECIMALS');
     if (decimalsMethod !== undefined) {
