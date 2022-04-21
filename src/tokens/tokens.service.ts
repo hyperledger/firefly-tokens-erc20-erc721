@@ -15,8 +15,14 @@
 // limitations under the License.
 
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { AxiosRequestConfig } from 'axios';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import ERC20NoDataABI from '../abi/ERC20NoData.json';
 import ERC20WithDataABI from '../abi/ERC20WithData.json';
@@ -34,7 +40,6 @@ import {
   AsyncResponse,
   ContractSchema,
   EthConnectAsyncResponse,
-  EthConnectMsgRequest,
   EthConnectReturn,
   IAbiMethod,
   IPoolLocator,
@@ -338,27 +343,46 @@ export class TokensService {
     return basicAuth(this.username, this.password);
   }
 
-  query(to: string, method?: IAbiMethod, params?: any[]) {
-    if (params === undefined) {
-      params = [];
-    }
-    return lastValueFrom(
-      this.http.post<EthConnectReturn>(
-        this.baseUrl,
-        { headers: { type: queryHeader }, to, method, params },
-        this.requestOptions(),
-      ),
-    );
+  private async wrapError<T>(response: Promise<AxiosResponse<T>>) {
+    return response.catch(err => {
+      if (axios.isAxiosError(err)) {
+        const errorMessage = err.response?.data?.error;
+        throw new InternalServerErrorException(errorMessage ?? err.message);
+      }
+      throw err;
+    });
   }
 
-  sendTransaction(from: string, to: string, id?: string, method?: IAbiMethod, params?: any[]) {
-    return lastValueFrom(
-      this.http.post<EthConnectAsyncResponse>(
-        this.baseUrl,
-        { headers: { id, type: sendTransactionHeader }, from, to, method, params },
-        this.requestOptions(),
+  async query(to: string, method?: IAbiMethod, params?: any[]) {
+    const response = await this.wrapError(
+      lastValueFrom(
+        this.http.post<EthConnectReturn>(
+          this.baseUrl,
+          { headers: { type: queryHeader }, to, method, params },
+          this.requestOptions(),
+        ),
       ),
     );
+    return response.data;
+  }
+
+  async sendTransaction(
+    from: string,
+    to: string,
+    id?: string,
+    method?: IAbiMethod,
+    params?: any[],
+  ) {
+    const response = await this.wrapError(
+      lastValueFrom(
+        this.http.post<EthConnectAsyncResponse>(
+          this.baseUrl,
+          { headers: { id, type: sendTransactionHeader }, from, to, method, params },
+          this.requestOptions(),
+        ),
+      ),
+    );
+    return response.data;
   }
 
   private async queryPool(poolLocator: IValidPoolLocator) {
@@ -379,15 +403,15 @@ export class TokensService {
     const decimalsMethod = this.getMethodAbi(schema, 'DECIMALS');
     if (decimalsMethod !== undefined) {
       const decimalsResponse = await this.query(poolLocator.address, decimalsMethod, []);
-      decimals = parseInt(decimalsResponse.data.output);
+      decimals = parseInt(decimalsResponse.output);
       if (isNaN(decimals)) {
         decimals = 0;
       }
     }
 
     return {
-      name: nameResponse.data.output,
-      symbol: symbolResponse.data.output,
+      name: nameResponse.output,
+      symbol: symbolResponse.output,
       decimals,
     };
   }
@@ -543,7 +567,7 @@ export class TokensService {
       methodAbi,
       params,
     );
-    return { id: response.data.id };
+    return { id: response.id };
   }
 
   async transfer(dto: TokenTransfer): Promise<AsyncResponse> {
@@ -564,7 +588,7 @@ export class TokensService {
       methodAbi,
       params,
     );
-    return { id: response.data.id };
+    return { id: response.id };
   }
 
   async burn(dto: TokenBurn): Promise<AsyncResponse> {
@@ -585,7 +609,7 @@ export class TokensService {
       methodAbi,
       params,
     );
-    return { id: response.data.id };
+    return { id: response.id };
   }
 
   async approval(dto: TokenApproval): Promise<AsyncResponse> {
@@ -627,15 +651,17 @@ export class TokensService {
       methodAbi,
       params,
     );
-    return { id: response.data.id };
+    return { id: response.id };
   }
 
   async getReceipt(id: string): Promise<EventStreamReply> {
-    const response = await lastValueFrom(
-      this.http.get<EventStreamReply>(`${this.baseUrl}/reply/${id}`, {
-        validateStatus: status => status < 300 || status === 404,
-        ...basicAuth(this.username, this.password),
-      }),
+    const response = await this.wrapError(
+      lastValueFrom(
+        this.http.get<EventStreamReply>(`${this.baseUrl}/reply/${id}`, {
+          validateStatus: status => status < 300 || status === 404,
+          ...basicAuth(this.username, this.password),
+        }),
+      ),
     );
     if (response.status === 404) {
       throw new NotFoundException();
@@ -679,7 +705,7 @@ class TokenListener implements EventListener {
     const methodABI = abiMethods.find(method => method.name === 'tokenURI');
     try {
       const response = await this.service.query(contractAddress, methodABI, [tokenIdx]);
-      return response.data.output;
+      return response.output;
     } catch (e) {
       this.logger.log(`Burned tokens do not have a URI: ${e}`);
       return '';
