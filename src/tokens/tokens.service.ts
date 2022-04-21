@@ -338,56 +338,47 @@ export class TokensService {
     return basicAuth(this.username, this.password);
   }
 
-  private async queryPool(poolLocator: IValidPoolLocator) {
-    const schema = poolLocator.schema as ContractSchemaStrings;
-
-    const nameResponse = await lastValueFrom(
+  query(to: string, method?: IAbiMethod, params?: any[]) {
+    if (params === undefined) {
+      params = [];
+    }
+    return lastValueFrom(
       this.http.post<EthConnectReturn>(
-        `${this.baseUrl}`,
-        {
-          headers: {
-            type: queryHeader,
-          },
-          to: poolLocator.address,
-          method: this.getMethodAbi(schema, 'NAME'),
-          params: [],
-        } as EthConnectMsgRequest,
+        this.baseUrl,
+        { headers: { type: queryHeader }, to, method, params },
         this.requestOptions(),
       ),
     );
+  }
 
-    const symbolResponse = await lastValueFrom(
-      this.http.post<EthConnectReturn>(
-        `${this.baseUrl}`,
-        {
-          headers: {
-            type: queryHeader,
-          },
-          to: poolLocator.address,
-          method: this.getMethodAbi(schema, 'SYMBOL'),
-          params: [],
-        } as EthConnectMsgRequest,
+  sendTransaction(from: string, to: string, id?: string, method?: IAbiMethod, params?: any[]) {
+    return lastValueFrom(
+      this.http.post<EthConnectAsyncResponse>(
+        this.baseUrl,
+        { headers: { id, type: sendTransactionHeader }, from, to, method, params },
         this.requestOptions(),
       ),
+    );
+  }
+
+  private async queryPool(poolLocator: IValidPoolLocator) {
+    const schema = poolLocator.schema as ContractSchemaStrings;
+
+    const nameResponse = await this.query(
+      poolLocator.address,
+      this.getMethodAbi(schema, 'NAME'),
+      [],
+    );
+    const symbolResponse = await this.query(
+      poolLocator.address,
+      this.getMethodAbi(schema, 'SYMBOL'),
+      [],
     );
 
     let decimals = 0;
     const decimalsMethod = this.getMethodAbi(schema, 'DECIMALS');
     if (decimalsMethod !== undefined) {
-      const decimalsResponse = await lastValueFrom(
-        this.http.post<EthConnectReturn>(
-          `${this.baseUrl}`,
-          {
-            headers: {
-              type: queryHeader,
-            },
-            to: poolLocator.address,
-            method: decimalsMethod,
-            params: [],
-          } as EthConnectMsgRequest,
-          this.requestOptions(),
-        ),
-      );
+      const decimalsResponse = await this.query(poolLocator.address, decimalsMethod, []);
       decimals = parseInt(decimalsResponse.data.output);
       if (isNaN(decimals)) {
         decimals = 0;
@@ -545,23 +536,13 @@ export class TokensService {
     const params = [dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
-    const response = await lastValueFrom(
-      this.http.post<EthConnectAsyncResponse>(
-        `${this.baseUrl}`,
-        {
-          headers: {
-            id: dto.requestId,
-            type: sendTransactionHeader,
-          },
-          from: dto.signer,
-          to: poolLocator.address,
-          method: methodAbi,
-          params,
-        } as EthConnectMsgRequest,
-        this.requestOptions(),
-      ),
+    const response = await this.sendTransaction(
+      dto.signer,
+      poolLocator.address,
+      dto.requestId,
+      methodAbi,
+      params,
     );
-
     return { id: response.data.id };
   }
 
@@ -576,21 +557,12 @@ export class TokensService {
     const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
-    const response = await lastValueFrom(
-      this.http.post<EthConnectAsyncResponse>(
-        `${this.baseUrl}`,
-        {
-          headers: {
-            id: dto.requestId,
-            type: sendTransactionHeader,
-          },
-          from: dto.signer,
-          to: poolLocator.address,
-          method: methodAbi,
-          params,
-        } as EthConnectMsgRequest,
-        this.requestOptions(),
-      ),
+    const response = await this.sendTransaction(
+      dto.signer,
+      poolLocator.address,
+      dto.requestId,
+      methodAbi,
+      params,
     );
     return { id: response.data.id };
   }
@@ -606,21 +578,12 @@ export class TokensService {
     const params = [dto.from, this.getAmountOrTokenID(dto, poolLocator.type)];
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
-    const response = await lastValueFrom(
-      this.http.post<EthConnectAsyncResponse>(
-        `${this.baseUrl}`,
-        {
-          headers: {
-            id: dto.requestId,
-            type: sendTransactionHeader,
-          },
-          from: dto.signer,
-          to: poolLocator.address,
-          method: methodAbi,
-          params,
-        } as EthConnectMsgRequest,
-        this.requestOptions(),
-      ),
+    const response = await this.sendTransaction(
+      dto.signer,
+      poolLocator.address,
+      dto.requestId,
+      methodAbi,
+      params,
     );
     return { id: response.data.id };
   }
@@ -657,21 +620,12 @@ export class TokensService {
     }
 
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
-    const response = await lastValueFrom(
-      this.http.post<EthConnectAsyncResponse>(
-        `${this.baseUrl}`,
-        {
-          headers: {
-            id: dto.requestId,
-            type: sendTransactionHeader,
-          },
-          from: dto.signer,
-          to: poolLocator.address,
-          method: methodAbi,
-          params,
-        } as EthConnectMsgRequest,
-        this.requestOptions(),
-      ),
+    const response = await this.sendTransaction(
+      dto.signer,
+      poolLocator.address,
+      dto.requestId,
+      methodAbi,
+      params,
     );
     return { id: response.data.id };
   }
@@ -724,17 +678,7 @@ class TokenListener implements EventListener {
 
     const methodABI = abiMethods.find(method => method.name === 'tokenURI');
     try {
-      const response = await lastValueFrom(
-        this.service.http.post<EthConnectReturn>(`${this.service.baseUrl}?`, {
-          headers: {
-            type: 'Query',
-          },
-          from: signer,
-          to: contractAddress,
-          method: methodABI,
-          params: [tokenIdx],
-        } as EthConnectMsgRequest),
-      );
+      const response = await this.service.query(contractAddress, methodABI, [tokenIdx]);
       return response.data.output;
     } catch (e) {
       this.logger.log(`Burned tokens do not have a URI: ${e}`);
