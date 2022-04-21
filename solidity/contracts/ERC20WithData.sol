@@ -7,8 +7,20 @@ import '@openzeppelin/contracts/utils/Context.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
 /**
-    @dev Mintable+burnable form of ERC20 with data event support.
-*/
+ * Example ERC20 token with mint, burn, and attached data support.
+ *
+ * This contract demonstrates a very simple ERC20 fungible token. Notes on functionality:
+ *   - the contract owner (ie deployer) is the only party allowed to mint
+ *   - any party can approve another party to manage (ie transfer) a certain amount of their
+ *     tokens (approving for MAX_INT gives an unlimited approval)
+ *   - you may only burn your own tokens
+ *
+ * The inclusion of a "data" argument on each external method allows FireFly to write
+ * extra data to the chain alongside each token transaction, in order to correlate it with
+ * other on- and off-chain events.
+ *
+ * This is a sample only and NOT a reference implementation.
+ */
 contract ERC20WithData is Context, Ownable, ERC20 {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 

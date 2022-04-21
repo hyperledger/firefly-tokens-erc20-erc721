@@ -1,11 +1,12 @@
-# ERC20 and ERC 721 Solidity
+# ERC20 and ERC721 Solidity Samples
 
 ## Overview
 
-Ethereum smart contract implementations of ERC20 and ERC721 connectors.
+Sample Ethereum smart contracts implementing ERC20 and ERC721 tokens.
 
 Included as a reference point for creating smart contracts that conform
-to the ABI expected by this token connector.
+to the ABIs expected by this token connector. See the Solidity source for
+notes on functionality and limitations.
 
 ### Compile
 
