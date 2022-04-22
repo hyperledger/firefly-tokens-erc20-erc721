@@ -56,13 +56,7 @@ export const abiTypeMap = {
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
-const OPTIONS = {
-  params: {
-    'fly-from': IDENTITY,
-    'fly-id': undefined,
-    'fly-sync': 'false',
-  },
-};
+const OPTIONS = {};
 const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const REQUEST = 'request123';
@@ -92,14 +86,7 @@ const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 const APPROVE_ALL_WITH_DATA = 'setApprovalForAllWithData';
 
-const METHODS_NO_DATA = [
-  MINT_NO_DATA,
-  BURN_NO_DATA,
-  APPROVE_NO_DATA,
-  APPROVE_ALL_NO_DATA,
-  'name',
-  'symbol',
-];
+const METHODS_NO_DATA = [MINT_NO_DATA, BURN_NO_DATA, APPROVE_NO_DATA, APPROVE_ALL_NO_DATA];
 
 const METHODS_WITH_DATA = [
   MINT_WITH_DATA,
@@ -107,8 +94,6 @@ const METHODS_WITH_DATA = [
   TRANSFER_WITH_DATA,
   APPROVE_WITH_DATA,
   APPROVE_ALL_WITH_DATA,
-  'name',
-  'symbol',
 ];
 
 const TRANSFER_EVENT = 'Transfer';
@@ -148,7 +133,7 @@ describe('TokensService', () => {
     getOrCreateSubscription: jest.fn(),
   };
 
-  const mockNameAndSymbolQuery = () => {
+  const mockPoolQuery = (withDecimals: boolean) => {
     http.post
       .mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
@@ -160,6 +145,13 @@ describe('TokensService', () => {
           output: SYMBOL,
         }),
       );
+    if (withDecimals) {
+      http.post.mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: '18',
+        }),
+      );
+    }
   };
 
   beforeEach(async () => {
@@ -213,7 +205,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -222,6 +214,7 @@ describe('TokensService', () => {
           standard: 'ERC20',
           type: 'fungible',
           symbol: SYMBOL,
+          decimals: 18,
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
@@ -246,6 +239,7 @@ describe('TokensService', () => {
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
+        decimals: 18,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -253,7 +247,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(true);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -382,7 +376,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -391,6 +385,7 @@ describe('TokensService', () => {
           standard: 'ERC20',
           type: 'fungible',
           symbol: SYMBOL,
+          decimals: 18,
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
@@ -411,7 +406,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -420,6 +415,7 @@ describe('TokensService', () => {
           standard: 'ERC20',
           type: 'fungible',
           symbol: SYMBOL,
+          decimals: 18,
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
@@ -444,6 +440,7 @@ describe('TokensService', () => {
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
+        decimals: 18,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -451,7 +448,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(true);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -576,7 +573,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -585,6 +582,7 @@ describe('TokensService', () => {
           standard: 'ERC721',
           type: 'nonfungible',
           symbol: SYMBOL,
+          decimals: 0,
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
@@ -609,6 +607,7 @@ describe('TokensService', () => {
         standard: 'ERC721',
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
+        decimals: 0,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -616,7 +615,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -758,7 +757,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -767,6 +766,7 @@ describe('TokensService', () => {
           standard: 'ERC721',
           type: 'nonfungible',
           symbol: SYMBOL,
+          decimals: 0,
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
@@ -787,7 +787,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -796,6 +796,7 @@ describe('TokensService', () => {
           standard: 'ERC721',
           type: 'nonfungible',
           symbol: SYMBOL,
+          decimals: 0,
           info: {
             name: NAME,
             address: CONTRACT_ADDRESS,
@@ -820,6 +821,7 @@ describe('TokensService', () => {
         standard: 'ERC721',
         type: TokenType.NONFUNGIBLE,
         symbol: SYMBOL,
+        decimals: 0,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -827,7 +829,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));

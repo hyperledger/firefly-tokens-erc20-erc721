@@ -146,7 +146,7 @@ describe('ERC20WithData - Unit Tests', function () {
       deployedERC20WithData
         .connect(deployerSignerA)
         .transferWithData(signerB.address, signerC.address, 11, '0x00'),
-    ).to.be.revertedWith('ERC20: transfer amount exceeds allowance');
+    ).to.be.revertedWith('ERC20: insufficient allowance');
 
     expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(20);

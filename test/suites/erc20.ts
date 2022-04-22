@@ -34,13 +34,7 @@ import { FakeObservable, TestContext } from '../app.e2e-context';
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
-const OPTIONS = {
-  params: {
-    'fly-from': IDENTITY,
-    'fly-id': undefined,
-    'fly-sync': 'false',
-  },
-};
+const OPTIONS = {};
 const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';
@@ -66,7 +60,7 @@ const abiMethodMap = {
 };
 
 export default (context: TestContext) => {
-  const mockNameAndSymbolQuery = () => {
+  const mockPoolQuery = () => {
     context.http.post
       .mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
@@ -76,6 +70,11 @@ export default (context: TestContext) => {
       .mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
           output: SYMBOL,
+        }),
+      )
+      .mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: '18',
         }),
       );
   };
@@ -99,6 +98,7 @@ export default (context: TestContext) => {
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
+        decimals: 18,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -106,7 +106,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -151,6 +151,7 @@ export default (context: TestContext) => {
         standard: 'ERC20',
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
+        decimals: 18,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -158,7 +159,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -189,7 +190,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -353,7 +354,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -404,7 +405,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery();
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
