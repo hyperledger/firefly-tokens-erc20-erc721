@@ -14,6 +14,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
  *   - any party can approve another party to manage (ie transfer) a certain amount of their
  *     tokens (approving for MAX_INT gives an unlimited approval)
  *   - you may only burn your own tokens
+ *   - decimals hard-coded to 18 (so 1 token is expressed as 1000000000000000000)
  *
  * The inclusion of a "data" argument on each external method allows FireFly to write
  * extra data to the chain alongside each token transaction, in order to correlate it with
