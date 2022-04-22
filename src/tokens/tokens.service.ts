@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { ClientRequest } from 'http';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
@@ -346,8 +347,13 @@ export class TokensService {
   private async wrapError<T>(response: Promise<AxiosResponse<T>>) {
     return response.catch(err => {
       if (axios.isAxiosError(err)) {
-        const errorMessage = err.response?.data?.error;
-        throw new InternalServerErrorException(errorMessage ?? err.message);
+        const request: ClientRequest | undefined = err.request;
+        const response: AxiosResponse | undefined = err.response;
+        const errorMessage = response?.data?.error ?? err.message;
+        this.logger.warn(
+          `${request?.path} <-- HTTP ${response?.status} ${response?.statusText}: ${errorMessage}`,
+        );
+        throw new InternalServerErrorException(errorMessage);
       }
       throw err;
     });
