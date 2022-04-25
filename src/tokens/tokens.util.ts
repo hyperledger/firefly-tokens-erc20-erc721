@@ -40,11 +40,11 @@ export function decodeHex(data: string) {
   return decoded === '\x00' ? '' : decoded;
 }
 
-export function packSubscriptionName(prefix: string, contractAddress: string, event?: string) {
+export function packSubscriptionName(prefix: string, poolLocator: string, event?: string) {
   if (event === undefined) {
-    return [prefix, contractAddress].join(':');
+    return [prefix, poolLocator].join(':');
   }
-  return [prefix, contractAddress, event].join(':');
+  return [prefix, poolLocator, event].join(':');
 }
 
 export function unpackSubscriptionName(prefix: string, data: string) {
@@ -85,4 +85,15 @@ export function unpackPoolLocator(data: string): IPoolLocator {
       encoded.get(EncodedPoolLocatorEnum.Schema) ?? encoded.get(EncodedPoolLocatorEnum.Standard),
     type: encoded.get(EncodedPoolLocatorEnum.Type) as TokenType,
   };
+}
+
+export function getTokenSchema(type: TokenType, withData = true): string {
+  if (type === TokenType.FUNGIBLE) {
+    return withData ? 'ERC20WithData' : 'ERC20NoData';
+  }
+  return withData ? 'ERC721WithData' : 'ERC721NoData';
+}
+
+export function validatePoolLocator(poolLocator: IPoolLocator): poolLocator is IValidPoolLocator {
+  return poolLocator.address !== null && poolLocator.schema !== null && poolLocator.type !== null;
 }

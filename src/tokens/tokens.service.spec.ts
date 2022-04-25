@@ -186,7 +186,7 @@ describe('TokensService', () => {
       .compile();
 
     service = module.get<TokensService>(TokensService);
-    service.configure(BASE_URL, TOPIC, PREFIX, '', '');
+    service.configure(BASE_URL, TOPIC, PREFIX, '', '', '');
   });
 
   it('should be defined', () => {

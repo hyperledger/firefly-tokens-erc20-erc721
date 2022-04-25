@@ -1,12 +1,17 @@
-# FireFly Tokens Microservice for ERC20
+# FireFly Tokens Microservice for ERC20 & ERC721
 
 This project provides a thin shim between [FireFly](https://github.com/hyperledger/firefly)
-and an ERC20 contract exposed via [ethconnect](https://github.com/hyperledger/firefly-ethconnect).
+and ERC20/ERC721 contracts exposed via [ethconnect](https://github.com/hyperledger/firefly-ethconnect).
 
 Based on [Node.js](http://nodejs.org) and [Nest](http://nestjs.com).
 
 This service is entirely stateless - it maps incoming REST operations directly to ethconnect
 calls, and maps ethconnect events to outgoing websocket events.
+
+This repository also includes sample [Solidity contracts](solidity/) that conform to the ABIs
+expected by this connector. These contracts may be used to get up and running with simple token
+support, and may provide a starting point for developing production contracts that can be used
+with this connector.
 
 ## POST APIs
 

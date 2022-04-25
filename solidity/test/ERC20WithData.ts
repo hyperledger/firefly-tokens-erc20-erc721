@@ -31,18 +31,20 @@ describe('ERC20WithData - Unit Tests', function () {
     expect(await deployedERC20WithData.symbol()).to.equal(contractSymbol);
   });
 
-  it('Mint - Deployer should mint tokens to itself successfully', async function () {
-    expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(0);
-    // Signer A mint to Signer A (Allowed)
-    await expect(
-      deployedERC20WithData
-        .connect(deployerSignerA)
-        .mintWithData(deployerSignerA.address, 20, '0x00'),
-    )
-      .to.emit(deployedERC20WithData, 'Transfer')
-      .withArgs(ZERO_ADDRESS, deployerSignerA.address, 20);
+  it('Create - Should create a new ERC20 instance with default state', async function () {
+    expect(await deployedERC20WithData.name()).to.equal(contractName);
+    expect(await deployedERC20WithData.symbol()).to.equal(contractSymbol);
+  });
 
-    expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(20);
+  it('Mint - Non-deployer cannot mint', async function () {
+    expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(0);
+
+    // Signer B mint to Signer B (Not allowed)
+    await expect(
+      deployedERC20WithData.connect(signerB).mintWithData(signerB.address, 20, '0x00'),
+    ).to.be.revertedWith('Ownable: caller is not the owner');
+
+    expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(0);
   });
 
   it('Mint - Non-deployer of contract should not be able to mint tokens', async function () {
@@ -64,9 +66,10 @@ describe('ERC20WithData - Unit Tests', function () {
     expect(await deployedERC20WithData.balanceOf(ONE_ADDRESS)).to.equal(0);
   });
 
-  it('Transfer - Signer should transfer tokens to another signer', async function () {
+  it('Transfer+Burn - Signer should transfer tokens to another signer, who may then burn', async function () {
     expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(0);
+
     // Signer A mint to Signer A
     await expect(
       deployedERC20WithData
@@ -76,6 +79,7 @@ describe('ERC20WithData - Unit Tests', function () {
       .to.emit(deployedERC20WithData, 'Transfer')
       .withArgs(ZERO_ADDRESS, deployerSignerA.address, 20);
     expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(20);
+
     // Signer A transfer to Signer B
     await expect(
       deployedERC20WithData
@@ -87,6 +91,14 @@ describe('ERC20WithData - Unit Tests', function () {
 
     expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(10);
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(10);
+
+    // Signer B burn
+    await expect(deployedERC20WithData.connect(signerB).burnWithData(signerB.address, 1, '0x00'))
+      .to.emit(deployedERC20WithData, 'Transfer')
+      .withArgs(signerB.address, ZERO_ADDRESS, 1);
+
+    expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(10);
+    expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(9);
   });
 
   it("Transfer - Approved signer should transfer tokens from approving signer's wallet", async function () {

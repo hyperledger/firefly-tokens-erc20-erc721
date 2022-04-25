@@ -75,12 +75,15 @@ async function bootstrap() {
   const autoInit = config.get<string>('AUTO_INIT', 'true');
   const username = config.get<string>('ETHCONNECT_USERNAME', '');
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
+  const factoryAddress = config.get<string>('FACTORY_CONTRACT_ADDRESS', '');
 
   const wsUrl = ethConnectUrl.replace('http', 'ws') + '/ws';
 
   app.get(EventStreamService).configure(ethConnectUrl, username, password);
   app.get(EventStreamProxyGateway).configure(wsUrl, topic);
-  app.get(TokensService).configure(ethConnectUrl, topic, shortPrefix, username, password);
+  app
+    .get(TokensService)
+    .configure(ethConnectUrl, topic, shortPrefix, username, password, factoryAddress);
 
   if (autoInit !== 'false') {
     await app.get(TokensService).init();

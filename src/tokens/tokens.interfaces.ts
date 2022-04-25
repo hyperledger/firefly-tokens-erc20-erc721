@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { IsDefined, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { Event } from '../event-stream/event-stream.interfaces';
 
 // Ethconnect interfaces
@@ -26,6 +26,16 @@ export interface EthConnectAsyncResponse {
 
 export interface EthConnectReturn {
   output: string;
+}
+
+export interface TokenPoolCreationEvent extends Event {
+  data: {
+    contract_address: string;
+    name: string;
+    symbol: string;
+    is_fungible: boolean;
+    data: string;
+  };
 }
 
 export interface ApprovalEvent extends Event {
@@ -103,8 +113,8 @@ const requestIdDescription =
 
 export class TokenPoolConfig {
   @ApiProperty()
-  @IsDefined()
-  address: string;
+  @IsOptional()
+  address?: string;
 
   @ApiProperty()
   @IsOptional()
@@ -141,8 +151,8 @@ export class TokenPool {
   data?: string;
 
   @ApiProperty()
-  @IsDefined()
-  config: TokenPoolConfig;
+  @IsOptional()
+  config?: TokenPoolConfig;
 }
 
 export class TokenApprovalConfig {
