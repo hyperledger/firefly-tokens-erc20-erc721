@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { IsDefined, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { Event } from '../event-stream/event-stream.interfaces';
 
 // Ethconnect interfaces
