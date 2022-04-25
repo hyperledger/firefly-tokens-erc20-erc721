@@ -16,6 +16,9 @@ import './ERC721WithData.sol';
  *
  * This is a sample only and NOT a reference implementation.
  *
+ * NOTE: This contract includes both ERC-20 and ERC-721, making the compiled contract very large. This could have
+ * significant gas / cost implications which is something to be aware of if you deploy this contract.
+ *
  * Just a few of the questions to consider when developing a contract for production:
  *   - is a factory pattern the best solution for your use case, or is a pre-deployed token contract more suitable?
  *   - is a proxy layer needed for contract upgradeability?
