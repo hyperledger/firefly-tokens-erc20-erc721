@@ -13,7 +13,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
  *   - the contract owner (ie deployer) is the only party allowed to mint
  *   - any party can approve another party to manage (ie transfer) a certain amount of their
  *     tokens (approving for MAX_INT gives an unlimited approval)
- *   - you may only burn your own tokens
+ *   - any party can burn their own tokens
  *   - decimals hard-coded to 18 (so 1 token is expressed as 1000000000000000000)
  *
  * The inclusion of a "data" argument on each external method allows FireFly to write

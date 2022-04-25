@@ -12,7 +12,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
  * This contract demonstrates a very simple ERC721 non-fungible token. Notes on functionality:
  *   - the contract owner (ie deployer) is the only party allowed to mint
  *   - any party can approve another party to manage (ie transfer) some or all of their tokens
- *   - you may only burn your own tokens
+ *   - any party can burn their own tokens
  *   - token URIs are hard-coded to "firefly://token/{id}"
  *
  * The inclusion of a "data" argument on each external method allows FireFly to write
