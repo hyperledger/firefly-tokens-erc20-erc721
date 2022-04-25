@@ -29,7 +29,7 @@ import './ERC721WithData.sol';
  * when crafting your token logic, rather than relying on the FireFly community alone. Happy minting!
  */
 contract TokenFactory is Context {
-    event TokenCreate(address indexed contract_address, string name, string symbol, bool is_fungible, bytes data);
+    event TokenPoolCreation(address indexed contract_address, string name, string symbol, bool is_fungible, bytes data);
 
     function create(
         string memory name,
@@ -40,11 +40,11 @@ contract TokenFactory is Context {
         if (is_fungible) {
             ERC20WithData erc20 = new ERC20WithData(name, symbol);
             erc20.transferOwnership(_msgSender());
-            emit TokenCreate(address(erc20), name, symbol, true, data);
+            emit TokenPoolCreation(address(erc20), name, symbol, true, data);
         } else {
             ERC721WithData erc721 = new ERC721WithData(name, symbol);
             erc721.transferOwnership(_msgSender());
-            emit TokenCreate(address(erc721), name, symbol, false, data);
+            emit TokenPoolCreation(address(erc721), name, symbol, false, data);
         }
     }
 }

@@ -28,7 +28,7 @@ export interface EthConnectReturn {
   output: string;
 }
 
-export interface TokenCreateEvent extends Event {
+export interface TokenPoolCreationEvent extends Event {
   data: {
     contract_address: string;
     name: string;

@@ -25,9 +25,9 @@ describe('TokenFactory - Unit Tests', function () {
 
   it('Create - Should deploy a new ERC20 contract', async function () {
     const tx = await deployedTokenFactory.create(contractName, contractSymbol, true, '0x00');
-    expect(tx).to.emit(deployedTokenFactory, 'TokenCreate');
+    expect(tx).to.emit(deployedTokenFactory, 'TokenPoolCreation');
     const receipt = await tx.wait();
-    const event = receipt.events?.find(e => e.event === 'TokenCreate');
+    const event = receipt.events?.find(e => e.event === 'TokenPoolCreation');
     expect(event).to.exist;
     if (event) {
       expect(event.args).to.have.length(5);
@@ -38,9 +38,9 @@ describe('TokenFactory - Unit Tests', function () {
 
   it('Create - Should deploy a new ERC721 contract', async function () {
     const tx = await deployedTokenFactory.create(contractName, contractSymbol, false, '0x00');
-    expect(tx).to.emit(deployedTokenFactory, 'TokenCreate');
+    expect(tx).to.emit(deployedTokenFactory, 'TokenPoolCreation');
     const receipt = await tx.wait();
-    const event = receipt.events?.find(e => e.event === 'TokenCreate');
+    const event = receipt.events?.find(e => e.event === 'TokenPoolCreation');
     expect(event).to.exist;
     if (event) {
       expect(event.args).to.have.length(5);

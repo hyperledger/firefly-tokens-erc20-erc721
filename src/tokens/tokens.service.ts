@@ -44,7 +44,7 @@ import {
   TokenApprovalEvent,
   TokenBurn,
   TokenBurnEvent,
-  TokenCreateEvent,
+  TokenPoolCreationEvent,
   TokenMint,
   TokenMintEvent,
   TokenPool,
@@ -155,8 +155,8 @@ abiEventMap.set('ERC721WithData', {
 });
 
 const tokenCreateMethod = 'create';
-const tokenCreateEvent = 'TokenCreate';
-const tokenCreateEventSignature = 'TokenCreate(address,string,string,bool,bytes)';
+const tokenCreateEvent = 'TokenPoolCreation';
+const tokenCreateEventSignature = 'TokenPoolCreation(address,string,string,bool,bytes)';
 
 const UINT256_MAX = BigInt(2) ** BigInt(256) - BigInt(1);
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -758,7 +758,7 @@ class TokenListener implements EventListener {
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     switch (event.signature) {
       case tokenCreateEventSignature:
-        process(this.transformTokenCreateEvent(subName, event));
+        process(this.transformTokenPoolCreationEvent(subName, event));
         break;
       case transferEventSignature:
         process(await this.transformTransferEvent(subName, event));
@@ -824,9 +824,9 @@ class TokenListener implements EventListener {
     return signature.substring(0, signature.indexOf('('));
   }
 
-  private transformTokenCreateEvent(
+  private transformTokenPoolCreationEvent(
     subName: string,
-    event: TokenCreateEvent,
+    event: TokenPoolCreationEvent,
   ): WebSocketMessage | undefined {
     const { data: output } = event;
     const decodedData = decodeHex(output.data ?? '');
