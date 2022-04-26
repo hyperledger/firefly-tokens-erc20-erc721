@@ -17,8 +17,10 @@ RUN npx hardhat compile
 
 FROM node:16-alpine3.15
 RUN apk add curl jq
-USER node
+RUN mkdir -p /home/node/contracts/source
+RUN chown node:node /home/node/contracts/source
 WORKDIR /home/node/contracts/source
+USER node
 COPY --from=solidity-build /home/node/contracts /home/node/package*.json ./
 RUN npm install --production
 WORKDIR /home/node/contracts
