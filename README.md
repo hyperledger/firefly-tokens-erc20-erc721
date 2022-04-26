@@ -8,7 +8,7 @@ Based on [Node.js](http://nodejs.org) and [Nest](http://nestjs.com).
 This service is entirely stateless - it maps incoming REST operations directly to ethconnect
 calls, and maps ethconnect events to outgoing websocket events.
 
-This repository also includes sample [Solidity contracts](solidity/) that conform to the ABIs
+This repository also includes sample [Solidity contracts](samples/solidity/) that conform to the ABIs
 expected by this connector. These contracts may be used to get up and running with simple token
 support, and may provide a starting point for developing production contracts that can be used
 with this connector.

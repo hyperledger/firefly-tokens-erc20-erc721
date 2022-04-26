@@ -14,7 +14,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '12.x'
+          node-version: '16.x'
       - run: npm ci
       - run: npm run test
       - run: npm run test:e2e
@@ -25,10 +25,10 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '12.x'
+          node-version: '16.x'
       - run: npm ci
-        working-directory: ./solidity
+        working-directory: ./samples/solidity
       - run: npm run compile
-        working-directory: ./solidity
+        working-directory: ./samples/solidity
       - run: npm run test
-        working-directory: ./solidity
+        working-directory: ./samples/solidity
