@@ -1,9 +1,7 @@
 node_modules/
 **/coverage
 **/.nyc_output
-solidity/
-!solidity/build/
-!solidity/build/contracts/
+samples/solidity/node_modules
 .git
 Dockerfile
 .dockerignore
