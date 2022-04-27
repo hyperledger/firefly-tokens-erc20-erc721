@@ -180,6 +180,7 @@ export class TokensService {
   private readonly logger = new Logger(TokensService.name);
 
   baseUrl: string;
+  fftmUrl: string;
   topic: string;
   shortPrefix: string;
   stream: EventStream;
@@ -195,6 +196,7 @@ export class TokensService {
 
   configure(
     baseUrl: string,
+    fftmUrl: string,
     topic: string,
     shortPrefix: string,
     username: string,
@@ -202,6 +204,7 @@ export class TokensService {
     factoryAddress: string,
   ) {
     this.baseUrl = baseUrl;
+    this.fftmUrl = fftmUrl;
     this.topic = topic;
     this.shortPrefix = shortPrefix;
     this.username = username;
@@ -400,10 +403,11 @@ export class TokensService {
     method?: IAbiMethod,
     params?: any[],
   ) {
+    const url = this.fftmUrl !== undefined && this.fftmUrl !== '' ? this.fftmUrl : this.baseUrl;
     const response = await this.wrapError(
       lastValueFrom(
         this.http.post<EthConnectAsyncResponse>(
-          this.baseUrl,
+          url,
           { headers: { id, type: sendTransactionHeader }, from, to, method, params },
           this.requestOptions(),
         ),

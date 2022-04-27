@@ -70,6 +70,7 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, api);
 
   const ethConnectUrl = config.get<string>('ETHCONNECT_URL', '');
+  const fftmUrl = config.get<string>('FFTM_URL', ''); // Optional. Currently used only for SendTransaction API calls when set
   const topic = config.get<string>('ETHCONNECT_TOPIC', 'tokenERC20ERC721');
   const shortPrefix = config.get<string>('ETHCONNECT_PREFIX', 'fly');
   const autoInit = config.get<string>('AUTO_INIT', 'true');
@@ -83,7 +84,7 @@ async function bootstrap() {
   app.get(EventStreamProxyGateway).configure(wsUrl, topic);
   app
     .get(TokensService)
-    .configure(ethConnectUrl, topic, shortPrefix, username, password, factoryAddress);
+    .configure(ethConnectUrl, fftmUrl, topic, shortPrefix, username, password, factoryAddress);
 
   if (autoInit !== 'false') {
     await app.get(TokensService).init();

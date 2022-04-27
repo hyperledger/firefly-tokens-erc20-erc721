@@ -4,5 +4,8 @@
     "source.fixAll.eslint": true
   },
   "eslint.validate": ["javascript"],
-  "solidity.defaultCompiler": "remote"
+  "solidity.defaultCompiler": "remote",
+  "cSpell.words": [
+    "fftm"
+  ]
 }
