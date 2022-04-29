@@ -17,11 +17,12 @@ with this connector.
 
 The following POST APIs are exposed under `/api/v1`:
 
-* `POST /createpool` - Create a new instance of an ERC20 contract (inputs: name, symbol, data)
+* `POST /createpool` - Create a new instance of an ERC20 contract (inputs: name, symbol, data, config)
 * `POST /activatepool` - Activate a token contract to begin receiving transfers (inputs: poolLocator)
 * `POST /mint` - Mint new tokens (inputs: poolLocator, to, amount, data)
 * `POST /burn` - Burn tokens (inputs: poolLocator, tokenIndex, from, amount, data)
 * `POST /transfer` - Transfer tokens (inputs: poolLocator, tokenIndex, from, to, amount, data)
+* `POST /approval` - Approve/unapprove another party to manage tokens (inputs: poolLocator, operator, approved, data, config)
 
 All requests may be optionally accompanied by a `requestId`, which must be unique for every
 request and will be returned in the "receipt" websocket event.
@@ -30,6 +31,29 @@ All APIs are async and return 202 immediately with a response of the form `{id: 
 If no `requestId` was provided, this will be a randomly assigned ID. Clients should
 subscribe to the websocket (see below) in order to receive feedback when the async
 operation completes.
+
+## Extra config
+
+Some APIs accept a `config` object which includes options specific to the underlying contract, outside
+of the general `fftokens` API specification.
+
+**POST /createpool**
+
+```
+config: {
+  address?: string, // Address of a pre-deployed contract to index
+  blockNumber?: string, // Starting block to begin indexing (only valid with "address")
+}
+```
+
+**POST /approval**
+
+```
+config: {
+  allowance?: string, // Number of tokens operator is allowed to manage (only valid with ERC20)
+  tokenIndex?: string, // A specific NFT operator is allowed to manage (only valid with ERC721)
+}
+```
 
 ## Websocket events
 
