@@ -37,7 +37,8 @@ import { EventListener, EventProcessor } from '../eventstream-proxy/eventstream-
 import { basicAuth } from '../utils';
 import { WebSocketMessage } from '../websocket-events/websocket-events.base';
 import {
-  ApprovalEvent,
+  ERC20ApprovalEvent,
+  ERC721ApprovalEvent,
   ApprovalForAllEvent,
   AsyncResponse,
   ContractSchema,
@@ -918,7 +919,7 @@ class TokenListener implements EventListener {
 
   private transformApprovalEvent(
     subName: string,
-    event: ApprovalEvent,
+    event: ERC20ApprovalEvent | ERC721ApprovalEvent,
   ): WebSocketMessage | undefined {
     const { data: output } = event;
     const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
@@ -930,14 +931,19 @@ class TokenListener implements EventListener {
     }
     const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
 
+    let operator: string;
     let subject: string | undefined;
     let approved = true;
     if (poolLocator.type === TokenType.FUNGIBLE) {
-      subject = `${output.owner}:${output.spender}`;
-      approved = BigInt(output.value ?? 0) > BigInt(0);
+      const erc20Event = event as ERC20ApprovalEvent;
+      operator = erc20Event.data.spender;
+      subject = `${output.owner}:${operator}`;
+      approved = BigInt(erc20Event.data.value ?? 0) > BigInt(0);
     } else {
-      subject = output.tokenId;
-      approved = output.spender !== ZERO_ADDRESS;
+      const erc721Event = event as ERC721ApprovalEvent;
+      operator = erc721Event.data.approved;
+      subject = erc721Event.data.tokenId;
+      approved = operator !== ZERO_ADDRESS;
     }
 
     const eventId = this.formatBlockchainEventId(event);
@@ -946,12 +952,12 @@ class TokenListener implements EventListener {
       data: <TokenApprovalEvent>{
         id: eventId,
         subject,
-        type: poolLocator.type,
         poolLocator: unpackedSub.poolLocator,
-        operator: output.spender,
+        operator,
         approved,
         signer: output.owner,
         data: decodedData,
+        info: output,
         blockchain: {
           id: eventId,
           name: this.stripParamsFromSignature(event.signature),
@@ -984,7 +990,6 @@ class TokenListener implements EventListener {
       // should not happen
       return undefined;
     }
-    const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
 
     const eventId = this.formatBlockchainEventId(event);
     return {
@@ -992,12 +997,12 @@ class TokenListener implements EventListener {
       data: <TokenApprovalEvent>{
         id: eventId,
         subject: `${output.owner}:${output.operator}`,
-        type: poolLocator.type,
         poolLocator: unpackedSub.poolLocator,
         operator: output.operator,
         approved: output.approved,
         signer: output.owner,
         data: decodedData,
+        info: output,
         blockchain: {
           id: eventId,
           name: this.stripParamsFromSignature(event.signature),

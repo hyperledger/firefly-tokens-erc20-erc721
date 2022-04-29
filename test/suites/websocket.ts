@@ -20,7 +20,11 @@ import {
 } from '../../src/event-stream/event-stream.interfaces';
 import { ReceiptEvent } from '../../src/eventstream-proxy/eventstream-proxy.interfaces';
 import {
+  ApprovalForAllEvent,
+  ERC20ApprovalEvent,
+  ERC721ApprovalEvent,
   EthConnectReturn,
+  TokenApprovalEvent,
   TokenBurnEvent,
   TokenMintEvent,
   TokenTransferEvent,
@@ -41,6 +45,8 @@ const ERC721_BASE_URI = 'firefly://token/';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const transferEventSignature = 'Transfer(address,address,uint256)';
+const approvalEventSignature = 'Approval(address,address,uint256)';
+const approvalForAllEventSignature = 'ApprovalForAll(address,address,bool)';
 
 const mockERC20MintTransferEvent: TransferEvent = {
   subId: 'sb-123',
@@ -111,6 +117,78 @@ const mockERC20BurnEvent: TransferEvent = {
     amount: '5',
     data: '0x74657374',
     from: 'B',
+  },
+  inputSigner: IDENTITY,
+};
+
+const mockERC20ApprovalEvent: ERC20ApprovalEvent = {
+  subId: 'sb-123',
+  signature: approvalEventSignature,
+  address: 'bob',
+  operator: 'A',
+  blockNumber: '1',
+  transactionIndex: '0x0',
+  transactionHash: '0x123',
+  logIndex: '1',
+  timestamp: '2020-01-01 00:00:00Z',
+  data: {
+    owner: IDENTITY,
+    spender: 'B',
+    value: '5',
+  },
+  inputMethod: 'approveWithData',
+  inputArgs: {
+    amount: '5',
+    data: '0x74657374',
+    spender: 'B',
+  },
+  inputSigner: IDENTITY,
+};
+
+const mockERC721ApprovalEvent: ERC721ApprovalEvent = {
+  subId: 'sb-123',
+  signature: approvalEventSignature,
+  address: 'bob',
+  operator: 'A',
+  blockNumber: '1',
+  transactionIndex: '0x0',
+  transactionHash: '0x123',
+  logIndex: '1',
+  timestamp: '2020-01-01 00:00:00Z',
+  data: {
+    owner: IDENTITY,
+    approved: 'B',
+    tokenId: '5',
+  },
+  inputMethod: 'approveWithData',
+  inputArgs: {
+    tokenId: '5',
+    data: '0x74657374',
+    to: 'B',
+  },
+  inputSigner: IDENTITY,
+};
+
+const mockApprovalForAllEvent: ApprovalForAllEvent = {
+  subId: 'sb-123',
+  signature: approvalForAllEventSignature,
+  address: 'bob',
+  operator: 'A',
+  blockNumber: '1',
+  transactionIndex: '0x0',
+  transactionHash: '0x123',
+  logIndex: '1',
+  timestamp: '2020-01-01 00:00:00Z',
+  data: {
+    owner: IDENTITY,
+    operator: 'B',
+    approved: true,
+  },
+  inputMethod: 'approveWithData',
+  inputArgs: {
+    approved: true,
+    data: '0x74657374',
+    operator: 'B',
   },
   inputSigner: IDENTITY,
 };
@@ -571,6 +649,177 @@ export default (context: TestContext) => {
         expect(message.id).toBeDefined();
         delete message.id;
         expect(message).toEqual(mockBurnWebSocketMessage);
+        return true;
+      });
+  });
+
+  it('ERC20 token approval event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+      name: TOPIC + ':' + ERC20_POOL_ID,
+    });
+
+    const mockApprovalWebSocketMessage: WebSocketMessage = {
+      event: 'token-approval',
+      data: <TokenApprovalEvent>{
+        id: '000000000001/000000/000001',
+        poolLocator: ERC20_POOL_ID,
+        signer: IDENTITY,
+        operator: 'B',
+        subject: IDENTITY + ':B',
+        approved: true,
+        data: 'test',
+        info: {
+          owner: IDENTITY,
+          spender: 'B',
+          value: '5',
+        },
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Approval',
+          location: 'address=bob',
+          signature: approvalEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            owner: IDENTITY,
+            spender: 'B',
+            value: '5',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: approvalEventSignature,
+          },
+        },
+      },
+    };
+
+    await context.server
+      .ws('/api/ws')
+      .exec(() => {
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC20ApprovalEvent]);
+      })
+      .expectJson(message => {
+        expect(message.id).toBeDefined();
+        delete message.id;
+        expect(message).toEqual(mockApprovalWebSocketMessage);
+        return true;
+      });
+  });
+
+  it('ERC721 token approval event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+      name: TOPIC + ':' + ERC721_POOL_ID,
+    });
+
+    const mockApprovalWebSocketMessage: WebSocketMessage = {
+      event: 'token-approval',
+      data: <TokenApprovalEvent>{
+        id: '000000000001/000000/000001',
+        poolLocator: ERC721_POOL_ID,
+        signer: IDENTITY,
+        operator: 'B',
+        subject: '5',
+        approved: true,
+        data: 'test',
+        info: {
+          owner: IDENTITY,
+          approved: 'B',
+          tokenId: '5',
+        },
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'Approval',
+          location: 'address=bob',
+          signature: approvalEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            owner: IDENTITY,
+            approved: 'B',
+            tokenId: '5',
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: approvalEventSignature,
+          },
+        },
+      },
+    };
+
+    await context.server
+      .ws('/api/ws')
+      .exec(() => {
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockERC721ApprovalEvent]);
+      })
+      .expectJson(message => {
+        expect(message.id).toBeDefined();
+        delete message.id;
+        expect(message).toEqual(mockApprovalWebSocketMessage);
+        return true;
+      });
+  });
+
+  it('ERC721 token approval for all event', async () => {
+    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
+      name: TOPIC + ':' + ERC721_POOL_ID,
+    });
+
+    const mockApprovalWebSocketMessage: WebSocketMessage = {
+      event: 'token-approval',
+      data: <TokenApprovalEvent>{
+        id: '000000000001/000000/000001',
+        poolLocator: ERC721_POOL_ID,
+        signer: IDENTITY,
+        operator: 'B',
+        subject: IDENTITY + ':B',
+        approved: true,
+        data: 'test',
+        info: {
+          owner: IDENTITY,
+          operator: 'B',
+          approved: true,
+        },
+        blockchain: {
+          id: '000000000001/000000/000001',
+          name: 'ApprovalForAll',
+          location: 'address=bob',
+          signature: approvalForAllEventSignature,
+          timestamp: '2020-01-01 00:00:00Z',
+          output: {
+            owner: IDENTITY,
+            operator: 'B',
+            approved: true,
+          },
+          info: {
+            address: 'bob',
+            blockNumber: '1',
+            transactionIndex: '0x0',
+            transactionHash: '0x123',
+            logIndex: '1',
+            signature: approvalForAllEventSignature,
+          },
+        },
+      },
+    };
+
+    await context.server
+      .ws('/api/ws')
+      .exec(() => {
+        expect(context.eventHandler).toBeDefined();
+        context.eventHandler([mockApprovalForAllEvent]);
+      })
+      .expectJson(message => {
+        expect(message.id).toBeDefined();
+        delete message.id;
+        expect(message).toEqual(mockApprovalWebSocketMessage);
         return true;
       });
   });

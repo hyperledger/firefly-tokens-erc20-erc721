@@ -38,12 +38,19 @@ export interface TokenPoolCreationEvent extends Event {
   };
 }
 
-export interface ApprovalEvent extends Event {
+export interface ERC20ApprovalEvent extends Event {
   data: {
     owner: string;
     spender: string;
-    value?: string;
-    tokenId?: string;
+    value: string;
+  };
+}
+
+export interface ERC721ApprovalEvent extends Event {
+  data: {
+    owner: string;
+    approved: string;
+    tokenId: string;
   };
 }
 
@@ -369,6 +376,9 @@ export class TokenApprovalEvent extends tokenEventBase {
 
   @ApiProperty()
   approved: boolean;
+
+  @ApiProperty()
+  info: any;
 }
 
 // ABI format
