@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/Context.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import './IERC721WithData.sol';
 
 /**
  * Example ERC721 token with mint, burn, and attached data support.
@@ -21,14 +22,22 @@ import '@openzeppelin/contracts/access/Ownable.sol';
  *
  * This is a sample only and NOT a reference implementation.
  */
-contract ERC721WithData is Context, Ownable, ERC721 {
+contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
     constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC721, IERC165) returns (bool) {
+        return
+            interfaceId == type(IERC721WithData).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 
     function mintWithData(
         address to,
         uint256 tokenId,
         bytes calldata data
-    ) external onlyOwner {
+    ) external override onlyOwner {
         _safeMint(to, tokenId, data);
     }
 
@@ -37,7 +46,7 @@ contract ERC721WithData is Context, Ownable, ERC721 {
         address to,
         uint256 tokenId,
         bytes calldata data
-    ) external {
+    ) external override {
         safeTransferFrom(from, to, tokenId, data);
     }
 
@@ -45,7 +54,7 @@ contract ERC721WithData is Context, Ownable, ERC721 {
         address from,
         uint256 tokenId,
         bytes calldata data
-    ) external {
+    ) external override {
         require(from == _msgSender(), 'ERC721WithData: caller is not owner');
         _burn(tokenId);
     }
@@ -54,7 +63,7 @@ contract ERC721WithData is Context, Ownable, ERC721 {
         address to,
         uint256 tokenId,
         bytes calldata data
-    ) external {
+    ) external override {
         approve(to, tokenId);
     }
 
@@ -62,7 +71,7 @@ contract ERC721WithData is Context, Ownable, ERC721 {
         address operator,
         bool approved,
         bytes calldata data
-    ) external {
+    ) external override {
         setApprovalForAll(operator, approved);
     }
 
