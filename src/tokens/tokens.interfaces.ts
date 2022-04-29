@@ -25,7 +25,7 @@ export interface EthConnectAsyncResponse {
 }
 
 export interface EthConnectReturn {
-  output: string;
+  output: any;
 }
 
 export interface TokenPoolCreationEvent extends Event {
@@ -119,10 +119,6 @@ export class TokenPoolConfig {
   @ApiProperty()
   @IsOptional()
   blockNumber?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  withData?: boolean;
 }
 
 export class TokenPool {

@@ -3,8 +3,10 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/utils/introspection/ERC165.sol';
 import '@openzeppelin/contracts/utils/Context.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import './IERC20WithData.sol';
 
 /**
  * Example ERC20 token with mint, burn, and attached data support.
@@ -22,14 +24,22 @@ import '@openzeppelin/contracts/access/Ownable.sol';
  *
  * This is a sample only and NOT a reference implementation.
  */
-contract ERC20WithData is Context, Ownable, ERC20 {
+contract ERC20WithData is Context, Ownable, ERC165, ERC20, IERC20WithData {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165, IERC165) returns (bool) {
+        return
+            interfaceId == type(IERC20WithData).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 
     function mintWithData(
         address to,
         uint256 amount,
         bytes calldata data
-    ) external onlyOwner {
+    ) external override onlyOwner {
         _mint(to, amount);
     }
 
@@ -38,7 +48,7 @@ contract ERC20WithData is Context, Ownable, ERC20 {
         address to,
         uint256 amount,
         bytes calldata data
-    ) external {
+    ) external override {
         if (from == _msgSender()) {
             transfer(to, amount);
         } else {
@@ -50,7 +60,7 @@ contract ERC20WithData is Context, Ownable, ERC20 {
         address from,
         uint256 amount,
         bytes calldata data
-    ) external {
+    ) external override {
         require(from == _msgSender(), 'ERC20WithData: caller is not owner');
         _burn(from, amount);
     }
@@ -59,7 +69,7 @@ contract ERC20WithData is Context, Ownable, ERC20 {
         address spender,
         uint256 amount,
         bytes calldata data
-    ) external returns (bool) {
+    ) external override returns (bool) {
         return approve(spender, amount);
     }
 }

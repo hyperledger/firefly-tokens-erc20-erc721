@@ -133,7 +133,14 @@ describe('TokensService', () => {
     getOrCreateSubscription: jest.fn(),
   };
 
-  const mockPoolQuery = (withDecimals: boolean) => {
+  const mockPoolQuery = (withData: boolean | undefined, withDecimals: boolean) => {
+    if (withData !== undefined) {
+      http.post.mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: withData,
+        }),
+      );
+    }
     http.post
       .mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
@@ -200,12 +207,12 @@ describe('TokensService', () => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS, withData: false },
+        config: { address: CONTRACT_ADDRESS },
         name: NAME,
         symbol: SYMBOL,
       };
 
-      mockPoolQuery(true);
+      mockPoolQuery(false, true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -247,7 +254,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockPoolQuery(true);
+      mockPoolQuery(undefined, true);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -376,7 +383,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockPoolQuery(true);
+      mockPoolQuery(true, true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -401,12 +408,12 @@ describe('TokensService', () => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS, withData: true },
+        config: { address: CONTRACT_ADDRESS },
         name: NAME,
         symbol: SYMBOL,
       };
 
-      mockPoolQuery(true);
+      mockPoolQuery(true, true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -448,7 +455,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockPoolQuery(true);
+      mockPoolQuery(undefined, true);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -568,12 +575,12 @@ describe('TokensService', () => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS, withData: false },
+        config: { address: CONTRACT_ADDRESS },
         name: NAME,
         symbol: SYMBOL,
       };
 
-      mockPoolQuery(false);
+      mockPoolQuery(false, false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -615,7 +622,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockPoolQuery(false);
+      mockPoolQuery(undefined, false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -757,7 +764,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockPoolQuery(false);
+      mockPoolQuery(true, false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -782,12 +789,12 @@ describe('TokensService', () => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS, withData: true },
+        config: { address: CONTRACT_ADDRESS },
         name: NAME,
         symbol: SYMBOL,
       };
 
-      mockPoolQuery(false);
+      mockPoolQuery(true, false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -829,7 +836,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockPoolQuery(false);
+      mockPoolQuery(undefined, false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));

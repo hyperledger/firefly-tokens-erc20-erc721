@@ -61,7 +61,14 @@ const abiMethodMap = {
 };
 
 export default (context: TestContext) => {
-  const mockNameAndSymbolQuery = () => {
+  const mockPoolQuery = (withData: boolean | undefined) => {
+    if (withData !== undefined) {
+      context.http.post.mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: withData,
+        }),
+      );
+    }
     context.http.post
       .mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
@@ -100,7 +107,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -113,7 +120,7 @@ export default (context: TestContext) => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS, withData: true },
+        config: { address: CONTRACT_ADDRESS },
         name: NAME,
         symbol: SYMBOL,
       };
@@ -131,7 +138,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -310,7 +317,7 @@ export default (context: TestContext) => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS, withData: false },
+        config: { address: CONTRACT_ADDRESS },
         name: NAME,
         symbol: SYMBOL,
       };
@@ -328,7 +335,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockNameAndSymbolQuery();
+      mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);

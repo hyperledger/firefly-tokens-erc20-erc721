@@ -30,6 +30,7 @@ import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
 import ERC721WithDataABI from '../abi/ERC721WithData.json';
 import TokenFactoryABI from '../abi/TokenFactory.json';
+import IERC165ABI from '../abi/IERC165.json';
 import { Event, EventStream, EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
@@ -72,6 +73,10 @@ import {
   unpackSubscriptionName,
   validatePoolLocator,
 } from './tokens.util';
+
+const ERC20WithDataIID = '0xaefdad0f';
+const ERC721WithDataIID = '0xb2429c12';
+const supportsInterfaceABI = IERC165ABI.abi.find(m => m.name === 'supportsInterface');
 
 export const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
 abiSchemaMap.set('ERC20NoData', ERC20NoDataABI.abi);
@@ -412,6 +417,20 @@ export class TokensService {
     return response.data;
   }
 
+  async supportsData(address: string, type: TokenType) {
+    const iid = type === TokenType.FUNGIBLE ? ERC20WithDataIID : ERC721WithDataIID;
+    try {
+      const result = await this.query(address, supportsInterfaceABI, [iid]);
+      this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
+      return result.output === true;
+    } catch (err) {
+      this.logger.log(
+        `Failed to query extra data support on contract '${address}': assuming false`,
+      );
+      return false;
+    }
+  }
+
   private async queryPool(poolLocator: IValidPoolLocator) {
     const schema = poolLocator.schema as ContractSchemaStrings;
 
@@ -448,25 +467,22 @@ export class TokensService {
   }
 
   async createPool(dto: TokenPool): Promise<TokenPoolEvent | AsyncResponse> {
-    if (dto.config?.address !== undefined) {
+    if (dto.config?.address !== undefined && dto.config.address !== '') {
+      this.logger.log(`Create token pool from existing: '${dto.config.address}'`);
       return this.createFromExisting(dto.config.address, dto);
     }
-
     if (this.factoryAddress === '') {
       throw new BadRequestException(
         'config.address was unspecified, and no token factory is configured!',
       );
     }
-    if (dto.config?.withData === false) {
-      throw new BadRequestException(
-        'Factory deployment currently does not support method signatures without data.',
-      );
-    }
+    this.logger.log(`Create token pool from factory: '${this.factoryAddress}'`);
     return this.createFromFactory(dto);
   }
 
   async createFromExisting(address: string, dto: TokenPool) {
-    const schema = getTokenSchema(dto.type, dto.config?.withData ?? true);
+    const withData = await this.supportsData(address, dto.type);
+    const schema = getTokenSchema(dto.type, withData);
     const poolLocator: IPoolLocator = { address, type: dto.type, schema };
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
@@ -740,7 +756,7 @@ class TokenListener implements EventListener {
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     switch (event.signature) {
       case tokenCreateEventSignature:
-        process(this.transformTokenPoolCreationEvent(subName, event));
+        process(await this.transformTokenPoolCreationEvent(subName, event));
         break;
       case transferEventSignature:
         process(await this.transformTransferEvent(subName, event));
@@ -796,10 +812,10 @@ class TokenListener implements EventListener {
     return signature.substring(0, signature.indexOf('('));
   }
 
-  private transformTokenPoolCreationEvent(
+  private async transformTokenPoolCreationEvent(
     subName: string,
     event: TokenPoolCreationEvent,
-  ): WebSocketMessage | undefined {
+  ): Promise<WebSocketMessage | undefined> {
     const { data: output } = event;
     const decodedData = decodeHex(output.data ?? '');
 
@@ -809,7 +825,8 @@ class TokenListener implements EventListener {
     }
 
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
-    const schema = getTokenSchema(type, true);
+    const withData = await this.service.supportsData(output.contract_address, type);
+    const schema = getTokenSchema(type, withData);
     const poolLocator: IValidPoolLocator = { address: output.contract_address, type, schema };
 
     return {
