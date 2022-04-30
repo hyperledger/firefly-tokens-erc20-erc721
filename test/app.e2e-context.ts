@@ -63,7 +63,7 @@ export class TestContext {
     await this.app.init();
 
     this.app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    this.app.get(TokensService).configure(BASE_URL, TOPIC, PREFIX, '', '', '');
+    this.app.get(TokensService).configure(BASE_URL, '', TOPIC, PREFIX, '', '', '');
 
     (this.app.getHttpServer() as Server).listen();
     this.server = request(this.app.getHttpServer());
