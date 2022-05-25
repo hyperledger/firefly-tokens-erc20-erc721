@@ -8,14 +8,16 @@ Included as a reference point for creating smart contracts that conform
 to the ABIs expected by this token connector. See the Solidity source for
 notes on functionality and limitations.
 
-### TL;DR
+### Deploy to your local FireFly CLI Ethereum network
 
 ```
 npm i
 npx hardhat run --network firefly scripts/deploy.ts
 ```
 
-You will get - **copy out the addresses, they will not be displayed again**:
+You will get the below output.
+
+> Copy out the addresses, they will not be displayed again
 
 ```
 Generating typings for: 22 artifacts in dir: typechain for target: ethers-v5
