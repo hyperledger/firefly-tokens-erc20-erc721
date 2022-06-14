@@ -17,8 +17,9 @@ with this connector.
 
 The following POST APIs are exposed under `/api/v1`:
 
+* `POST /init` - Begin listening for created pools (inputs: namespace)
 * `POST /createpool` - Create a new instance of an ERC20 contract (inputs: name, symbol, data, config)
-* `POST /activatepool` - Activate a token contract to begin receiving transfers (inputs: poolLocator)
+* `POST /activatepool` - Activate a token contract to begin receiving transfers (inputs: namespace, poolLocator)
 * `POST /mint` - Mint new tokens (inputs: poolLocator, to, amount, data)
 * `POST /burn` - Burn tokens (inputs: poolLocator, tokenIndex, from, amount, data)
 * `POST /transfer` - Transfer tokens (inputs: poolLocator, tokenIndex, from, to, amount, data)

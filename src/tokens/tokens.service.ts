@@ -63,6 +63,7 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
+  InitRequest,
 } from './tokens.interfaces';
 import {
   decodeHex,
@@ -263,9 +264,15 @@ export class TokensService {
   }
 
   /**
-   * One-time initialization of event stream and base subscription.
+   * Initialization of event stream and base subscription.
    */
-  async init() {
+  async init(dto: InitRequest) {
+    if (dto.namespace === undefined) {
+      // Quietly ignore this instead of failing, to avoid breaking older CLIs
+      this.logger.warn('Ignoring init request with no namespace provided');
+      return;
+    }
+    await this.migrationCheck(dto.namespace);
     this.stream = await this.getStream();
 
     if (this.factoryAddress !== '') {
@@ -277,7 +284,7 @@ export class TokensService {
           eventABI,
           this.stream.id,
           tokenCreateEvent,
-          packSubscriptionName(this.topic, this.factoryAddress, tokenCreateEvent),
+          packSubscriptionName(dto.namespace, this.factoryAddress, tokenCreateEvent),
           this.factoryAddress,
           [methodABI],
           '0',
@@ -300,7 +307,7 @@ export class TokensService {
    * Log a warning if any potential issues are flagged. User may need to delete
    * subscriptions manually and reactivate the pool directly.
    */
-  async migrationCheck(): Promise<boolean> {
+  async migrationCheck(namespace: string): Promise<boolean> {
     const streams = await this.eventstream.getStreams();
     const existingStream = streams.find(s => s.name === this.topic);
     if (existingStream === undefined) {
@@ -316,13 +323,15 @@ export class TokensService {
 
     const foundEvents = new Map<string, string[]>();
     for (const sub of subscriptions.filter(s => s.stream === existingStream.id)) {
-      const parts = unpackSubscriptionName(this.topic, sub.name);
-      if (parts.poolLocator === undefined || parts.event === undefined) {
+      const parts = unpackSubscriptionName(sub.name);
+      if (parts.namespace === undefined) {
         this.logger.warn(
           `Non-parseable subscription names found in event stream ${existingStream.name}.` +
             `It is recommended to delete all subscriptions and activate all pools again.`,
         );
         return true;
+      } else if (parts.namespace !== namespace) {
+        continue;
       }
       const existing = foundEvents.get(parts.poolLocator);
       if (existing !== undefined) {
@@ -579,7 +588,7 @@ export class TokensService {
         transferAbi,
         stream.id,
         abiEvents.TRANSFER,
-        packSubscriptionName(this.topic, dto.poolLocator, abiEvents.TRANSFER),
+        packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.TRANSFER),
         poolLocator.address,
         methodsToSubTo,
         this.getSubscriptionBlockNumber(dto.config),
@@ -589,7 +598,7 @@ export class TokensService {
         approvalAbi,
         stream.id,
         abiEvents.APPROVAL,
-        packSubscriptionName(this.topic, dto.poolLocator, abiEvents.APPROVAL),
+        packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.APPROVAL),
         poolLocator.address,
         methodsToSubTo,
         this.getSubscriptionBlockNumber(dto.config),
@@ -606,7 +615,7 @@ export class TokensService {
           approvalForAllAbi,
           stream.id,
           abiEvents.APPROVALFORALL,
-          packSubscriptionName(this.topic, dto.poolLocator, abiEvents.APPROVALFORALL),
+          packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.APPROVALFORALL),
           poolLocator.address,
           methodsToSubTo,
           this.getSubscriptionBlockNumber(dto.config),
@@ -777,11 +786,7 @@ class TokenListener implements EventListener {
     }
   }
 
-  private async getTokenUri(
-    tokenIdx: string,
-    signer: string,
-    contractAddress: string,
-  ): Promise<string> {
+  private async getTokenUri(tokenIdx: string, contractAddress: string): Promise<string> {
     const abiMethods = abiSchemaMap.get('ERC721WithData');
     if (abiMethods === undefined) {
       // should not happen
@@ -791,7 +796,7 @@ class TokenListener implements EventListener {
     const methodABI = abiMethods.find(method => method.name === 'tokenURI');
     try {
       const response = await this.service.query(contractAddress, methodABI, [tokenIdx]);
-      return response.output;
+      return response.output as string;
     } catch (e) {
       this.logger.log(`Burned tokens do not have a URI: ${e}`);
       return '';
@@ -822,6 +827,7 @@ class TokenListener implements EventListener {
     event: TokenPoolCreationEvent,
   ): Promise<WebSocketMessage | undefined> {
     const { data: output } = event;
+    const unpackedSub = unpackSubscriptionName(subName);
     const decodedData = decodeHex(output.data ?? '');
 
     if (event.address.toLowerCase() !== this.service.factoryAddress) {
@@ -837,6 +843,7 @@ class TokenListener implements EventListener {
     return {
       event: 'token-pool',
       data: <TokenPoolEvent>{
+        namespace: unpackedSub.namespace,
         standard: type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
         poolLocator: packPoolLocator(poolLocator),
         type,
@@ -873,7 +880,7 @@ class TokenListener implements EventListener {
     event: TransferEvent,
   ): Promise<WebSocketMessage | undefined> {
     const { data: output } = event;
-    const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
+    const unpackedSub = unpackSubscriptionName(subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
     if (output.from === ZERO_ADDRESS && output.to === ZERO_ADDRESS) {
@@ -889,6 +896,7 @@ class TokenListener implements EventListener {
     const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
     const commonData = {
       id: eventId,
+      namespace: unpackedSub.namespace,
       poolLocator: unpackedSub.poolLocator,
       amount: poolLocator.type === TokenType.FUNGIBLE ? output.value : '1',
       signer: event.inputSigner,
@@ -913,11 +921,7 @@ class TokenListener implements EventListener {
 
     if (poolLocator.type === TokenType.NONFUNGIBLE && output.tokenId !== undefined) {
       commonData.tokenIndex = output.tokenId;
-      commonData.uri = await this.getTokenUri(
-        output.tokenId,
-        event.inputSigner ?? '',
-        poolLocator.address ?? '',
-      );
+      commonData.uri = await this.getTokenUri(output.tokenId, poolLocator.address ?? '');
     }
 
     if (output.from === ZERO_ADDRESS) {
@@ -943,7 +947,7 @@ class TokenListener implements EventListener {
     event: ERC20ApprovalEvent | ERC721ApprovalEvent,
   ): WebSocketMessage | undefined {
     const { data: output } = event;
-    const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
+    const unpackedSub = unpackSubscriptionName(subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
     if (unpackedSub.poolLocator === undefined) {
@@ -972,6 +976,7 @@ class TokenListener implements EventListener {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: eventId,
+        namespace: unpackedSub.namespace,
         subject,
         poolLocator: unpackedSub.poolLocator,
         operator,
@@ -1004,7 +1009,7 @@ class TokenListener implements EventListener {
     event: ApprovalForAllEvent,
   ): WebSocketMessage | undefined {
     const { data: output } = event;
-    const unpackedSub = unpackSubscriptionName(this.service.topic, subName);
+    const unpackedSub = unpackSubscriptionName(subName);
     const decodedData = decodeHex(event.inputArgs?.data ?? '');
 
     if (unpackedSub.poolLocator === undefined) {
@@ -1017,6 +1022,7 @@ class TokenListener implements EventListener {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: eventId,
+        namespace: unpackedSub.namespace,
         subject: `${output.owner}:${output.operator}`,
         poolLocator: unpackedSub.poolLocator,
         operator: output.operator,

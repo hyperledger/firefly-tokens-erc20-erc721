@@ -21,6 +21,8 @@ import {
   TokenType,
 } from './tokens.interfaces';
 
+const SUBSCRIPTION_PREFIX = 'fft';
+
 /**
  * Encode a UTF-8 string into hex bytes with a leading 0x
  */
@@ -40,22 +42,33 @@ export function decodeHex(data: string) {
   return decoded === '\x00' ? '' : decoded;
 }
 
-export function packSubscriptionName(prefix: string, poolLocator: string, event?: string) {
-  if (event === undefined) {
-    return [prefix, poolLocator].join(':');
-  }
-  return [prefix, poolLocator, event].join(':');
+export function packSubscriptionName(namespace: string, poolLocator: string, event: string) {
+  return [SUBSCRIPTION_PREFIX, namespace, poolLocator, event].join(':');
 }
 
-export function unpackSubscriptionName(prefix: string, data: string) {
-  const parts = data.startsWith(prefix + ':')
-    ? data.slice(prefix.length + 1).split(':', 2)
-    : undefined;
-  return {
-    prefix,
-    poolLocator: parts?.[0],
-    event: parts?.[1],
-  };
+export function unpackSubscriptionName(data: string) {
+  const parts = data.split(':');
+  if (parts.length === 4 && parts[0] === SUBSCRIPTION_PREFIX) {
+    return {
+      namespace: parts[1],
+      poolLocator: parts[2],
+      event: parts[3],
+    };
+  } else if (parts.length === 3) {
+    return {
+      namespace: undefined,
+      poolLocator: parts[1],
+      event: parts[2],
+    };
+  } else if (parts.length === 2) {
+    return {
+      namespace: undefined,
+      poolLocator: parts[1],
+      event: undefined,
+    };
+  } else {
+    return {};
+  }
 }
 
 /**

@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { packSubscriptionName } from '../../src/tokens/tokens.util';
 import {
   EventStreamReply,
   EventStreamSubscription,
@@ -196,13 +197,14 @@ const mockApprovalForAllEvent: ApprovalForAllEvent = {
 export default (context: TestContext) => {
   it('ERC20 token mint event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC20_POOL_ID,
+      name: packSubscriptionName('default', ERC20_POOL_ID, ''),
     });
 
     const mockMintWebSocketMessage: WebSocketMessage = {
       event: 'token-mint',
       data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC20_POOL_ID,
         to: 'A',
         amount: '5',
@@ -257,6 +259,7 @@ export default (context: TestContext) => {
       event: 'token-mint',
       data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
+        namespace: undefined,
         poolLocator: `address=${CONTRACT_ADDRESS}&standard=${ERC20_STANDARD}&type=${TokenType.FUNGIBLE}`,
         to: 'A',
         amount: '5',
@@ -301,7 +304,7 @@ export default (context: TestContext) => {
 
   it('ERC721 token mint event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC721_POOL_ID,
+      name: packSubscriptionName('default', ERC721_POOL_ID, ''),
     });
 
     const baseUriResponse: EthConnectReturn = {
@@ -338,6 +341,7 @@ export default (context: TestContext) => {
       event: 'token-mint',
       data: <TokenMintEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC721_POOL_ID,
         to: 'A',
         amount: '1',
@@ -384,13 +388,14 @@ export default (context: TestContext) => {
 
   it('ERC20 token transfer event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC20_POOL_ID,
+      name: packSubscriptionName('default', ERC20_POOL_ID, ''),
     });
 
     const mockTransferWebSocketMessage: WebSocketMessage = {
       event: 'token-transfer',
       data: <TokenTransferEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC20_POOL_ID,
         from: 'A',
         to: 'B',
@@ -436,7 +441,7 @@ export default (context: TestContext) => {
 
   it('ERC721 token transfer event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC721_POOL_ID,
+      name: packSubscriptionName('default', ERC721_POOL_ID, ''),
     });
 
     const baseUriResponse: EthConnectReturn = {
@@ -474,6 +479,7 @@ export default (context: TestContext) => {
       event: 'token-transfer',
       data: <TokenTransferEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC721_POOL_ID,
         from: 'A',
         to: 'B',
@@ -521,13 +527,14 @@ export default (context: TestContext) => {
 
   it('ERC20 token burn event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC20_POOL_ID,
+      name: packSubscriptionName('default', ERC20_POOL_ID, ''),
     });
 
     const mockBurnWebSocketMessage: WebSocketMessage = {
       event: 'token-burn',
       data: <TokenBurnEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC20_POOL_ID,
         from: 'B',
         amount: '5',
@@ -572,7 +579,7 @@ export default (context: TestContext) => {
 
   it('ERC721 token burn event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC721_POOL_ID,
+      name: packSubscriptionName('default', ERC721_POOL_ID, ''),
     });
 
     const baseUriResponse: EthConnectReturn = {
@@ -609,6 +616,7 @@ export default (context: TestContext) => {
       event: 'token-burn',
       data: <TokenBurnEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC721_POOL_ID,
         from: 'B',
         amount: '1',
@@ -655,13 +663,14 @@ export default (context: TestContext) => {
 
   it('ERC20 token approval event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC20_POOL_ID,
+      name: packSubscriptionName('default', ERC20_POOL_ID, ''),
     });
 
     const mockApprovalWebSocketMessage: WebSocketMessage = {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC20_POOL_ID,
         signer: IDENTITY,
         operator: 'B',
@@ -712,13 +721,14 @@ export default (context: TestContext) => {
 
   it('ERC721 token approval event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC721_POOL_ID,
+      name: packSubscriptionName('default', ERC721_POOL_ID, ''),
     });
 
     const mockApprovalWebSocketMessage: WebSocketMessage = {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC721_POOL_ID,
         signer: IDENTITY,
         operator: 'B',
@@ -769,13 +779,14 @@ export default (context: TestContext) => {
 
   it('ERC721 token approval for all event', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + ERC721_POOL_ID,
+      name: packSubscriptionName('default', ERC721_POOL_ID, ''),
     });
 
     const mockApprovalWebSocketMessage: WebSocketMessage = {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: '000000000001/000000/000001',
+        namespace: 'default',
         poolLocator: ERC721_POOL_ID,
         signer: IDENTITY,
         operator: 'B',
@@ -876,7 +887,7 @@ export default (context: TestContext) => {
 
   it('Disconnect and reconnect', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + CONTRACT_ADDRESS,
+      name: packSubscriptionName('default', CONTRACT_ADDRESS, ''),
     });
 
     await context.server
@@ -899,7 +910,7 @@ export default (context: TestContext) => {
 
   it('Client switchover', async () => {
     context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: TOPIC + ':' + CONTRACT_ADDRESS,
+      name: packSubscriptionName('default', CONTRACT_ADDRESS, ''),
     });
 
     const ws1 = context.server.ws('/api/ws');
@@ -948,8 +959,12 @@ export default (context: TestContext) => {
     };
 
     context.eventstream.getSubscription
-      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS })
-      .mockReturnValueOnce(<EventStreamSubscription>{ name: TOPIC + ':' + CONTRACT_ADDRESS });
+      .mockReturnValueOnce(<EventStreamSubscription>{
+        name: packSubscriptionName('default', CONTRACT_ADDRESS, ''),
+      })
+      .mockReturnValueOnce(<EventStreamSubscription>{
+        name: packSubscriptionName('default', CONTRACT_ADDRESS, ''),
+      });
 
     const ws1 = context.server.ws('/api/ws');
     const ws2 = context.server.ws('/api/ws');
