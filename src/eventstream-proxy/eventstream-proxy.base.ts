@@ -28,6 +28,7 @@ import {
   AckMessageData,
   EventListener,
   ReceiptEvent,
+  WebSocketMessageBatchData,
   WebSocketMessageWithId,
 } from './eventstream-proxy.interfaces';
 
@@ -82,10 +83,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       this.url,
       this.topic,
       events => {
-        for (const event of events) {
-          this.queueTask(() => this.processEvent(event));
-        }
-        this.queueTask(() => this.checkBatchComplete());
+        this.queueTask(() => this.processEvents(events));
       },
       receipt => {
         this.broadcast('receipt', <ReceiptEvent>{
@@ -119,27 +117,37 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     this.listeners.push(listener);
   }
 
-  private async processEvent(event: Event) {
-    this.logger.log(`Proxying event: ${JSON.stringify(event)}`);
-    const subName = await this.getSubscriptionName(event.subId);
-    if (subName === undefined) {
-      this.logger.error(`Unknown subscription ID: ${event.subId}`);
-      return;
-    }
+  private async processEvents(events: Event[]) {
+    const messages: WebSocketMessage[] = [];
+    for (const event of events) {
+      this.logger.log(`Proxying event: ${JSON.stringify(event)}`);
+      const subName = await this.getSubscriptionName(event.subId);
+      if (subName === undefined) {
+        this.logger.error(`Unknown subscription ID: ${event.subId}`);
+        return;
+      }
 
-    for (const listener of this.listeners) {
-      try {
-        await listener.onEvent(subName, event, (newEvent: WebSocketMessage | undefined) => {
-          if (newEvent !== undefined) {
-            const message: WebSocketMessageWithId = { ...newEvent, id: uuidv4() };
-            this.awaitingAck.push(message);
-            this.currentClient?.send(JSON.stringify(message));
-          }
-        });
-      } catch (err) {
-        this.logger.error(`Error processing event: ${err}`);
+      for (const listener of this.listeners) {
+        try {
+          await listener.onEvent(subName, event, (msg: WebSocketMessage | undefined) => {
+            if (msg !== undefined) {
+              messages.push(msg);
+            }
+          });
+        } catch (err) {
+          this.logger.error(`Error processing event: ${err}`);
+        }
       }
     }
+    const message: WebSocketMessageWithId = {
+      id: uuidv4(),
+      event: 'batch',
+      data: <WebSocketMessageBatchData>{
+        events: messages,
+      },
+    };
+    this.awaitingAck.push(message);
+    this.currentClient?.send(JSON.stringify(message));
   }
 
   private async getSubscriptionName(subId: string) {
@@ -162,13 +170,6 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     }
   }
 
-  private checkBatchComplete() {
-    if (this.awaitingAck.length === 0) {
-      this.logger.log('Sending ack for batch');
-      this.socket?.ack();
-    }
-  }
-
   @SubscribeMessage('ack')
   handleAck(@MessageBody() data: AckMessageData) {
     if (data.id === undefined) {
@@ -177,7 +178,9 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     }
 
     this.logger.log(`Received ack ${data.id}`);
-    this.awaitingAck = this.awaitingAck.filter(msg => msg.id !== data.id);
-    this.checkBatchComplete();
+    if (this.socket !== undefined && this.awaitingAck.find(msg => msg.id === data.id)) {
+      this.awaitingAck = this.awaitingAck.filter(msg => msg.id !== data.id);
+      this.socket.ack();
+    }
   }
 }

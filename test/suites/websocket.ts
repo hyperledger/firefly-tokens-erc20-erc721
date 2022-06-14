@@ -241,8 +241,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockMintWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockMintWebSocketMessage);
         return true;
       });
   });
@@ -296,8 +297,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockMintWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockMintWebSocketMessage);
         return true;
       });
   });
@@ -380,8 +382,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockMintWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockMintWebSocketMessage);
         return true;
       });
   });
@@ -433,8 +436,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockTransferWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockTransferWebSocketMessage);
         return true;
       });
   });
@@ -519,8 +523,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockTransferWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockTransferWebSocketMessage);
         return true;
       });
   });
@@ -571,8 +576,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockBurnWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockBurnWebSocketMessage);
         return true;
       });
   });
@@ -655,8 +661,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockBurnWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockBurnWebSocketMessage);
         return true;
       });
   });
@@ -713,8 +720,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockApprovalWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockApprovalWebSocketMessage);
         return true;
       });
   });
@@ -771,8 +779,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockApprovalWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockApprovalWebSocketMessage);
         return true;
       });
   });
@@ -829,8 +838,9 @@ export default (context: TestContext) => {
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
-        delete message.id;
-        expect(message).toEqual(mockApprovalWebSocketMessage);
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0]).toEqual(mockApprovalWebSocketMessage);
         return true;
       });
   });
@@ -897,13 +907,19 @@ export default (context: TestContext) => {
         context.eventHandler([mockERC20MintTransferEvent]);
       })
       .expectJson(message => {
-        expect(message.event).toEqual('token-mint');
+        expect(message.id).toBeDefined();
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0].event).toEqual('token-mint');
         return true;
       })
       .close();
 
     await context.server.ws('/api/ws').expectJson(message => {
-      expect(message.event).toEqual('token-mint');
+      expect(message.id).toBeDefined();
+      expect(message.event).toEqual('batch');
+      expect(message.data.events).toHaveLength(1);
+      expect(message.data.events[0].event).toEqual('token-mint');
       return true;
     });
   });
@@ -922,80 +938,19 @@ export default (context: TestContext) => {
         context.eventHandler([mockERC20MintTransferEvent]);
       })
       .expectJson(message => {
-        expect(message.event).toEqual('token-mint');
+        expect(message.id).toBeDefined();
+        expect(message.event).toEqual('batch');
+        expect(message.data.events).toHaveLength(1);
+        expect(message.data.events[0].event).toEqual('token-mint');
         return true;
       })
       .close();
 
     await ws2.expectJson(message => {
-      expect(message.event).toEqual('token-mint');
-      return true;
-    });
-  });
-
-  it('Batch + ack + client switchover', async () => {
-    const tokenMintMessage: TransferEvent = {
-      subId: 'sb-123',
-      signature: transferEventSignature,
-      address: '',
-      blockNumber: '1',
-      transactionIndex: '0x0',
-      transactionHash: '0x123',
-      timestamp: '2020-01-01 00:00:00Z',
-      operator: 'A',
-      logIndex: '1',
-      data: {
-        from: ZERO_ADDRESS,
-        to: 'A',
-        value: '5',
-      },
-      inputMethod: 'mintWithData',
-      inputArgs: {
-        amount: '5',
-        data: '0x74657374',
-        to: 'A',
-      },
-      inputSigner: IDENTITY,
-    };
-
-    context.eventstream.getSubscription
-      .mockReturnValueOnce(<EventStreamSubscription>{
-        name: packSubscriptionName('default', CONTRACT_ADDRESS, ''),
-      })
-      .mockReturnValueOnce(<EventStreamSubscription>{
-        name: packSubscriptionName('default', CONTRACT_ADDRESS, ''),
-      });
-
-    const ws1 = context.server.ws('/api/ws');
-    const ws2 = context.server.ws('/api/ws');
-    let messageID1: string;
-
-    await ws1
-      .exec(() => {
-        expect(context.eventHandler).toBeDefined();
-        context.eventHandler([mockERC20TransferEvent, tokenMintMessage]);
-      })
-      .expectJson(message => {
-        expect(message.event).toEqual('token-transfer');
-        messageID1 = message.id;
-        return true;
-      })
-      .expectJson(message => {
-        expect(message.event).toEqual('token-mint');
-        return true;
-      })
-      .exec(client => {
-        client.send(
-          JSON.stringify({
-            event: 'ack',
-            data: { id: messageID1 },
-          }),
-        );
-      })
-      .close();
-
-    await ws2.expectJson(message => {
-      expect(message.event).toEqual('token-mint');
+      expect(message.id).toBeDefined();
+      expect(message.event).toEqual('batch');
+      expect(message.data.events).toHaveLength(1);
+      expect(message.data.events[0].event).toEqual('token-mint');
       return true;
     });
   });
