@@ -20,6 +20,7 @@ import { Response } from 'express';
 import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import {
   AsyncResponse,
+  InitRequest,
   TokenApproval,
   TokenBurn,
   TokenMint,
@@ -36,9 +37,10 @@ export class TokensController {
 
   @Post('init')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Perform one-time initialization (if not auto-initialized)' })
-  init() {
-    return this.service.init();
+  @ApiOperation({ summary: 'Initialize token listeners' })
+  @ApiBody({ type: InitRequest })
+  async init(@Body() dto: InitRequest) {
+    return this.service.init(dto);
   }
 
   @Post('createpool')

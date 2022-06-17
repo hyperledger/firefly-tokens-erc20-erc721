@@ -118,6 +118,12 @@ const requestIdDescription =
   'Optional ID to identify this request. Must be unique for every request. ' +
   'If none is provided, one will be assigned and returned in the 202 response.';
 
+export class InitRequest {
+  @ApiProperty()
+  @IsOptional()
+  namespace?: string;
+}
+
 export class TokenPoolConfig {
   @ApiProperty()
   @IsOptional()
@@ -254,6 +260,10 @@ export class TokenPoolActivate {
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
   requestId?: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  namespace: string;
 }
 
 export class TokenTransfer {
@@ -307,6 +317,10 @@ class tokenEventBase {
 
   @ApiProperty()
   blockchain?: BlockchainEvent;
+
+  @ApiProperty()
+  @IsOptional()
+  namespace?: string;
 }
 
 export class TokenPoolEventInfo {

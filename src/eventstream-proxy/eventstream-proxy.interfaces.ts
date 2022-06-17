@@ -44,3 +44,7 @@ export interface WebSocketMessageWithId extends WebSocketMessage {
 export interface AckMessageData {
   id?: string;
 }
+
+export interface WebSocketMessageBatchData {
+  events: WebSocketMessage[];
+}

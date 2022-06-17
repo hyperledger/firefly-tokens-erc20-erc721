@@ -234,6 +234,7 @@ describe('TokensService', () => {
     it('should activate ERC20NoData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
         poolLocator: ERC20_NO_DATA_POOL_ID,
+        namespace: 'ns1',
       };
 
       const mockEventStream: EventStream = {
@@ -266,7 +267,7 @@ describe('TokensService', () => {
         abiTypeMap.ERC20NoData.find(abi => abi.name === TRANSFER_EVENT) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
-        `${TOPIC}:${ERC20_NO_DATA_POOL_ID}:${TRANSFER_EVENT}`,
+        `fft:ns1:${ERC20_NO_DATA_POOL_ID}:${TRANSFER_EVENT}`,
         CONTRACT_ADDRESS,
         abiTypeMap.ERC20NoData.filter(
           abi =>
@@ -435,6 +436,7 @@ describe('TokensService', () => {
     it('should activate ERC20WithData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
         poolLocator: ERC20_WITH_DATA_POOL_ID,
+        namespace: 'ns1',
       };
 
       const mockEventStream: EventStream = {
@@ -467,7 +469,7 @@ describe('TokensService', () => {
         abiMethodMap.ERC20WithData.find(abi => abi.name === TRANSFER_EVENT) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
-        `${TOPIC}:${ERC20_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}`,
+        `fft:ns1:${ERC20_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}`,
         CONTRACT_ADDRESS,
         abiMethodMap.ERC20WithData.filter(
           abi => abi.name !== undefined && METHODS_WITH_DATA.includes(abi.name),
@@ -602,6 +604,7 @@ describe('TokensService', () => {
     it('should activate ERC721NoData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
         poolLocator: ERC721_NO_DATA_POOL_ID,
+        namespace: 'ns1',
       };
 
       const mockEventStream: EventStream = {
@@ -634,7 +637,7 @@ describe('TokensService', () => {
         abiMethodMap.ERC721NoData.find(abi => abi.name === TRANSFER_EVENT) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
-        `${TOPIC}:${ERC721_NO_DATA_POOL_ID}:${TRANSFER_EVENT}`,
+        `fft:ns1:${ERC721_NO_DATA_POOL_ID}:${TRANSFER_EVENT}`,
         CONTRACT_ADDRESS,
         abiMethodMap.ERC721NoData.filter(
           abi =>
@@ -816,6 +819,7 @@ describe('TokensService', () => {
     it('should activate ERC721WithData pool correctly and return correct values', async () => {
       const request: TokenPoolActivate = {
         poolLocator: ERC721_WITH_DATA_POOL_ID,
+        namespace: 'ns1',
       };
 
       const mockEventStream: EventStream = {
@@ -848,7 +852,7 @@ describe('TokensService', () => {
         abiTypeMap.ERC721WithData.find(abi => abi.name === TRANSFER_EVENT) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         'Transfer',
-        `${TOPIC}:${ERC721_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}`,
+        `fft:ns1:${ERC721_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}`,
         CONTRACT_ADDRESS,
         abiTypeMap.ERC721WithData.filter(
           abi => abi.name !== undefined && METHODS_WITH_DATA.includes(abi.name),
@@ -968,6 +972,7 @@ describe('TokensService', () => {
     it('should throw 404 exception if ABI method is not found when activating pool', async () => {
       const request: TokenPoolActivate = {
         poolLocator: 'address=0x123&standard=notAStandard&type=fungible',
+        namespace: 'ns1',
       };
       await expect(service.activatePool(request)).rejects.toThrowError(
         new HttpException('Transfer event ABI not found', HttpStatus.NOT_FOUND),
@@ -977,6 +982,7 @@ describe('TokensService', () => {
     it('should throw 400 exception if locator is malformed when activating pool', async () => {
       const request: TokenPoolActivate = {
         poolLocator: 'address=0x123&type=fungible',
+        namespace: 'ns1',
       };
       await expect(service.activatePool(request)).rejects.toThrowError(
         new HttpException('Invalid pool locator', HttpStatus.BAD_REQUEST),
