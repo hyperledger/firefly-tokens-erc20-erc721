@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/utils/Context.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/utils/Context.sol';
+import "@openzeppelin/contracts/utils/Strings.sol"; 
+import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import './IERC721WithData.sol';
 
 /**
@@ -23,7 +24,17 @@ import './IERC721WithData.sol';
  * This is a sample only and NOT a reference implementation.
  */
 contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
+    string private _baseTokenURI;
+    // Optional mapping for token URIs
+    mapping (uint256 => string) private _tokenURIs;
+
+    constructor(
+        string memory name,
+        string memory symbol,
+        string memory baseTokenURI
+    ) ERC721(name, symbol) {
+        _baseTokenURI = baseTokenURI;
+    }
 
     function supportsInterface(
         bytes4 interfaceId
@@ -39,6 +50,24 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         bytes calldata data
     ) external override onlyOwner {
         _safeMint(to, tokenId, data);
+        _setTokenURI(tokenId, string(abi.encodePacked(_baseURI(), Strings.toString(tokenId))));
+    }
+
+    function mintWithURI(
+        address to,
+        uint256 tokenId,
+        bytes calldata data,
+        string memory tokenURI_
+    ) external {
+        _safeMint(to, tokenId, data);
+
+        // If there is no tokenURI passed, concatenate the tokenID to the base URI
+        bytes memory tempURITest = bytes(tokenURI_);
+        if (tempURITest.length == 0) {
+            _setTokenURI(tokenId, string(abi.encodePacked(_baseURI(), Strings.toString(tokenId))));
+        } else {
+            _setTokenURI(tokenId, tokenURI_);
+        }
     }
 
     function transferWithData(
@@ -76,6 +105,23 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
-        return 'firefly://token/';
+        bytes memory tempURITest = bytes(_baseTokenURI);
+        if (tempURITest.length == 0) {
+            return 'firefly://token/';
+        } else {
+            return _baseTokenURI;
+        }
+    }
+
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        require(_exists(tokenId), "ERC721WithData: Token does not exist");
+
+        string memory uri = _tokenURIs[tokenId];
+        return uri;
+    }
+
+    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual {
+        require(_exists(tokenId), "ERC721WithData: Token does not exist");
+        _tokenURIs[tokenId] = _tokenURI;
     }
 }

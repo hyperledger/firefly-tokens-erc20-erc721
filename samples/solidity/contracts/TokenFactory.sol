@@ -38,14 +38,15 @@ contract TokenFactory is Context {
         string memory name,
         string memory symbol,
         bool is_fungible,
-        bytes calldata data
+        bytes calldata data,
+        string memory uri
     ) external virtual {
         if (is_fungible) {
             ERC20WithData erc20 = new ERC20WithData(name, symbol);
             erc20.transferOwnership(_msgSender());
             emit TokenPoolCreation(address(erc20), name, symbol, true, data);
         } else {
-            ERC721WithData erc721 = new ERC721WithData(name, symbol);
+            ERC721WithData erc721 = new ERC721WithData(name, symbol, uri);
             erc721.transferOwnership(_msgSender());
             emit TokenPoolCreation(address(erc721), name, symbol, false, data);
         }
