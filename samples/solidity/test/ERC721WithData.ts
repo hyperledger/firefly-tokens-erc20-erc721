@@ -22,6 +22,7 @@ describe('ERC721WithData - Unit Tests', function () {
     deployedERC721WithData = await Factory.connect(deployerSignerA).deploy(
       contractName,
       contractSymbol,
+      ""
     );
     await deployedERC721WithData.deployed();
   });
@@ -37,18 +38,19 @@ describe('ERC721WithData - Unit Tests', function () {
     expect(await deployedERC721WithData.symbol()).to.equal(contractSymbol);
   });
 
-  it('Mint - Deployer should mint tokens to itself successfully', async function () {
+  it('Mint - Should mint successfully with a custom URI', async function () {
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     // Signer A mint token 721 to Signer A (Allowed)
     await expect(
       deployedERC721WithData
         .connect(deployerSignerA)
-        .mintWithData(deployerSignerA.address, 721, '0x00'),
+        .mintWithURI(deployerSignerA.address, 721, '0x00', "ipfs://CID"),
     )
       .to.emit(deployedERC721WithData, 'Transfer')
       .withArgs(ZERO_ADDRESS, deployerSignerA.address, 721);
 
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(1);
+    expect(await deployedERC721WithData.tokenURI(721)).to.equal('ipfs://CID');
   });
 
   it('Mint - Non-deployer of contract should not be able to mint tokens', async function () {
