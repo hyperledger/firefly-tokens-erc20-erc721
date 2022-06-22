@@ -15,7 +15,7 @@ import './IERC721WithData.sol';
  *   - the contract owner (ie deployer) is the only party allowed to mint
  *   - any party can approve another party to manage (ie transfer) some or all of their tokens
  *   - any party can burn their own tokens
- *   - token URIs are hard-coded to "firefly://token/{id}"
+ *   - token URIs are customizable when minting, but default to "firefly://token/{id}"
  *
  * The inclusion of a "data" argument on each external method allows FireFly to write
  * extra data to the chain alongside each token transaction, in order to correlate it with
@@ -58,7 +58,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         uint256 tokenId,
         bytes calldata data,
         string memory tokenURI_
-    ) external {
+    ) external onlyOwner {
         _safeMint(to, tokenId, data);
 
         // If there is no tokenURI passed, concatenate the tokenID to the base URI
@@ -120,7 +120,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         return uri;
     }
 
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual {
+    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal onlyOwner {
         require(_exists(tokenId), "ERC721WithData: Token does not exist");
         _tokenURIs[tokenId] = _tokenURI;
     }

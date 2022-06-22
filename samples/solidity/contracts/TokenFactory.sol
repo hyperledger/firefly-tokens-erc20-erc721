@@ -22,7 +22,7 @@ import './ERC721WithData.sol';
  * Just a few of the questions to consider when developing a contract for production:
  *   - is a factory pattern the best solution for your use case, or is a pre-deployed token contract more suitable?
  *   - is a proxy layer needed for contract upgradeability?
- *   - are other extension points beyond "name" and "symbol" needed (for instance "decimals", "uri", "supply")?
+ *   - are other extension points beyond "name", "symbol", and "uri" needed (for instance "decimals" or "supply")?
  *
  * See the FireFly documentation for descriptions of the various patterns supported for working with tokens.
  * Please also read the descriptions of the sample ERC20WithData and ERC721WithData contracts utilized by this
