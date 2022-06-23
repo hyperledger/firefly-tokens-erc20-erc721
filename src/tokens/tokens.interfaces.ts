@@ -156,6 +156,10 @@ export class TokenPool {
   @ApiProperty()
   @IsOptional()
   config?: TokenPoolConfig;
+
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
 }
 
 export class TokenApprovalConfig {
@@ -280,6 +284,10 @@ export class TokenTransfer {
   @ApiProperty()
   @IsOptional()
   amount?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
 
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()

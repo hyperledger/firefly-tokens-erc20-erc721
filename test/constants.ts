@@ -24,6 +24,35 @@ export const mockMintWithDataABI: IAbiMethod = {
   type: 'function',
 };
 
+export const mockMintWithUriABI: IAbiMethod = {
+  inputs: [
+    {
+      internalType: 'address',
+      name: 'to',
+      type: 'address',
+    },
+    {
+      internalType: 'uint256',
+      name: 'amount',
+      type: 'uint256',
+    },
+    {
+      internalType: 'bytes',
+      name: 'data',
+      type: 'bytes',
+    },
+    {
+      internalType: 'string',
+      name: 'tokenURI_',
+      type: 'string',
+    },
+  ],
+  name: 'mintWithURI',
+  outputs: [],
+  stateMutability: 'nonpayable',
+  type: 'function',
+};
+
 export const mockTransferWithDataABI: IAbiMethod = {
   inputs: [
     {
