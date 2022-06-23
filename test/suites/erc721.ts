@@ -114,6 +114,39 @@ export default (context: TestContext) => {
       expect(response.body).toEqual(expectedResponse);
     });
 
+    it('Create pool - base URI', async () => {
+      const request: TokenPool = {
+        type: TokenType.NONFUNGIBLE,
+        requestId: REQUEST,
+        signer: IDENTITY,
+        data: `{"tx":${TX}}`,
+        config: { address: CONTRACT_ADDRESS },
+        name: NAME,
+        symbol: SYMBOL,
+        uri: "http://test-uri/"
+      };
+
+      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
+        data: `{"tx":${TX}}`,
+        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
+        standard: 'ERC721',
+        type: TokenType.NONFUNGIBLE,
+        symbol: SYMBOL,
+        info: {
+          name: NAME,
+          address: CONTRACT_ADDRESS,
+          schema: ERC721_WITH_DATA_SCHEMA,
+        },
+      });
+
+      mockPoolQuery(true);
+      context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
+
+      const response = await context.server.post('/createpool').send(request).expect(200);
+      expect(response.body).toEqual(expectedResponse);
+    });
+
+
     it('Create pool - correct fields - explicit standard', async () => {
       const request: TokenPool = {
         type: TokenType.NONFUNGIBLE,
