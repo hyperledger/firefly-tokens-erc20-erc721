@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/utils/Context.sol';
 import './ERC20WithData.sol';
 import './ERC721WithData.sol';
+import './ITokenFactory.sol';
 
 /**
  * Example TokenFactory for deploying simple ERC20 and ERC721 token contracts.
@@ -31,7 +32,7 @@ import './ERC721WithData.sol';
  * Finally, remember to always consult best practices from other communities and examples (such as OpenZeppelin)
  * when crafting your token logic, rather than relying on the FireFly community alone. Happy minting!
  */
-contract TokenFactory is Context {
+contract TokenFactory is Context, ITokenFactory {
     event TokenPoolCreation(address indexed contract_address, string name, string symbol, bool is_fungible, bytes data);
 
     function create(
@@ -40,7 +41,7 @@ contract TokenFactory is Context {
         bool is_fungible,
         bytes calldata data,
         string memory uri
-    ) external virtual {
+    ) external override virtual {
         if (is_fungible) {
             ERC20WithData erc20 = new ERC20WithData(name, symbol);
             erc20.transferOwnership(_msgSender());
@@ -50,5 +51,11 @@ contract TokenFactory is Context {
             erc721.transferOwnership(_msgSender());
             emit TokenPoolCreation(address(erc721), name, symbol, false, data);
         }
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(IERC165) returns (bool) {
+        return interfaceId == type(ITokenFactory).interfaceId;
     }
 }

@@ -58,7 +58,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         uint256 tokenId,
         bytes calldata data,
         string memory tokenURI_
-    ) external onlyOwner {
+    ) external override onlyOwner {
         _safeMint(to, tokenId, data);
 
         // If there is no tokenURI passed, concatenate the tokenID to the base URI

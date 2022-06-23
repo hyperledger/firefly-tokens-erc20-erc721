@@ -30,7 +30,7 @@ describe('ERC721WithData - Unit Tests', function () {
   it('Verify interface ID', async function () {
     const checkerFactory = await ethers.getContractFactory('InterfaceCheck');
     const checker: InterfaceCheck = await checkerFactory.connect(deployerSignerA).deploy();
-    expect(await checker.erc721WithData()).to.equal('0xb2429c12');
+    expect(await checker.erc721WithData()).to.equal('0xfd0771df');
   });
 
   it('Create - Should create a new ERC721 instance with default state', async function () {
