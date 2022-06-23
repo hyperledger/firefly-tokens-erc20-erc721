@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { TokenFactory } from '../typechain';
+import { TokenFactory, InterfaceCheck } from '../typechain';
 
 describe('TokenFactory - Unit Tests', function () {
   const contractName = 'testName';
@@ -19,6 +19,12 @@ describe('TokenFactory - Unit Tests', function () {
     // Deploy token factory with Signer A
     deployedTokenFactory = await Factory.connect(deployerSignerA).deploy();
     await deployedTokenFactory.deployed();
+  });
+
+  it('Verify interface ID', async function () {
+    const checkerFactory = await ethers.getContractFactory('InterfaceCheck');
+    const checker: InterfaceCheck = await checkerFactory.connect(deployerSignerA).deploy();
+    expect(await checker.tokenfactory()).to.equal('0x83a74a0c');
   });
 
   it('Create - Should deploy a new ERC20 contract', async function () {

@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/utils/introspection/IERC165.sol';
 
 /**
- * ERC721 interface with mint, burn, and attached data support.
+ * ERC721 interface with mint, burn, attached data, and custom URI support.
  *
  * The inclusion of a "data" argument on each external method allows FireFly to write
  * extra data to the chain alongside each token transaction, in order to correlate it with
@@ -16,6 +16,13 @@ interface IERC721WithData is IERC165 {
         address to,
         uint256 tokenId,
         bytes calldata data
+    ) external;
+
+    function mintWithURI(
+        address to,
+        uint256 tokenId,
+        bytes calldata data,
+        string memory tokenURI_
     ) external;
 
     function transferWithData(
