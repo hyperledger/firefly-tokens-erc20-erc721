@@ -223,6 +223,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(false, true);
 
       await service.createPool(request).then(resp => {
@@ -395,6 +396,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(true, true);
 
       await service.createPool(request).then(resp => {
@@ -425,6 +427,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(true, true);
 
       await service.createPool(request).then(resp => {
@@ -593,6 +596,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(false, false);
 
       await service.createPool(request).then(resp => {
@@ -778,6 +782,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(true);
       mockPoolQuery(true, false);
 
       await service.createPool(request).then(resp => {
@@ -808,6 +813,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(true, false);
 
       await service.createPool(request).then(resp => {

@@ -82,6 +82,14 @@ export default (context: TestContext) => {
       );
   };
 
+  const mockURIQuery = (withURI: boolean) => {
+    context.http.post.mockReturnValueOnce(
+      new FakeObservable(<EthConnectReturn>{
+        output: withURI,
+      }),
+    );
+  };
+
   describe('ERC721WithData', () => {
     it('Create pool - correct fields', async () => {
       const request: TokenPool = {
@@ -107,6 +115,7 @@ export default (context: TestContext) => {
         },
       });
 
+      mockURIQuery(true);
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -139,6 +148,7 @@ export default (context: TestContext) => {
         },
       });
 
+      mockURIQuery(false)
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -171,6 +181,7 @@ export default (context: TestContext) => {
         },
       });
 
+      mockURIQuery(false)
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -368,6 +379,7 @@ export default (context: TestContext) => {
         },
       });
 
+      mockURIQuery(false)
       mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
