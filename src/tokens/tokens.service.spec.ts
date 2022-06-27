@@ -921,7 +921,7 @@ describe('TokensService', () => {
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 
-    it('should mint ERC721WithData token with correct abi and inputs', async () => {
+    it('should mint ERC721WithData token with correct abi, custom uri, and inputs', async () => {
       const request: TokenMint = {
         tokenIndex: '721',
         signer: IDENTITY,
@@ -960,9 +960,6 @@ describe('TokensService', () => {
       await expect(service.mint(request)).resolves.toEqual({
         id: 'responseId',
       } as AsyncResponse);  
-
-      console.log(http.post.mock.calls);
-
 
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectURIQuery, OPTIONS);
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
