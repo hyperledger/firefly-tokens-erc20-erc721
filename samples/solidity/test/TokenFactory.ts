@@ -1,13 +1,11 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { TokenFactory } from '../typechain';
+import { TokenFactory, InterfaceCheck } from '../typechain';
 
 describe('TokenFactory - Unit Tests', function () {
   const contractName = 'testName';
   const contractSymbol = 'testSymbol';
-  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-  const ONE_ADDRESS = '0x1111111111111111111111111111111111111111';
   let deployedTokenFactory: TokenFactory;
   let Factory;
 
@@ -23,8 +21,14 @@ describe('TokenFactory - Unit Tests', function () {
     await deployedTokenFactory.deployed();
   });
 
+  it('Verify interface ID', async function () {
+    const checkerFactory = await ethers.getContractFactory('InterfaceCheck');
+    const checker: InterfaceCheck = await checkerFactory.connect(deployerSignerA).deploy();
+    expect(await checker.tokenfactory()).to.equal('0x83a74a0c');
+  });
+
   it('Create - Should deploy a new ERC20 contract', async function () {
-    const tx = await deployedTokenFactory.create(contractName, contractSymbol, true, '0x00');
+    const tx = await deployedTokenFactory.create(contractName, contractSymbol, true, '0x00', '');
     expect(tx).to.emit(deployedTokenFactory, 'TokenPoolCreation');
     const receipt = await tx.wait();
     const event = receipt.events?.find(e => e.event === 'TokenPoolCreation');
@@ -37,7 +41,20 @@ describe('TokenFactory - Unit Tests', function () {
   });
 
   it('Create - Should deploy a new ERC721 contract', async function () {
-    const tx = await deployedTokenFactory.create(contractName, contractSymbol, false, '0x00');
+    const tx = await deployedTokenFactory.create(contractName, contractSymbol, false, '0x00', '');
+    expect(tx).to.emit(deployedTokenFactory, 'TokenPoolCreation');
+    const receipt = await tx.wait();
+    const event = receipt.events?.find(e => e.event === 'TokenPoolCreation');
+    expect(event).to.exist;
+    if (event) {
+      expect(event.args).to.have.length(5);
+      expect(event.args?.[0]).to.be.properAddress;
+      expect(event.args?.slice(1)).to.eql([contractName, contractSymbol, false, '0x00']);
+    }
+  });
+
+  it('Create - Should deploy a new ERC721 contract with a custom URI', async function () {
+    const tx = await deployedTokenFactory.create(contractName, contractSymbol, false, '0x00', 'testURI');
     expect(tx).to.emit(deployedTokenFactory, 'TokenPoolCreation');
     const receipt = await tx.wait();
     const event = receipt.events?.find(e => e.event === 'TokenPoolCreation');
