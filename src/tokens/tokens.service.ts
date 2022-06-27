@@ -193,7 +193,7 @@ type ContractSchemaStrings = keyof typeof ContractSchema;
 export class TokensService {
   private readonly logger = new Logger(TokensService.name);
   // cache tracking if a contract address supports custom URI's
-  private uriCache: LRUCache<string, boolean>;
+  private uriSupportCache: LRUCache<string, boolean>;
 
   baseUrl: string;
   fftmUrl: string;
@@ -209,7 +209,7 @@ export class TokensService {
     private eventstream: EventStreamService,
     private proxy: EventStreamProxyGateway,
   ) {
-    this.uriCache = new LRUCache({ max: 500 });
+    this.uriSupportCache = new LRUCache({ max: 500 });
   }
 
   configure(
@@ -435,8 +435,19 @@ export class TokensService {
   }
 
   async supportsData(address: string, type: TokenType) {
-    const withDataIID = await this.supportsNFTUri(address, false) ? ERC721WithDataUriIID : ERC20WithDataIID
-    const iid = type === TokenType.FUNGIBLE ? ERC20WithDataIID : withDataIID;
+    const nftIID = await this.supportsNFTUri(address, false) ? ERC721WithDataUriIID : ERC20WithDataIID
+    let iid: string;
+
+    switch (type) {
+      case TokenType.NONFUNGIBLE:
+        iid = nftIID;
+        break;
+      case TokenType.FUNGIBLE:
+      default:
+        iid = ERC20WithDataIID;
+        break;
+    };
+
     try {
       const result = await this.query(address, supportsInterfaceABI, [iid]);
       this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
@@ -450,7 +461,7 @@ export class TokensService {
   }
 
   async supportsNFTUri(address: string, factory: boolean) {
-    const support = this.uriCache.get(address);
+    const support = this.uriSupportCache.get(address);
     if (support) {
       return support;
     }
@@ -458,7 +469,7 @@ export class TokensService {
     try {
       const result = await this.query(address, supportsInterfaceABI, factory ? [TokenFactoryIID] :[ERC721WithDataUriIID]);
       this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
-      this.uriCache.set(address, result.output);
+      this.uriSupportCache.set(address, result.output);
       return result.output === true;
     } catch (err) {
       this.logger.log(
@@ -557,7 +568,6 @@ export class TokensService {
     }
     const params = [dto.name, dto.symbol, isFungible, encodedData];
     const uri = await this.supportsNFTUri(this.factoryAddress, true)
-    console.log("support uri: ", uri);
     if (uri) {
       // supply empty string is URI isn't provided
       // the contract itself handles empty base URI's appropriately

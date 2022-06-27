@@ -285,10 +285,6 @@ export class TokenTransfer {
   @IsOptional()
   amount?: string;
 
-  @ApiProperty()
-  @IsOptional()
-  uri?: string;
-
   @ApiProperty({ description: requestIdDescription })
   @IsOptional()
   requestId?: string;
@@ -298,7 +294,11 @@ export class TokenTransfer {
   data?: string;
 }
 
-export class TokenMint extends OmitType(TokenTransfer, ['from']) {}
+export class TokenMint extends OmitType(TokenTransfer, ['from']) {
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
+}
 export class TokenBurn extends OmitType(TokenTransfer, ['to']) {}
 
 // Websocket notifications
