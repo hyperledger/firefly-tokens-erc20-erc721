@@ -87,6 +87,7 @@ const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 const APPROVE_ALL_WITH_DATA = 'setApprovalForAllWithData';
+const BASE_URI = 'baseTokenUri';
 
 const METHODS_NO_DATA = [MINT_NO_DATA, BURN_NO_DATA, APPROVE_NO_DATA, APPROVE_ALL_NO_DATA];
 
@@ -97,6 +98,7 @@ const METHODS_WITH_DATA = [
   TRANSFER_WITH_DATA,
   APPROVE_WITH_DATA,
   APPROVE_ALL_WITH_DATA,
+  BASE_URI
 ];
 
 const TRANSFER_EVENT = 'Transfer';
@@ -162,6 +164,11 @@ describe('TokensService', () => {
         }),
       );
     }
+    http.post.mockReturnValueOnce(
+      new FakeObservable(<EthConnectReturn>{
+        output: "test",
+      }),
+    );
   };
 
   const mockURIQuery = (withURI: boolean) => {
@@ -797,6 +804,7 @@ describe('TokensService', () => {
             name: NAME,
             address: CONTRACT_ADDRESS,
             schema: ERC721_WITH_DATA_SCHEMA,
+            uri: "test",
           },
         } as TokenPoolEvent);
       });
@@ -857,6 +865,7 @@ describe('TokensService', () => {
         },
       };
 
+      // mockURIQuery(false);
       mockPoolQuery(undefined, false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
@@ -936,7 +945,7 @@ describe('TokensService', () => {
         },
         to: CONTRACT_ADDRESS,
         method: abiTypeMap.ERC721WithData.find(abi => abi.name === SUPPORTS_INTERFACE) as IAbiMethod,
-        params: ['0xfd0771df'],
+        params: ['0x8706707d'],
       };
 
       const mockEthConnectRequest: EthConnectMsgRequest = {

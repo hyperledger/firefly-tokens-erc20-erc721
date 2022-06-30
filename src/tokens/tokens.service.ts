@@ -65,6 +65,7 @@ import {
   TokenType,
   TransferEvent,
   InitRequest,
+  TokenPoolEventInfo,
 } from './tokens.interfaces';
 import {
   decodeHex,
@@ -79,7 +80,7 @@ import {
 
 const ERC20WithDataIID = '0xaefdad0f';
 const ERC721WithDataIID = '0xb2429c12';
-const ERC721WithDataUriIID = '0xfd0771df';
+const ERC721WithDataUriIID = '0x8706707d';
 const TokenFactoryIID = '0x83a74a0c';
 const supportsInterfaceABI = IERC165ABI.abi.find(m => m.name === 'supportsInterface');
 
@@ -99,6 +100,7 @@ export interface AbiMethods {
   APPROVE: string;
   APPROVEFORALL: string | null;
   DECIMALS: string | null;
+  BASEURI: string | null;
 }
 
 export interface AbiEvents {
@@ -118,6 +120,7 @@ abiMethodMap.set('ERC20NoData', {
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: 'decimals',
+  BASEURI: null,
 });
 abiMethodMap.set('ERC20WithData', {
   MINT: 'mintWithData',
@@ -129,6 +132,7 @@ abiMethodMap.set('ERC20WithData', {
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: 'decimals',
+  BASEURI: null,
 });
 abiMethodMap.set('ERC721WithData', {
   MINT: 'mintWithData',
@@ -140,6 +144,7 @@ abiMethodMap.set('ERC721WithData', {
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: null,
+  BASEURI: 'baseTokenUri',
 });
 abiMethodMap.set('ERC721NoData', {
   MINT: 'mint',
@@ -151,6 +156,7 @@ abiMethodMap.set('ERC721NoData', {
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: null,
+  BASEURI: null,
 });
 
 const abiEventMap = new Map<ContractSchemaStrings, AbiEvents>();
@@ -554,6 +560,20 @@ export class TokensService {
       );
     }
 
+    const eventInfo: TokenPoolEventInfo = {
+        name: poolInfo.name,
+        address,
+        schema,
+    };
+
+    if (await this.supportsNFTUri(poolLocator.address, false)) {
+      const method = this.getMethodAbi(schema as ContractSchemaStrings, 'BASEURI');
+      if (method !== undefined) {
+        const baseUriResponse = await this.query(poolLocator.address, method, []);
+        eventInfo.uri = baseUriResponse.output;
+      }
+    }
+
     const tokenPoolEvent: TokenPoolEvent = {
       data: dto.data,
       poolLocator: packPoolLocator(poolLocator),
@@ -561,11 +581,7 @@ export class TokensService {
       type: dto.type,
       symbol: poolInfo.symbol,
       decimals: poolInfo.decimals,
-      info: {
-        name: poolInfo.name,
-        address,
-        schema,
-      },
+      info: eventInfo,
     };
     return tokenPoolEvent;
   }

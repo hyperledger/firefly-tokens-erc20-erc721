@@ -124,4 +124,8 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         require(_exists(tokenId), "ERC721WithData: Token does not exist");
         _tokenURIs[tokenId] = _tokenURI;
     }
+
+    function baseTokenUri() public view virtual override returns (string memory) {
+        return _baseURI();
+    }
 }
