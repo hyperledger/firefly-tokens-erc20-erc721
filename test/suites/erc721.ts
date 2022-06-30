@@ -116,7 +116,7 @@ export default (context: TestContext) => {
       });
 
       mockURIQuery(true);
-      mockPoolQuery(true);
+      mockPoolQuery(undefined);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);

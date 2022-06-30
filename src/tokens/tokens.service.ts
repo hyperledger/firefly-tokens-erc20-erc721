@@ -435,12 +435,14 @@ export class TokensService {
   }
 
   async supportsData(address: string, type: TokenType) {
-    const nftIID = await this.supportsNFTUri(address, false) ? ERC721WithDataUriIID : ERC20WithDataIID
-    let iid: string;
+    if (await this.supportsNFTUri(address, false)) {
+      return true;
+    }
 
+    let iid: string;
     switch (type) {
       case TokenType.NONFUNGIBLE:
-        iid = nftIID;
+        iid = ERC721WithDataIID;
         break;
       case TokenType.FUNGIBLE:
       default:
@@ -473,7 +475,7 @@ export class TokensService {
       return result.output === true;
     } catch (err) {
       this.logger.log(
-        `Failed to query extra data support on contract '${address}': assuming false`,
+        `Failed to query URI support on contract '${address}': assuming false`,
       );
       return false;
     }
@@ -569,7 +571,7 @@ export class TokensService {
     const params = [dto.name, dto.symbol, isFungible, encodedData];
     const uri = await this.supportsNFTUri(this.factoryAddress, true)
     if (uri) {
-      // supply empty string is URI isn't provided
+      // supply empty string if URI isn't provided
       // the contract itself handles empty base URI's appropriately
       params.push(dto.uri || "");
     }
