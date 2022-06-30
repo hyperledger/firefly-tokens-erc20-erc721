@@ -132,6 +132,10 @@ export class TokenPoolConfig {
   @ApiProperty()
   @IsOptional()
   blockNumber?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
 }
 
 export class TokenPool {
@@ -300,7 +304,11 @@ export class TokenTransfer {
   data?: string;
 }
 
-export class TokenMint extends OmitType(TokenTransfer, ['from']) {}
+export class TokenMint extends OmitType(TokenTransfer, ['from']) {
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
+}
 export class TokenBurn extends OmitType(TokenTransfer, ['to']) {}
 
 // Websocket notifications
@@ -332,6 +340,10 @@ export class TokenPoolEventInfo {
 
   @ApiProperty()
   schema: string;
+
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
 }
 
 export class TokenPoolEvent extends tokenEventBase {

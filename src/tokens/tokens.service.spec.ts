@@ -81,19 +81,24 @@ const APPROVE_NO_DATA = 'approve';
 const APPROVE_ALL_NO_DATA = 'setApprovalForAll';
 
 const MINT_WITH_DATA = 'mintWithData';
+const MINT_WITH_URI = 'mintWithURI';
+const SUPPORTS_INTERFACE = 'supportsInterface';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 const APPROVE_ALL_WITH_DATA = 'setApprovalForAllWithData';
+const BASE_URI = 'baseTokenUri';
 
 const METHODS_NO_DATA = [MINT_NO_DATA, BURN_NO_DATA, APPROVE_NO_DATA, APPROVE_ALL_NO_DATA];
 
 const METHODS_WITH_DATA = [
   MINT_WITH_DATA,
+  MINT_WITH_URI,
   BURN_WITH_DATA,
   TRANSFER_WITH_DATA,
   APPROVE_WITH_DATA,
   APPROVE_ALL_WITH_DATA,
+  BASE_URI,
 ];
 
 const TRANSFER_EVENT = 'Transfer';
@@ -159,6 +164,19 @@ describe('TokensService', () => {
         }),
       );
     }
+    http.post.mockReturnValueOnce(
+      new FakeObservable(<EthConnectReturn>{
+        output: 'test',
+      }),
+    );
+  };
+
+  const mockURIQuery = (withURI: boolean) => {
+    http.post.mockReturnValueOnce(
+      new FakeObservable(<EthConnectReturn>{
+        output: withURI,
+      }),
+    );
   };
 
   beforeEach(async () => {
@@ -212,6 +230,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(false, true);
 
       await service.createPool(request).then(resp => {
@@ -384,6 +403,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(true, true);
 
       await service.createPool(request).then(resp => {
@@ -414,6 +434,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(true, true);
 
       await service.createPool(request).then(resp => {
@@ -582,6 +603,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(false, false);
 
       await service.createPool(request).then(resp => {
@@ -767,7 +789,8 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockPoolQuery(true, false);
+      mockURIQuery(true);
+      mockPoolQuery(undefined, false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -781,6 +804,7 @@ describe('TokensService', () => {
             name: NAME,
             address: CONTRACT_ADDRESS,
             schema: ERC721_WITH_DATA_SCHEMA,
+            uri: 'test',
           },
         } as TokenPoolEvent);
       });
@@ -797,6 +821,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
+      mockURIQuery(false);
       mockPoolQuery(true, false);
 
       await service.createPool(request).then(resp => {
@@ -840,6 +865,7 @@ describe('TokensService', () => {
         },
       };
 
+      // mockURIQuery(false);
       mockPoolQuery(undefined, false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
@@ -901,6 +927,52 @@ describe('TokensService', () => {
       await expect(service.mint(request)).resolves.toEqual({
         id: 'responseId',
       } as AsyncResponse);
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('should mint ERC721WithData token with correct abi, custom uri, and inputs', async () => {
+      const request: TokenMint = {
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolLocator: ERC721_WITH_DATA_POOL_ID,
+        to: '0x123',
+        uri: 'ipfs://CID',
+      };
+
+      const mockEthConnectURIQuery: EthConnectMsgRequest = {
+        headers: {
+          type: 'Query',
+        },
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC721WithData.find(
+          abi => abi.name === SUPPORTS_INTERFACE,
+        ) as IAbiMethod,
+        params: ['0x8706707d'],
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: abiTypeMap.ERC721WithData.find(abi => abi.name === MINT_WITH_URI) as IAbiMethod,
+        params: ['0x123', '721', '0x00', 'ipfs://CID'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      mockURIQuery(true);
+
+      http.post.mockReturnValueOnce(new FakeObservable(response));
+      await expect(service.mint(request)).resolves.toEqual({
+        id: 'responseId',
+      } as AsyncResponse);
+
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectURIQuery, OPTIONS);
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
 

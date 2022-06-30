@@ -49,4 +49,6 @@ interface IERC721WithData is IERC165 {
         bool approved,
         bytes calldata data
     ) external;
+
+    function baseTokenUri() external returns(string memory);
 }
