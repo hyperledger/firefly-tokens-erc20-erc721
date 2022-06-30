@@ -98,7 +98,7 @@ const METHODS_WITH_DATA = [
   TRANSFER_WITH_DATA,
   APPROVE_WITH_DATA,
   APPROVE_ALL_WITH_DATA,
-  BASE_URI
+  BASE_URI,
 ];
 
 const TRANSFER_EVENT = 'Transfer';
@@ -166,7 +166,7 @@ describe('TokensService', () => {
     }
     http.post.mockReturnValueOnce(
       new FakeObservable(<EthConnectReturn>{
-        output: "test",
+        output: 'test',
       }),
     );
   };
@@ -801,7 +801,7 @@ describe('TokensService', () => {
             name: NAME,
             address: CONTRACT_ADDRESS,
             schema: ERC721_WITH_DATA_SCHEMA,
-            uri: "test",
+            uri: 'test',
           },
         } as TokenPoolEvent);
       });
@@ -932,7 +932,7 @@ describe('TokensService', () => {
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
-        uri: 'ipfs://CID'
+        uri: 'ipfs://CID',
       };
 
       const mockEthConnectURIQuery: EthConnectMsgRequest = {
@@ -940,7 +940,9 @@ describe('TokensService', () => {
           type: 'Query',
         },
         to: CONTRACT_ADDRESS,
-        method: abiTypeMap.ERC721WithData.find(abi => abi.name === SUPPORTS_INTERFACE) as IAbiMethod,
+        method: abiTypeMap.ERC721WithData.find(
+          abi => abi.name === SUPPORTS_INTERFACE,
+        ) as IAbiMethod,
         params: ['0x8706707d'],
       };
 
@@ -961,10 +963,10 @@ describe('TokensService', () => {
 
       mockURIQuery(true);
 
-      http.post.mockReturnValueOnce(new FakeObservable(response)); 
+      http.post.mockReturnValueOnce(new FakeObservable(response));
       await expect(service.mint(request)).resolves.toEqual({
         id: 'responseId',
-      } as AsyncResponse);  
+      } as AsyncResponse);
 
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectURIQuery, OPTIONS);
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);

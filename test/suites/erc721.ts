@@ -32,7 +32,7 @@ import {
 import { FakeObservable, TestContext } from '../app.e2e-context';
 
 const BASE_URL = 'http://eth';
-const BASE_URI = 'http://test-uri/'
+const BASE_URI = 'http://test-uri/';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
 const OPTIONS = {};
@@ -136,10 +136,9 @@ export default (context: TestContext) => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
+        config: { address: CONTRACT_ADDRESS, uri: BASE_URI },
         name: NAME,
         symbol: SYMBOL,
-        uri: BASE_URI,
       };
 
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
@@ -152,18 +151,17 @@ export default (context: TestContext) => {
           name: NAME,
           address: CONTRACT_ADDRESS,
           schema: ERC721_WITH_DATA_SCHEMA,
-          uri: BASE_URI
+          uri: BASE_URI,
         },
       });
 
-      mockURIQuery(true)
+      mockURIQuery(true);
       mockPoolQuery(undefined);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
-
 
     it('Create pool - correct fields - explicit standard', async () => {
       const request: TokenPool = {
@@ -189,7 +187,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockURIQuery(false)
+      mockURIQuery(false);
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -387,7 +385,7 @@ export default (context: TestContext) => {
         },
       });
 
-      mockURIQuery(false)
+      mockURIQuery(false);
       mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 

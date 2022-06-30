@@ -126,6 +126,10 @@ export class TokenPoolConfig {
   @ApiProperty()
   @IsOptional()
   blockNumber?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
 }
 
 export class TokenPool {
@@ -156,10 +160,6 @@ export class TokenPool {
   @ApiProperty()
   @IsOptional()
   config?: TokenPoolConfig;
-
-  @ApiProperty()
-  @IsOptional()
-  uri?: string;
 }
 
 export class TokenApprovalConfig {
