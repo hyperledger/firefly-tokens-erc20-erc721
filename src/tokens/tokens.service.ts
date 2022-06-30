@@ -463,7 +463,7 @@ export class TokensService {
       default:
         iid = ERC20WithDataIID;
         break;
-    };
+    }
 
     try {
       const result = await this.query(address, supportsInterfaceABI, [iid]);
@@ -479,19 +479,21 @@ export class TokensService {
 
   async supportsNFTUri(address: string, factory: boolean) {
     const support = this.uriSupportCache.get(address);
-    if (support) {
+    if (support === true) {
       return support;
     }
 
     try {
-      const result = await this.query(address, supportsInterfaceABI, factory ? [TokenFactoryIID] :[ERC721WithDataUriIID]);
+      const result = await this.query(
+        address,
+        supportsInterfaceABI,
+        factory ? [TokenFactoryIID] : [ERC721WithDataUriIID],
+      );
       this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
       this.uriSupportCache.set(address, result.output);
       return result.output === true;
     } catch (err) {
-      this.logger.log(
-        `Failed to query URI support on contract '${address}': assuming false`,
-      );
+      this.logger.log(`Failed to query URI support on contract '${address}': assuming false`);
       return false;
     }
   }
@@ -561,9 +563,9 @@ export class TokensService {
     }
 
     const eventInfo: TokenPoolEventInfo = {
-        name: poolInfo.name,
-        address,
-        schema,
+      name: poolInfo.name,
+      address,
+      schema,
     };
 
     if (await this.supportsNFTUri(poolLocator.address, false)) {
@@ -594,11 +596,11 @@ export class TokensService {
       throw new BadRequestException('Failed to parse factory contract ABI');
     }
     const params = [dto.name, dto.symbol, isFungible, encodedData];
-    const uri = await this.supportsNFTUri(this.factoryAddress, true)
-    if (uri) {
+    const uri = await this.supportsNFTUri(this.factoryAddress, true);
+    if (uri === true) {
       // supply empty string if URI isn't provided
       // the contract itself handles empty base URI's appropriately
-      params.push(dto.uri || "");
+      params.push(dto.config?.uri !== undefined ? dto.config.uri : '');
     }
 
     const response = await this.sendTransaction(
@@ -716,7 +718,7 @@ export class TokensService {
     }
 
     let supportsUri = false;
-    if (dto.uri) {
+    if (dto.uri !== undefined) {
       supportsUri = await this.supportsNFTUri(poolLocator.address, false);
     }
 
