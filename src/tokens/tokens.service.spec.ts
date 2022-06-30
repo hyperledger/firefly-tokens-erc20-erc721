@@ -783,7 +783,7 @@ describe('TokensService', () => {
       };
 
       mockURIQuery(true);
-      mockPoolQuery(true, false);
+      mockPoolQuery(undefined, false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
