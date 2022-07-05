@@ -118,6 +118,9 @@ const requestIdDescription =
   'Optional ID to identify this request. Must be unique for every request. ' +
   'If none is provided, one will be assigned and returned in the 202 response.';
 
+const transferConfigDescription =
+  'Optional configuration info for the token transfer. Reserved for future use.';
+
 export class TokenPoolConfig {
   @ApiProperty()
   @IsOptional()
@@ -292,6 +295,10 @@ export class TokenTransfer {
   @ApiProperty()
   @IsOptional()
   data?: string;
+
+  @ApiProperty({ description: transferConfigDescription })
+  @IsOptional()
+  config?: any;
 }
 
 export class TokenMint extends OmitType(TokenTransfer, ['from']) {
