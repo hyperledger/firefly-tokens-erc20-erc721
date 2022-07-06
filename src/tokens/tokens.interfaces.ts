@@ -118,6 +118,9 @@ const requestIdDescription =
   'Optional ID to identify this request. Must be unique for every request. ' +
   'If none is provided, one will be assigned and returned in the 202 response.';
 
+const transferConfigDescription =
+  'Optional configuration info for the token transfer. Reserved for future use.';
+
 export class TokenPoolConfig {
   @ApiProperty()
   @IsOptional()
@@ -126,6 +129,10 @@ export class TokenPoolConfig {
   @ApiProperty()
   @IsOptional()
   blockNumber?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
 }
 
 export class TokenPool {
@@ -288,9 +295,17 @@ export class TokenTransfer {
   @ApiProperty()
   @IsOptional()
   data?: string;
+
+  @ApiProperty({ description: transferConfigDescription })
+  @IsOptional()
+  config?: any;
 }
 
-export class TokenMint extends OmitType(TokenTransfer, ['from']) {}
+export class TokenMint extends OmitType(TokenTransfer, ['from']) {
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
+}
 export class TokenBurn extends OmitType(TokenTransfer, ['to']) {}
 
 // Websocket notifications
@@ -318,6 +333,10 @@ export class TokenPoolEventInfo {
 
   @ApiProperty()
   schema: string;
+
+  @ApiProperty()
+  @IsOptional()
+  uri?: string;
 }
 
 export class TokenPoolEvent extends tokenEventBase {

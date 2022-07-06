@@ -25,6 +25,7 @@ import {
 } from '@nestjs/common';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { lastValueFrom } from 'rxjs';
+import LRUCache from 'lru-cache';
 import ERC20NoDataABI from '../abi/ERC20NoData.json';
 import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
@@ -63,6 +64,7 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
+  TokenPoolEventInfo,
 } from './tokens.interfaces';
 import {
   decodeHex,
@@ -77,6 +79,8 @@ import {
 
 const ERC20WithDataIID = '0xaefdad0f';
 const ERC721WithDataIID = '0xb2429c12';
+const ERC721WithDataUriIID = '0x8706707d';
+const TokenFactoryIID = '0x83a74a0c';
 const supportsInterfaceABI = IERC165ABI.abi.find(m => m.name === 'supportsInterface');
 
 export const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
@@ -87,6 +91,7 @@ abiSchemaMap.set('ERC721WithData', ERC721WithDataABI.abi);
 
 export interface AbiMethods {
   MINT: string;
+  MINTURI: string | null;
   TRANSFER: string;
   BURN: string;
   NAME: string;
@@ -94,6 +99,7 @@ export interface AbiMethods {
   APPROVE: string;
   APPROVEFORALL: string | null;
   DECIMALS: string | null;
+  BASEURI: string | null;
 }
 
 export interface AbiEvents {
@@ -105,6 +111,7 @@ export interface AbiEvents {
 const abiMethodMap = new Map<ContractSchemaStrings, AbiMethods>();
 abiMethodMap.set('ERC20NoData', {
   MINT: 'mint',
+  MINTURI: null,
   TRANSFER: 'transferFrom',
   BURN: 'burn',
   APPROVE: 'approve',
@@ -112,9 +119,11 @@ abiMethodMap.set('ERC20NoData', {
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: 'decimals',
+  BASEURI: null,
 });
 abiMethodMap.set('ERC20WithData', {
   MINT: 'mintWithData',
+  MINTURI: null,
   TRANSFER: 'transferWithData',
   BURN: 'burnWithData',
   APPROVE: 'approveWithData',
@@ -122,9 +131,11 @@ abiMethodMap.set('ERC20WithData', {
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: 'decimals',
+  BASEURI: null,
 });
 abiMethodMap.set('ERC721WithData', {
   MINT: 'mintWithData',
+  MINTURI: 'mintWithURI',
   TRANSFER: 'transferWithData',
   BURN: 'burnWithData',
   APPROVE: 'approveWithData',
@@ -132,9 +143,11 @@ abiMethodMap.set('ERC721WithData', {
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: null,
+  BASEURI: 'baseTokenUri',
 });
 abiMethodMap.set('ERC721NoData', {
   MINT: 'mint',
+  MINTURI: null,
   TRANSFER: 'safeTransferFrom',
   BURN: 'burn',
   APPROVE: 'approve',
@@ -142,6 +155,7 @@ abiMethodMap.set('ERC721NoData', {
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: null,
+  BASEURI: null,
 });
 
 const abiEventMap = new Map<ContractSchemaStrings, AbiEvents>();
@@ -184,6 +198,8 @@ type ContractSchemaStrings = keyof typeof ContractSchema;
 @Injectable()
 export class TokensService {
   private readonly logger = new Logger(TokensService.name);
+  // cache tracking if a contract address supports custom URI's
+  private uriSupportCache: LRUCache<string, boolean>;
 
   baseUrl: string;
   fftmUrl: string;
@@ -198,7 +214,9 @@ export class TokensService {
     public http: HttpService,
     private eventstream: EventStreamService,
     private proxy: EventStreamProxyGateway,
-  ) {}
+  ) {
+    this.uriSupportCache = new LRUCache({ max: 500 });
+  }
 
   configure(
     baseUrl: string,
@@ -423,7 +441,21 @@ export class TokensService {
   }
 
   async supportsData(address: string, type: TokenType) {
-    const iid = type === TokenType.FUNGIBLE ? ERC20WithDataIID : ERC721WithDataIID;
+    if (await this.supportsNFTUri(address, false)) {
+      return true;
+    }
+
+    let iid: string;
+    switch (type) {
+      case TokenType.NONFUNGIBLE:
+        iid = ERC721WithDataIID;
+        break;
+      case TokenType.FUNGIBLE:
+      default:
+        iid = ERC20WithDataIID;
+        break;
+    }
+
     try {
       const result = await this.query(address, supportsInterfaceABI, [iid]);
       this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
@@ -432,6 +464,27 @@ export class TokensService {
       this.logger.log(
         `Failed to query extra data support on contract '${address}': assuming false`,
       );
+      return false;
+    }
+  }
+
+  async supportsNFTUri(address: string, factory: boolean) {
+    const support = this.uriSupportCache.get(address);
+    if (support === true) {
+      return support;
+    }
+
+    try {
+      const result = await this.query(
+        address,
+        supportsInterfaceABI,
+        factory ? [TokenFactoryIID] : [ERC721WithDataUriIID],
+      );
+      this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
+      this.uriSupportCache.set(address, result.output);
+      return result.output === true;
+    } catch (err) {
+      this.logger.log(`Failed to query URI support on contract '${address}': assuming false`);
       return false;
     }
   }
@@ -500,6 +553,20 @@ export class TokensService {
       );
     }
 
+    const eventInfo: TokenPoolEventInfo = {
+      name: poolInfo.name,
+      address,
+      schema,
+    };
+
+    if (await this.supportsNFTUri(poolLocator.address, false)) {
+      const method = this.getMethodAbi(schema as ContractSchemaStrings, 'BASEURI');
+      if (method !== undefined) {
+        const baseUriResponse = await this.query(poolLocator.address, method, []);
+        eventInfo.uri = baseUriResponse.output;
+      }
+    }
+
     const tokenPoolEvent: TokenPoolEvent = {
       data: dto.data,
       poolLocator: packPoolLocator(poolLocator),
@@ -507,11 +574,7 @@ export class TokensService {
       type: dto.type,
       symbol: poolInfo.symbol,
       decimals: poolInfo.decimals,
-      info: {
-        name: poolInfo.name,
-        address,
-        schema,
-      },
+      info: eventInfo,
     };
     return tokenPoolEvent;
   }
@@ -523,13 +586,20 @@ export class TokensService {
     if (method === undefined) {
       throw new BadRequestException('Failed to parse factory contract ABI');
     }
+    const params = [dto.name, dto.symbol, isFungible, encodedData];
+    const uri = await this.supportsNFTUri(this.factoryAddress, true);
+    if (uri === true) {
+      // supply empty string if URI isn't provided
+      // the contract itself handles empty base URI's appropriately
+      params.push(dto.config?.uri !== undefined ? dto.config.uri : '');
+    }
 
     const response = await this.sendTransaction(
       dto.signer,
       this.factoryAddress,
       dto.requestId,
       method,
-      [dto.name, dto.symbol, isFungible, encodedData],
+      params,
     );
     return { id: response.id };
   }
@@ -638,10 +708,16 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
+    let supportsUri = false;
+    if (dto.uri !== undefined) {
+      supportsUri = await this.supportsNFTUri(poolLocator.address, false);
+    }
+
     const schema = poolLocator.schema as ContractSchemaStrings;
-    const methodAbi = this.getMethodAbi(schema, 'MINT');
+    const methodAbi = this.getMethodAbi(schema, supportsUri ? 'MINTURI' : 'MINT');
     const params = [dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    supportsUri && params.push(dto.uri);
 
     const response = await this.sendTransaction(
       dto.signer,
