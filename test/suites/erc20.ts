@@ -121,7 +121,6 @@ export default (context: TestContext) => {
         },
       });
 
-      mockURIQuery(false);
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -175,7 +174,6 @@ export default (context: TestContext) => {
         },
       });
 
-      mockURIQuery(false);
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -207,7 +205,6 @@ export default (context: TestContext) => {
         },
       });
 
-      mockURIQuery(false);
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -372,7 +369,6 @@ export default (context: TestContext) => {
         },
       });
 
-      mockURIQuery(false);
       mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -424,7 +420,6 @@ export default (context: TestContext) => {
         },
       });
 
-      mockURIQuery(false);
       mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 

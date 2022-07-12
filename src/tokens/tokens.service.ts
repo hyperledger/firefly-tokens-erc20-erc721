@@ -450,8 +450,10 @@ export class TokensService {
   }
 
   async supportsData(address: string, type: TokenType) {
-    if (await this.supportsNFTUri(address, false)) {
-      return true;
+    if (type === TokenType.NONFUNGIBLE) {
+      if (await this.supportsNFTUri(address, false)) {
+        return true;
+      }
     }
 
     let iid: string;
@@ -479,7 +481,7 @@ export class TokensService {
 
   async supportsNFTUri(address: string, factory: boolean) {
     const support = this.uriSupportCache.get(address);
-    if (support === true) {
+    if (support !== undefined) {
       return support;
     }
 
@@ -489,7 +491,7 @@ export class TokensService {
         supportsInterfaceABI,
         factory ? [TokenFactoryIID] : [ERC721WithDataUriIID],
       );
-      this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
+      this.logger.log(`Querying URI support on contract '${address}': ${result.output}`);
       this.uriSupportCache.set(address, result.output);
       return result.output === true;
     } catch (err) {
@@ -548,7 +550,12 @@ export class TokensService {
   }
 
   async createFromExisting(address: string, dto: TokenPool) {
-    const withData = await this.supportsData(address, dto.type);
+    let supportsCustomUri = false;
+    if (dto.type === TokenType.NONFUNGIBLE) {
+      supportsCustomUri = await this.supportsNFTUri(address, false);
+    }
+
+    const withData = supportsCustomUri ? true : await this.supportsData(address, dto.type);
     const schema = getTokenSchema(dto.type, withData);
     const poolLocator: IPoolLocator = { address, type: dto.type, schema };
     if (!validatePoolLocator(poolLocator)) {
@@ -568,7 +575,7 @@ export class TokensService {
       schema,
     };
 
-    if (await this.supportsNFTUri(poolLocator.address, false)) {
+    if (supportsCustomUri) {
       const method = this.getMethodAbi(schema as ContractSchemaStrings, 'BASEURI');
       if (method !== undefined) {
         const baseUriResponse = await this.query(poolLocator.address, method, []);
