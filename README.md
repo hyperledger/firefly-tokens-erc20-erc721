@@ -115,6 +115,18 @@ $ npm run start:prod
 View the Swagger UI at http://localhost:3000/api<br />
 View the generated OpenAPI spec at http://localhost:3000/api-json
 
+## Manually deploy contracts
+
+To deploy both ERC20 and ERC721 contracts to a FireFly network, use the provided `deploy` script powered by [hardhat](https://github.com/NomicFoundation/hardhat).
+
+```bash
+cd samples/solidity
+npm install
+npm run deploy
+```
+
+Note: [firefly-cli](https://github.com/hyperledger/firefly-cli) will take care of contract deployment during stack creation.
+
 ## Testing
 
 ```bash
