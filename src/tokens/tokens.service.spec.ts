@@ -138,7 +138,7 @@ describe('TokensService', () => {
     getOrCreateSubscription: jest.fn(),
   };
 
-  const mockPoolQuery = (withData: boolean | undefined, withDecimals: boolean) => {
+  const mockPoolQuery = (withData: boolean | undefined, withDecimals: boolean, getBaseUri: boolean) => {
     if (withData !== undefined) {
       http.post.mockReturnValueOnce(
         new FakeObservable(<EthConnectReturn>{
@@ -164,11 +164,13 @@ describe('TokensService', () => {
         }),
       );
     }
-    http.post.mockReturnValueOnce(
-      new FakeObservable(<EthConnectReturn>{
-        output: 'test',
-      }),
-    );
+    if (getBaseUri) {
+      http.post.mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: 'test',
+        }),
+      );
+    }
   };
 
   const mockURIQuery = (withURI: boolean) => {
@@ -230,8 +232,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockURIQuery(false);
-      mockPoolQuery(false, true);
+      mockPoolQuery(false, true, false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -274,7 +275,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockPoolQuery(undefined, true);
+      mockPoolQuery(undefined, true, false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -403,8 +404,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockURIQuery(false);
-      mockPoolQuery(true, true);
+      mockPoolQuery(true, true, false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -434,8 +434,7 @@ describe('TokensService', () => {
         symbol: SYMBOL,
       };
 
-      mockURIQuery(false);
-      mockPoolQuery(true, true);
+      mockPoolQuery(true, true, false);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -478,7 +477,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockPoolQuery(undefined, true);
+      mockPoolQuery(undefined, true, false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -604,7 +603,7 @@ describe('TokensService', () => {
       };
 
       mockURIQuery(false);
-      mockPoolQuery(false, false);
+      mockPoolQuery(false, false, true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -647,7 +646,7 @@ describe('TokensService', () => {
         },
       };
 
-      mockPoolQuery(undefined, false);
+      mockPoolQuery(undefined, false, false);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
@@ -790,7 +789,7 @@ describe('TokensService', () => {
       };
 
       mockURIQuery(true);
-      mockPoolQuery(undefined, false);
+      mockPoolQuery(undefined, false, true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -822,7 +821,7 @@ describe('TokensService', () => {
       };
 
       mockURIQuery(false);
-      mockPoolQuery(true, false);
+      mockPoolQuery(true, false, true);
 
       await service.createPool(request).then(resp => {
         expect(resp).toEqual({
@@ -865,8 +864,7 @@ describe('TokensService', () => {
         },
       };
 
-      // mockURIQuery(false);
-      mockPoolQuery(undefined, false);
+      mockPoolQuery(undefined, false, true);
 
       eventstream.createOrUpdateStream = jest.fn(() => mockEventStream);
       eventstream.getOrCreateSubscription = jest.fn(() => new FakeObservable(undefined));
