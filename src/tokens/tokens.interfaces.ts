@@ -121,12 +121,6 @@ const requestIdDescription =
 const transferConfigDescription =
   'Optional configuration info for the token transfer. Reserved for future use.';
 
-export class InitRequest {
-  @ApiProperty()
-  @IsOptional()
-  namespace?: string;
-}
-
 export class TokenPoolConfig {
   @ApiProperty()
   @IsOptional()
@@ -269,8 +263,8 @@ export class TokenPoolActivate {
   requestId?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  namespace: string;
+  @IsOptional()
+  poolData?: string;
 }
 
 export class TokenTransfer {
@@ -332,10 +326,6 @@ class tokenEventBase {
 
   @ApiProperty()
   blockchain?: BlockchainEvent;
-
-  @ApiProperty()
-  @IsOptional()
-  namespace?: string;
 }
 
 export class TokenPoolEventInfo {
@@ -388,6 +378,9 @@ export class TokenTransferEvent extends tokenEventBase {
 
   @ApiProperty()
   amount: string;
+
+  @ApiProperty()
+  poolData?: string;
 }
 
 export class TokenMintEvent extends OmitType(TokenTransferEvent, ['from']) {}
@@ -408,6 +401,9 @@ export class TokenApprovalEvent extends tokenEventBase {
 
   @ApiProperty()
   info: any;
+
+  @ApiProperty()
+  poolData?: string;
 }
 
 // ABI format
