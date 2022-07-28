@@ -64,7 +64,6 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
-  InitRequest,
   TokenPoolEventInfo,
 } from './tokens.interfaces';
 import {
@@ -282,17 +281,10 @@ export class TokensService {
   }
 
   /**
-   * Initialization of event stream and base subscription.
+   * One-time initialization of event stream and base subscription.
    */
-  async init(dto: InitRequest) {
-    if (dto.namespace === undefined) {
-      // Quietly ignore this instead of failing, to avoid breaking older CLIs
-      this.logger.warn('Ignoring init request with no namespace provided');
-      return;
-    }
-    await this.migrationCheck(dto.namespace);
+  async init() {
     this.stream = await this.getStream();
-
     if (this.factoryAddress !== '') {
       const eventABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateEvent);
       const methodABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
@@ -302,7 +294,7 @@ export class TokensService {
           eventABI,
           this.stream.id,
           tokenCreateEvent,
-          packSubscriptionName(dto.namespace, this.factoryAddress, tokenCreateEvent),
+          packSubscriptionName(undefined, this.factoryAddress, tokenCreateEvent),
           this.factoryAddress,
           [methodABI],
           '0',
@@ -325,7 +317,7 @@ export class TokensService {
    * Log a warning if any potential issues are flagged. User may need to delete
    * subscriptions manually and reactivate the pool directly.
    */
-  async migrationCheck(namespace: string): Promise<boolean> {
+  async migrationCheck(): Promise<boolean> {
     const streams = await this.eventstream.getStreams();
     const existingStream = streams.find(s => s.name === this.topic);
     if (existingStream === undefined) {
@@ -342,29 +334,28 @@ export class TokensService {
     const foundEvents = new Map<string, string[]>();
     for (const sub of subscriptions.filter(s => s.stream === existingStream.id)) {
       const parts = unpackSubscriptionName(sub.name);
+      if (parts.poolLocator === this.factoryAddress) {
+        continue;
+      }
       if (parts.namespace === undefined) {
         this.logger.warn(
           `Non-parseable subscription names found in event stream ${existingStream.name}.` +
             `It is recommended to delete all subscriptions and activate all pools again.`,
         );
         return true;
-      } else if (parts.namespace !== namespace) {
-        continue;
       }
-      const existing = foundEvents.get(parts.poolLocator);
+      const key = [parts.namespace, parts.poolLocator].join(':');
+      const existing = foundEvents.get(key);
       if (existing !== undefined) {
         existing.push(parts.event);
       } else {
-        foundEvents.set(parts.poolLocator, [parts.event]);
+        foundEvents.set(key, [parts.event]);
       }
     }
 
     // Expect to have found subscriptions for each of the events.
-    for (const [poolLocator, events] of foundEvents) {
-      if (poolLocator === this.factoryAddress) {
-        continue;
-      }
-
+    for (const [key, events] of foundEvents) {
+      const [_, poolLocator] = key.split(':', 2);
       const unpackedLocator = unpackPoolLocator(poolLocator);
       if (!validatePoolLocator(unpackedLocator)) {
         this.logger.warn(
@@ -926,7 +917,6 @@ class TokenListener implements EventListener {
     return {
       event: 'token-pool',
       data: <TokenPoolEvent>{
-        namespace: unpackedSub.namespace,
         standard: type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
         poolLocator: packPoolLocator(poolLocator),
         type,

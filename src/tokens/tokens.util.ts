@@ -42,8 +42,15 @@ export function decodeHex(data: string) {
   return decoded === '\x00' ? '' : decoded;
 }
 
-export function packSubscriptionName(namespace: string, poolLocator: string, event: string) {
-  return [SUBSCRIPTION_PREFIX, namespace, poolLocator, event].join(':');
+export function packSubscriptionName(
+  namespace: string | undefined,
+  poolLocator: string,
+  event: string,
+) {
+  if (namespace !== undefined) {
+    return [SUBSCRIPTION_PREFIX, namespace, poolLocator, event].join(':');
+  }
+  return [SUBSCRIPTION_PREFIX, poolLocator, event].join(':');
 }
 
 export function unpackSubscriptionName(data: string) {
