@@ -42,13 +42,9 @@ export function decodeHex(data: string) {
   return decoded === '\x00' ? '' : decoded;
 }
 
-export function packSubscriptionName(
-  namespace: string | undefined,
-  poolLocator: string,
-  event: string,
-) {
-  if (namespace !== undefined) {
-    return [SUBSCRIPTION_PREFIX, namespace, poolLocator, event].join(':');
+export function packSubscriptionName(poolLocator: string, event: string, poolData?: string) {
+  if (poolData !== undefined) {
+    return [SUBSCRIPTION_PREFIX, poolLocator, event, poolData].join(':');
   }
   return [SUBSCRIPTION_PREFIX, poolLocator, event].join(':');
 }
@@ -57,21 +53,21 @@ export function unpackSubscriptionName(data: string) {
   const parts = data.split(':');
   if (parts.length === 4 && parts[0] === SUBSCRIPTION_PREFIX) {
     return {
-      namespace: parts[1],
-      poolLocator: parts[2],
-      event: parts[3],
+      poolLocator: parts[1],
+      event: parts[2],
+      poolData: parts[3],
     };
   } else if (parts.length === 3) {
     return {
-      namespace: undefined,
       poolLocator: parts[1],
       event: parts[2],
+      poolData: undefined,
     };
   } else if (parts.length === 2) {
     return {
-      namespace: undefined,
       poolLocator: parts[1],
       event: undefined,
+      poolData: undefined,
     };
   } else {
     return {};

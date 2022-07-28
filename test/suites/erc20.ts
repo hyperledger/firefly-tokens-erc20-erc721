@@ -86,14 +86,6 @@ export default (context: TestContext) => {
       );
   };
 
-  const mockURIQuery = (withURI: boolean) => {
-    context.http.post.mockReturnValueOnce(
-      new FakeObservable(<EthConnectReturn>{
-        output: withURI,
-      }),
-    );
-  };
-
   describe('ERC20WithData', () => {
     it('Create pool - unrecognized fields', async () => {
       const request = {

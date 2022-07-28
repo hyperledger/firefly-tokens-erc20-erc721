@@ -215,7 +215,7 @@ export class TokensService {
     private eventstream: EventStreamService,
     private proxy: EventStreamProxyGateway,
   ) {
-    this.uriSupportCache = new LRUCache({ max: 500 });
+    this.uriSupportCache = new LRUCache<string, boolean>({ max: 500 });
   }
 
   configure(
@@ -294,7 +294,7 @@ export class TokensService {
           eventABI,
           this.stream.id,
           tokenCreateEvent,
-          packSubscriptionName(undefined, this.factoryAddress, tokenCreateEvent),
+          packSubscriptionName(this.factoryAddress, tokenCreateEvent),
           this.factoryAddress,
           [methodABI],
           '0',
@@ -337,14 +337,14 @@ export class TokensService {
       if (parts.poolLocator === this.factoryAddress) {
         continue;
       }
-      if (parts.namespace === undefined) {
+      if (parts.poolData === undefined) {
         this.logger.warn(
           `Non-parseable subscription names found in event stream ${existingStream.name}.` +
             `It is recommended to delete all subscriptions and activate all pools again.`,
         );
         return true;
       }
-      const key = [parts.namespace, parts.poolLocator].join(':');
+      const key = [parts.poolData, parts.poolLocator].join(':');
       const existing = foundEvents.get(key);
       if (existing !== undefined) {
         existing.push(parts.event);
@@ -470,7 +470,7 @@ export class TokensService {
     }
   }
 
-  async supportsNFTUri(address: string, factory: boolean) {
+  async supportsNFTUri(address: string, factory: boolean): Promise<boolean> {
     const support = this.uriSupportCache.get(address);
     if (support !== undefined) {
       return support;
@@ -656,7 +656,7 @@ export class TokensService {
         transferAbi,
         stream.id,
         abiEvents.TRANSFER,
-        packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.TRANSFER),
+        packSubscriptionName(dto.poolLocator, abiEvents.TRANSFER, dto.poolData),
         poolLocator.address,
         methodsToSubTo,
         this.getSubscriptionBlockNumber(dto.config),
@@ -666,7 +666,7 @@ export class TokensService {
         approvalAbi,
         stream.id,
         abiEvents.APPROVAL,
-        packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.APPROVAL),
+        packSubscriptionName(dto.poolLocator, abiEvents.APPROVAL, dto.poolData),
         poolLocator.address,
         methodsToSubTo,
         this.getSubscriptionBlockNumber(dto.config),
@@ -683,7 +683,7 @@ export class TokensService {
           approvalForAllAbi,
           stream.id,
           abiEvents.APPROVALFORALL,
-          packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.APPROVALFORALL),
+          packSubscriptionName(dto.poolLocator, abiEvents.APPROVALFORALL, dto.poolData),
           poolLocator.address,
           methodsToSubTo,
           this.getSubscriptionBlockNumber(dto.config),
@@ -901,7 +901,6 @@ class TokenListener implements EventListener {
     event: TokenPoolCreationEvent,
   ): Promise<WebSocketMessage | undefined> {
     const { data: output } = event;
-    const unpackedSub = unpackSubscriptionName(subName);
     const decodedData = decodeHex(output.data ?? '');
 
     if (event.address.toLowerCase() !== this.service.factoryAddress) {
@@ -969,7 +968,7 @@ class TokenListener implements EventListener {
     const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
     const commonData = {
       id: eventId,
-      namespace: unpackedSub.namespace,
+      poolData: unpackedSub.poolData,
       poolLocator: unpackedSub.poolLocator,
       amount: poolLocator.type === TokenType.FUNGIBLE ? output.value : '1',
       signer: event.inputSigner,
@@ -1049,7 +1048,7 @@ class TokenListener implements EventListener {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: eventId,
-        namespace: unpackedSub.namespace,
+        poolData: unpackedSub.poolData,
         subject,
         poolLocator: unpackedSub.poolLocator,
         operator,
@@ -1095,7 +1094,7 @@ class TokenListener implements EventListener {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: eventId,
-        namespace: unpackedSub.namespace,
+        poolData: unpackedSub.poolData,
         subject: `${output.owner}:${output.operator}`,
         poolLocator: unpackedSub.poolLocator,
         operator: output.operator,

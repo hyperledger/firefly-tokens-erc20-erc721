@@ -263,8 +263,8 @@ export class TokenPoolActivate {
   requestId?: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  namespace: string;
+  @IsOptional()
+  poolData?: string;
 }
 
 export class TokenTransfer {
@@ -380,7 +380,7 @@ export class TokenTransferEvent extends tokenEventBase {
   amount: string;
 
   @ApiProperty()
-  namespace?: string;
+  poolData?: string;
 }
 
 export class TokenMintEvent extends OmitType(TokenTransferEvent, ['from']) {}
@@ -403,7 +403,7 @@ export class TokenApprovalEvent extends tokenEventBase {
   info: any;
 
   @ApiProperty()
-  namespace?: string;
+  poolData?: string;
 }
 
 // ABI format

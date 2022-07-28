@@ -39,31 +39,31 @@ describe('Util', () => {
   });
 
   it('packSubscriptionName', () => {
-    expect(packSubscriptionName('ns1', '0x123456', 'create')).toEqual('fft:ns1:0x123456:create');
+    expect(packSubscriptionName('0x123456', 'create', 'ns1')).toEqual('fft:0x123456:create:ns1');
     expect(
       packSubscriptionName(
-        'ns1',
         'address=0x5bb034ca2fd1ac18e46978a7bbdbe4923e158d83&standard=ERC20WithData&type=fungible',
         'mintWithData',
+        'ns1',
       ),
     ).toEqual(
-      'fft:ns1:address=0x5bb034ca2fd1ac18e46978a7bbdbe4923e158d83&standard=ERC20WithData&type=fungible:mintWithData',
+      'fft:address=0x5bb034ca2fd1ac18e46978a7bbdbe4923e158d83&standard=ERC20WithData&type=fungible:mintWithData:ns1',
     );
   });
 
   it('unpackSubscriptionName', () => {
-    expect(unpackSubscriptionName('fft:ns1:0x123456:create')).toEqual({
-      namespace: 'ns1',
+    expect(unpackSubscriptionName('fft:0x123456:create:ns1')).toEqual({
+      poolData: 'ns1',
       poolLocator: '0x123456',
       event: 'create',
     });
     expect(unpackSubscriptionName('token:0x123456:create')).toEqual({
-      namespace: undefined,
+      poolData: undefined,
       poolLocator: '0x123456',
       event: 'create',
     });
     expect(unpackSubscriptionName('token:0x123456')).toEqual({
-      namespace: undefined,
+      poolData: undefined,
       poolLocator: '0x123456',
       event: undefined,
     });
