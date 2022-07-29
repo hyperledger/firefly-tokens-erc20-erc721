@@ -89,10 +89,10 @@ async function bootstrap() {
   try {
     await app.get(TokensService).migrationCheck();
   } catch (err) {
-    // do nothing
+    this.logger.debug('Subscription checks skipped (ethconnect may not be up)');
   }
 
-  if (autoInit !== 'false') {
+  if (autoInit.toLowerCase() !== 'false') {
     await app.get(TokensService).init();
   }
 

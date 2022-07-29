@@ -325,26 +325,25 @@ export class TokensService {
     }
 
     const allSubscriptions = await this.eventstream.getSubscriptions();
-    const streamId = existingStream.id;
-    const subscriptions = allSubscriptions.filter(s => s.stream === streamId);
+    const subscriptions = allSubscriptions.filter(s => s.stream === existingStream.id);
     if (subscriptions.length === 0) {
       return false;
     }
 
     const foundEvents = new Map<string, string[]>();
-    for (const sub of subscriptions.filter(s => s.stream === existingStream.id)) {
+    for (const sub of subscriptions) {
       const parts = unpackSubscriptionName(sub.name);
-      if (parts.poolLocator === this.factoryAddress) {
-        continue;
-      }
-      if (parts.poolData === undefined) {
+      if (parts.poolLocator === undefined || parts.event === undefined) {
         this.logger.warn(
-          `Non-parseable subscription names found in event stream ${existingStream.name}.` +
+          `Non-parseable subscription name '${sub.name}' found in event stream '${existingStream.name}'.` +
             `It is recommended to delete all subscriptions and activate all pools again.`,
         );
         return true;
       }
-      const key = [parts.poolData, parts.poolLocator].join(':');
+      if (parts.poolLocator === this.factoryAddress) {
+        continue;
+      }
+      const key = packSubscriptionName(parts.poolLocator, '', parts.poolData);
       const existing = foundEvents.get(key);
       if (existing !== undefined) {
         existing.push(parts.event);
@@ -355,20 +354,20 @@ export class TokensService {
 
     // Expect to have found subscriptions for each of the events.
     for (const [key, events] of foundEvents) {
-      const [_, poolLocator] = key.split(':', 2);
-      const unpackedLocator = unpackPoolLocator(poolLocator);
+      const parts = unpackSubscriptionName(key);
+      const unpackedLocator = unpackPoolLocator(parts.poolLocator ?? '');
       if (!validatePoolLocator(unpackedLocator)) {
         this.logger.warn(
-          `Could not parse pool locator: ${poolLocator}. ` +
-            `It is recommended to delete subscriptions for this pool and activate the pool again.`,
+          `Could not parse pool locator: '${parts.poolLocator}'. ` +
+            `This pool may not behave as expected.`,
         );
         return true;
       }
       const abiEvents = abiEventMap.get(unpackedLocator.schema as ContractSchemaStrings);
       if (abiEvents === undefined) {
         this.logger.warn(
-          `Could not parse schema from pool locator: ${poolLocator}. ` +
-            `It is recommended to delete subscriptions for this pool and activate the pool again.`,
+          `Could not determine schema from pool locator: '${parts.poolLocator}'. ` +
+            `This pool may not behave as expected.`,
         );
         return true;
       }
@@ -378,7 +377,7 @@ export class TokensService {
         !allEvents.every(event => event === null || events.includes(event))
       ) {
         this.logger.warn(
-          `Event stream subscriptions for pool ${poolLocator} do not include all expected events ` +
+          `Event stream subscriptions for pool '${parts.poolLocator}' do not include all expected events ` +
             `(${allEvents}). Events may not be properly delivered to this pool. ` +
             `It is recommended to delete its subscriptions and activate the pool again.`,
         );
