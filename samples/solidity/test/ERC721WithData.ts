@@ -22,7 +22,7 @@ describe('ERC721WithData - Unit Tests', function () {
     deployedERC721WithData = await Factory.connect(deployerSignerA).deploy(
       contractName,
       contractSymbol,
-      ""
+      '',
     );
     await deployedERC721WithData.deployed();
   });
@@ -36,7 +36,7 @@ describe('ERC721WithData - Unit Tests', function () {
   it('Create - Should create a new ERC721 instance with default state', async function () {
     expect(await deployedERC721WithData.name()).to.equal(contractName);
     expect(await deployedERC721WithData.symbol()).to.equal(contractSymbol);
-    expect(await deployedERC721WithData.baseTokenUri()).to.equal("firefly://token/");
+    expect(await deployedERC721WithData.baseTokenUri()).to.equal('firefly://token/');
   });
 
   it('Mint - Should mint successfully with a custom URI', async function () {
@@ -45,7 +45,7 @@ describe('ERC721WithData - Unit Tests', function () {
     await expect(
       deployedERC721WithData
         .connect(deployerSignerA)
-        .mintWithURI(deployerSignerA.address, 721, '0x00', "ipfs://CID"),
+        .mintWithURI(deployerSignerA.address, 721, '0x00', 'ipfs://CID'),
     )
       .to.emit(deployedERC721WithData, 'Transfer')
       .withArgs(ZERO_ADDRESS, deployerSignerA.address, 721);
@@ -149,7 +149,7 @@ describe('ERC721WithData - Unit Tests', function () {
       deployedERC721WithData
         .connect(deployerSignerA)
         .transferWithData(signerB.address, signerC.address, 720, '0x00'),
-    ).to.be.revertedWith('ERC721: transfer caller is not owner nor approved');
+    ).to.be.revertedWith('ERC721: caller is not token owner nor approved');
 
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(2);
