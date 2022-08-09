@@ -838,10 +838,11 @@ export class TokensService {
 class TokenListener implements EventListener {
   private readonly logger = new Logger(TokenListener.name);
 
-  constructor(private readonly service: TokensService) {}
+  constructor(private readonly service: TokensService) { }
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
-    switch (event.signature) {
+    let signature = this.trimEventSignature(event.signature)
+    switch (signature) {
       case tokenCreateEventSignature:
         process(await this.transformTokenPoolCreationEvent(subName, event));
         break;
@@ -895,6 +896,14 @@ class TokenListener implements EventListener {
     return signature.substring(0, signature.indexOf('('));
   }
 
+  private trimEventSignature(signature: string) {
+    let firstColon = signature.indexOf(":")
+    if (firstColon > 0) {
+      return signature.substring(firstColon + 1)
+    }
+    return signature
+  }
+
   private async transformTokenPoolCreationEvent(
     subName: string,
     event: TokenPoolCreationEvent,
@@ -928,9 +937,9 @@ class TokenListener implements EventListener {
         },
         blockchain: {
           id: this.formatBlockchainEventId(event),
-          name: this.stripParamsFromSignature(event.signature),
+          name: this.stripParamsFromSignature(this.trimEventSignature(event.signature)),
           location: 'address=' + event.address,
-          signature: event.signature,
+          signature: this.trimEventSignature(event.signature),
           timestamp: event.timestamp,
           output,
           info: {
@@ -939,7 +948,7 @@ class TokenListener implements EventListener {
             transactionHash: event.transactionHash,
             logIndex: event.logIndex,
             address: event.address,
-            signature: event.signature,
+            signature: this.trimEventSignature(event.signature),
           },
         },
       },
@@ -974,9 +983,9 @@ class TokenListener implements EventListener {
       data: decodedData,
       blockchain: {
         id: eventId,
-        name: this.stripParamsFromSignature(event.signature),
+        name: this.stripParamsFromSignature(this.trimEventSignature(event.signature)),
         location: 'address=' + event.address,
-        signature: event.signature,
+        signature: this.trimEventSignature(event.signature),
         timestamp: event.timestamp,
         output,
         info: {
@@ -985,7 +994,7 @@ class TokenListener implements EventListener {
           transactionIndex: event.transactionIndex,
           transactionHash: event.transactionHash,
           logIndex: event.logIndex,
-          signature: event.signature,
+          signature: this.trimEventSignature(event.signature),
         },
       },
     } as TokenTransferEvent;
@@ -1057,9 +1066,9 @@ class TokenListener implements EventListener {
         info: output,
         blockchain: {
           id: eventId,
-          name: this.stripParamsFromSignature(event.signature),
+          name: this.stripParamsFromSignature(this.trimEventSignature(event.signature)),
           location: 'address=' + event.address,
-          signature: event.signature,
+          signature: this.trimEventSignature(event.signature),
           timestamp: event.timestamp,
           output,
           info: {
@@ -1068,7 +1077,7 @@ class TokenListener implements EventListener {
             transactionHash: event.transactionHash,
             logIndex: event.logIndex,
             address: event.address,
-            signature: event.signature,
+            signature: this.trimEventSignature(event.signature),
           },
         },
       },
@@ -1105,7 +1114,7 @@ class TokenListener implements EventListener {
           id: eventId,
           name: this.stripParamsFromSignature(event.signature),
           location: 'address=' + event.address,
-          signature: event.signature,
+          signature: this.trimEventSignature(event.signature),
           timestamp: event.timestamp,
           output,
           info: {
@@ -1114,7 +1123,7 @@ class TokenListener implements EventListener {
             transactionHash: event.transactionHash,
             logIndex: event.logIndex,
             address: event.address,
-            signature: event.signature,
+            signature: this.trimEventSignature(event.signature),
           },
         },
       },
