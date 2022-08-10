@@ -64,7 +64,6 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
-  InitRequest,
   TokenPoolEventInfo,
 } from './tokens.interfaces';
 import {
@@ -216,7 +215,7 @@ export class TokensService {
     private eventstream: EventStreamService,
     private proxy: EventStreamProxyGateway,
   ) {
-    this.uriSupportCache = new LRUCache({ max: 500 });
+    this.uriSupportCache = new LRUCache<string, boolean>({ max: 500 });
   }
 
   configure(
@@ -282,17 +281,10 @@ export class TokensService {
   }
 
   /**
-   * Initialization of event stream and base subscription.
+   * One-time initialization of event stream and base subscription.
    */
-  async init(dto: InitRequest) {
-    if (dto.namespace === undefined) {
-      // Quietly ignore this instead of failing, to avoid breaking older CLIs
-      this.logger.warn('Ignoring init request with no namespace provided');
-      return;
-    }
-    await this.migrationCheck(dto.namespace);
+  async init() {
     this.stream = await this.getStream();
-
     if (this.factoryAddress !== '') {
       const eventABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateEvent);
       const methodABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
@@ -302,7 +294,7 @@ export class TokensService {
           eventABI,
           this.stream.id,
           tokenCreateEvent,
-          packSubscriptionName(dto.namespace, this.factoryAddress, tokenCreateEvent),
+          packSubscriptionName(this.factoryAddress, tokenCreateEvent),
           this.factoryAddress,
           [methodABI],
           '0',
@@ -325,7 +317,7 @@ export class TokensService {
    * Log a warning if any potential issues are flagged. User may need to delete
    * subscriptions manually and reactivate the pool directly.
    */
-  async migrationCheck(namespace: string): Promise<boolean> {
+  async migrationCheck(): Promise<boolean> {
     const streams = await this.eventstream.getStreams();
     const existingStream = streams.find(s => s.name === this.topic);
     if (existingStream === undefined) {
@@ -333,51 +325,49 @@ export class TokensService {
     }
 
     const allSubscriptions = await this.eventstream.getSubscriptions();
-    const streamId = existingStream.id;
-    const subscriptions = allSubscriptions.filter(s => s.stream === streamId);
+    const subscriptions = allSubscriptions.filter(s => s.stream === existingStream.id);
     if (subscriptions.length === 0) {
       return false;
     }
 
     const foundEvents = new Map<string, string[]>();
-    for (const sub of subscriptions.filter(s => s.stream === existingStream.id)) {
+    for (const sub of subscriptions) {
       const parts = unpackSubscriptionName(sub.name);
-      if (parts.namespace === undefined) {
+      if (parts.poolLocator === undefined || parts.event === undefined) {
         this.logger.warn(
-          `Non-parseable subscription names found in event stream ${existingStream.name}.` +
+          `Non-parseable subscription name '${sub.name}' found in event stream '${existingStream.name}'.` +
             `It is recommended to delete all subscriptions and activate all pools again.`,
         );
         return true;
-      } else if (parts.namespace !== namespace) {
+      }
+      if (parts.poolLocator === this.factoryAddress) {
         continue;
       }
-      const existing = foundEvents.get(parts.poolLocator);
+      const key = packSubscriptionName(parts.poolLocator, '', parts.poolData);
+      const existing = foundEvents.get(key);
       if (existing !== undefined) {
         existing.push(parts.event);
       } else {
-        foundEvents.set(parts.poolLocator, [parts.event]);
+        foundEvents.set(key, [parts.event]);
       }
     }
 
     // Expect to have found subscriptions for each of the events.
-    for (const [poolLocator, events] of foundEvents) {
-      if (poolLocator === this.factoryAddress) {
-        continue;
-      }
-
-      const unpackedLocator = unpackPoolLocator(poolLocator);
+    for (const [key, events] of foundEvents) {
+      const parts = unpackSubscriptionName(key);
+      const unpackedLocator = unpackPoolLocator(parts.poolLocator ?? '');
       if (!validatePoolLocator(unpackedLocator)) {
         this.logger.warn(
-          `Could not parse pool locator: ${poolLocator}. ` +
-            `It is recommended to delete subscriptions for this pool and activate the pool again.`,
+          `Could not parse pool locator: '${parts.poolLocator}'. ` +
+            `This pool may not behave as expected.`,
         );
         return true;
       }
       const abiEvents = abiEventMap.get(unpackedLocator.schema as ContractSchemaStrings);
       if (abiEvents === undefined) {
         this.logger.warn(
-          `Could not parse schema from pool locator: ${poolLocator}. ` +
-            `It is recommended to delete subscriptions for this pool and activate the pool again.`,
+          `Could not determine schema from pool locator: '${parts.poolLocator}'. ` +
+            `This pool may not behave as expected.`,
         );
         return true;
       }
@@ -387,7 +377,7 @@ export class TokensService {
         !allEvents.every(event => event === null || events.includes(event))
       ) {
         this.logger.warn(
-          `Event stream subscriptions for pool ${poolLocator} do not include all expected events ` +
+          `Event stream subscriptions for pool '${parts.poolLocator}' do not include all expected events ` +
             `(${allEvents}). Events may not be properly delivered to this pool. ` +
             `It is recommended to delete its subscriptions and activate the pool again.`,
         );
@@ -450,8 +440,10 @@ export class TokensService {
   }
 
   async supportsData(address: string, type: TokenType) {
-    if (await this.supportsNFTUri(address, false)) {
-      return true;
+    if (type === TokenType.NONFUNGIBLE) {
+      if (await this.supportsNFTUri(address, false)) {
+        return true;
+      }
     }
 
     let iid: string;
@@ -477,9 +469,9 @@ export class TokensService {
     }
   }
 
-  async supportsNFTUri(address: string, factory: boolean) {
+  async supportsNFTUri(address: string, factory: boolean): Promise<boolean> {
     const support = this.uriSupportCache.get(address);
-    if (support === true) {
+    if (support !== undefined) {
       return support;
     }
 
@@ -489,7 +481,7 @@ export class TokensService {
         supportsInterfaceABI,
         factory ? [TokenFactoryIID] : [ERC721WithDataUriIID],
       );
-      this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
+      this.logger.log(`Querying URI support on contract '${address}': ${result.output}`);
       this.uriSupportCache.set(address, result.output);
       return result.output === true;
     } catch (err) {
@@ -548,7 +540,12 @@ export class TokensService {
   }
 
   async createFromExisting(address: string, dto: TokenPool) {
-    const withData = await this.supportsData(address, dto.type);
+    let supportsCustomUri = false;
+    if (dto.type === TokenType.NONFUNGIBLE) {
+      supportsCustomUri = await this.supportsNFTUri(address, false);
+    }
+
+    const withData = supportsCustomUri ? true : await this.supportsData(address, dto.type);
     const schema = getTokenSchema(dto.type, withData);
     const poolLocator: IPoolLocator = { address, type: dto.type, schema };
     if (!validatePoolLocator(poolLocator)) {
@@ -568,7 +565,7 @@ export class TokensService {
       schema,
     };
 
-    if (await this.supportsNFTUri(poolLocator.address, false)) {
+    if (supportsCustomUri) {
       const method = this.getMethodAbi(schema as ContractSchemaStrings, 'BASEURI');
       if (method !== undefined) {
         const baseUriResponse = await this.query(poolLocator.address, method, []);
@@ -658,7 +655,7 @@ export class TokensService {
         transferAbi,
         stream.id,
         abiEvents.TRANSFER,
-        packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.TRANSFER),
+        packSubscriptionName(dto.poolLocator, abiEvents.TRANSFER, dto.poolData),
         poolLocator.address,
         methodsToSubTo,
         this.getSubscriptionBlockNumber(dto.config),
@@ -668,7 +665,7 @@ export class TokensService {
         approvalAbi,
         stream.id,
         abiEvents.APPROVAL,
-        packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.APPROVAL),
+        packSubscriptionName(dto.poolLocator, abiEvents.APPROVAL, dto.poolData),
         poolLocator.address,
         methodsToSubTo,
         this.getSubscriptionBlockNumber(dto.config),
@@ -685,7 +682,7 @@ export class TokensService {
           approvalForAllAbi,
           stream.id,
           abiEvents.APPROVALFORALL,
-          packSubscriptionName(dto.namespace, dto.poolLocator, abiEvents.APPROVALFORALL),
+          packSubscriptionName(dto.poolLocator, abiEvents.APPROVALFORALL, dto.poolData),
           poolLocator.address,
           methodsToSubTo,
           this.getSubscriptionBlockNumber(dto.config),
@@ -841,10 +838,11 @@ export class TokensService {
 class TokenListener implements EventListener {
   private readonly logger = new Logger(TokenListener.name);
 
-  constructor(private readonly service: TokensService) {}
+  constructor(private readonly service: TokensService) { }
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
-    switch (event.signature) {
+    let signature = this.trimEventSignature(event.signature)
+    switch (signature) {
       case tokenCreateEventSignature:
         process(await this.transformTokenPoolCreationEvent(subName, event));
         break;
@@ -898,12 +896,19 @@ class TokenListener implements EventListener {
     return signature.substring(0, signature.indexOf('('));
   }
 
+  private trimEventSignature(signature: string) {
+    let firstColon = signature.indexOf(":")
+    if (firstColon > 0) {
+      return signature.substring(firstColon + 1)
+    }
+    return signature
+  }
+
   private async transformTokenPoolCreationEvent(
     subName: string,
     event: TokenPoolCreationEvent,
   ): Promise<WebSocketMessage | undefined> {
     const { data: output } = event;
-    const unpackedSub = unpackSubscriptionName(subName);
     const decodedData = decodeHex(output.data ?? '');
 
     if (event.address.toLowerCase() !== this.service.factoryAddress) {
@@ -919,7 +924,6 @@ class TokenListener implements EventListener {
     return {
       event: 'token-pool',
       data: <TokenPoolEvent>{
-        namespace: unpackedSub.namespace,
         standard: type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
         poolLocator: packPoolLocator(poolLocator),
         type,
@@ -933,9 +937,9 @@ class TokenListener implements EventListener {
         },
         blockchain: {
           id: this.formatBlockchainEventId(event),
-          name: this.stripParamsFromSignature(event.signature),
+          name: this.stripParamsFromSignature(this.trimEventSignature(event.signature)),
           location: 'address=' + event.address,
-          signature: event.signature,
+          signature: this.trimEventSignature(event.signature),
           timestamp: event.timestamp,
           output,
           info: {
@@ -944,7 +948,7 @@ class TokenListener implements EventListener {
             transactionHash: event.transactionHash,
             logIndex: event.logIndex,
             address: event.address,
-            signature: event.signature,
+            signature: this.trimEventSignature(event.signature),
           },
         },
       },
@@ -972,16 +976,16 @@ class TokenListener implements EventListener {
     const poolLocator = unpackPoolLocator(unpackedSub.poolLocator);
     const commonData = {
       id: eventId,
-      namespace: unpackedSub.namespace,
+      poolData: unpackedSub.poolData,
       poolLocator: unpackedSub.poolLocator,
       amount: poolLocator.type === TokenType.FUNGIBLE ? output.value : '1',
       signer: event.inputSigner,
       data: decodedData,
       blockchain: {
         id: eventId,
-        name: this.stripParamsFromSignature(event.signature),
+        name: this.stripParamsFromSignature(this.trimEventSignature(event.signature)),
         location: 'address=' + event.address,
-        signature: event.signature,
+        signature: this.trimEventSignature(event.signature),
         timestamp: event.timestamp,
         output,
         info: {
@@ -990,7 +994,7 @@ class TokenListener implements EventListener {
           transactionIndex: event.transactionIndex,
           transactionHash: event.transactionHash,
           logIndex: event.logIndex,
-          signature: event.signature,
+          signature: this.trimEventSignature(event.signature),
         },
       },
     } as TokenTransferEvent;
@@ -1052,7 +1056,7 @@ class TokenListener implements EventListener {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: eventId,
-        namespace: unpackedSub.namespace,
+        poolData: unpackedSub.poolData,
         subject,
         poolLocator: unpackedSub.poolLocator,
         operator,
@@ -1062,9 +1066,9 @@ class TokenListener implements EventListener {
         info: output,
         blockchain: {
           id: eventId,
-          name: this.stripParamsFromSignature(event.signature),
+          name: this.stripParamsFromSignature(this.trimEventSignature(event.signature)),
           location: 'address=' + event.address,
-          signature: event.signature,
+          signature: this.trimEventSignature(event.signature),
           timestamp: event.timestamp,
           output,
           info: {
@@ -1073,7 +1077,7 @@ class TokenListener implements EventListener {
             transactionHash: event.transactionHash,
             logIndex: event.logIndex,
             address: event.address,
-            signature: event.signature,
+            signature: this.trimEventSignature(event.signature),
           },
         },
       },
@@ -1098,7 +1102,7 @@ class TokenListener implements EventListener {
       event: 'token-approval',
       data: <TokenApprovalEvent>{
         id: eventId,
-        namespace: unpackedSub.namespace,
+        poolData: unpackedSub.poolData,
         subject: `${output.owner}:${output.operator}`,
         poolLocator: unpackedSub.poolLocator,
         operator: output.operator,
@@ -1110,7 +1114,7 @@ class TokenListener implements EventListener {
           id: eventId,
           name: this.stripParamsFromSignature(event.signature),
           location: 'address=' + event.address,
-          signature: event.signature,
+          signature: this.trimEventSignature(event.signature),
           timestamp: event.timestamp,
           output,
           info: {
@@ -1119,7 +1123,7 @@ class TokenListener implements EventListener {
             transactionHash: event.transactionHash,
             logIndex: event.logIndex,
             address: event.address,
-            signature: event.signature,
+            signature: this.trimEventSignature(event.signature),
           },
         },
       },

@@ -17,9 +17,8 @@ with this connector.
 
 The following POST APIs are exposed under `/api/v1`:
 
-* `POST /init` - Begin listening for created pools (inputs: namespace)
 * `POST /createpool` - Create a new instance of an ERC20 contract (inputs: name, symbol, data, config)
-* `POST /activatepool` - Activate a token contract to begin receiving transfers (inputs: namespace, poolLocator)
+* `POST /activatepool` - Activate a token contract to begin receiving transfers (inputs: poolLocator, poolData)
 * `POST /mint` - Mint new tokens (inputs: poolLocator, to, amount, data)
 * `POST /burn` - Burn tokens (inputs: poolLocator, tokenIndex, from, amount, data)
 * `POST /transfer` - Transfer tokens (inputs: poolLocator, tokenIndex, from, to, amount, data)
@@ -114,6 +113,18 @@ $ npm run start:prod
 
 View the Swagger UI at http://localhost:3000/api<br />
 View the generated OpenAPI spec at http://localhost:3000/api-json
+
+## Manually deploy contracts
+
+To deploy both ERC20 and ERC721 contracts to a FireFly network, use the provided `deploy` script powered by [hardhat](https://github.com/NomicFoundation/hardhat).
+
+```bash
+cd samples/solidity
+npm install
+npm run deploy
+```
+
+Note: [firefly-cli](https://github.com/hyperledger/firefly-cli) will take care of contract deployment during stack creation.
 
 ## Testing
 
