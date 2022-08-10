@@ -19,7 +19,6 @@ import {
   EventStreamReply,
   EventStreamSubscription,
 } from '../../src/event-stream/event-stream.interfaces';
-import { ReceiptEvent } from '../../src/eventstream-proxy/eventstream-proxy.interfaces';
 import {
   ApprovalForAllEvent,
   ERC20ApprovalEvent,
@@ -860,9 +859,11 @@ export default (context: TestContext) => {
       .expectJson(message => {
         expect(message).toMatchObject(<WebSocketMessage>{
           event: 'receipt',
-          data: <ReceiptEvent>{
-            id: '1',
-            success: true,
+          data: <EventStreamReply>{
+            headers: {
+              requestId: '1',
+              type: 'TransactionSuccess',
+            },
           },
         });
         return true;
@@ -885,10 +886,12 @@ export default (context: TestContext) => {
       .expectJson(message => {
         expect(message).toMatchObject(<WebSocketMessage>{
           event: 'receipt',
-          data: <ReceiptEvent>{
-            id: '1',
-            success: false,
-            message: 'Failed',
+          data: <EventStreamReply>{
+            headers: {
+              requestId: '1',
+              type: 'Error',
+            },
+            errorMessage: 'Failed',
           },
         });
         return true;
