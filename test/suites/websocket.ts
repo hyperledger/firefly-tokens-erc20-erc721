@@ -858,7 +858,7 @@ export default (context: TestContext) => {
         });
       })
       .expectJson(message => {
-        expect(message).toEqual(<WebSocketMessage>{
+        expect(message).toMatchObject(<WebSocketMessage>{
           event: 'receipt',
           data: <ReceiptEvent>{
             id: '1',
@@ -883,7 +883,7 @@ export default (context: TestContext) => {
         });
       })
       .expectJson(message => {
-        expect(message).toEqual(<WebSocketMessage>{
+        expect(message).toMatchObject(<WebSocketMessage>{
           event: 'receipt',
           data: <ReceiptEvent>{
             id: '1',

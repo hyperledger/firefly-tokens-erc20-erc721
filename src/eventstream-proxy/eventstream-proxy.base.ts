@@ -87,9 +87,10 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       },
       receipt => {
         this.broadcast('receipt', <ReceiptEvent>{
-          id: receipt.headers.requestId,
-          success: receipt.headers.type === 'TransactionSuccess',
+          id: receipt.headers?.requestId,
+          success: receipt.headers?.type === 'TransactionSuccess',
           message: receipt.errorMessage,
+          ...receipt,
         });
       },
     );
