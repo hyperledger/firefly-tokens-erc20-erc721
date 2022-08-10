@@ -26,17 +26,6 @@ export interface EventListener {
   onEvent: (subName: string, event: Event, process: EventProcessor) => void | Promise<void>;
 }
 
-export class ReceiptEvent {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  success: boolean;
-
-  @ApiProperty()
-  message?: string;
-}
-
 export interface WebSocketMessageWithId extends WebSocketMessage {
   id: string;
 }

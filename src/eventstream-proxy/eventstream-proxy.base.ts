@@ -17,7 +17,7 @@
 import { Logger } from '@nestjs/common';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { v4 as uuidv4 } from 'uuid';
-import { Event } from '../event-stream/event-stream.interfaces';
+import { Event, EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { EventStreamService, EventStreamSocket } from '../event-stream/event-stream.service';
 import {
   WebSocketEventsBase,
@@ -27,7 +27,6 @@ import {
 import {
   AckMessageData,
   EventListener,
-  ReceiptEvent,
   WebSocketMessageBatchData,
   WebSocketMessageWithId,
 } from './eventstream-proxy.interfaces';
@@ -86,12 +85,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
         this.queueTask(() => this.processEvents(events));
       },
       receipt => {
-        this.broadcast('receipt', <ReceiptEvent>{
-          id: receipt.headers?.requestId,
-          success: receipt.headers?.type === 'TransactionSuccess',
-          message: receipt.errorMessage,
-          ...receipt,
-        });
+        this.broadcast('receipt', <EventStreamReply>receipt);
       },
     );
   }
