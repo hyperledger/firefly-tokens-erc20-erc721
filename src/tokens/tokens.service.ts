@@ -822,7 +822,7 @@ export class TokensService {
   async getReceipt(id: string): Promise<EventStreamReply> {
     const response = await this.wrapError(
       lastValueFrom(
-        this.http.get<EventStreamReply>(`${this.baseUrl}/reply/${id}`, {
+        this.http.get<EventStreamReply>(new URL(`/reply/${id}`, this.baseUrl).href, {
           validateStatus: status => status < 300 || status === 404,
           ...basicAuth(this.username, this.password),
         }),
@@ -838,10 +838,10 @@ export class TokensService {
 class TokenListener implements EventListener {
   private readonly logger = new Logger(TokenListener.name);
 
-  constructor(private readonly service: TokensService) { }
+  constructor(private readonly service: TokensService) {}
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
-    let signature = this.trimEventSignature(event.signature)
+    let signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
         process(await this.transformTokenPoolCreationEvent(subName, event));
@@ -897,11 +897,11 @@ class TokenListener implements EventListener {
   }
 
   private trimEventSignature(signature: string) {
-    let firstColon = signature.indexOf(":")
+    let firstColon = signature.indexOf(':');
     if (firstColon > 0) {
-      return signature.substring(firstColon + 1)
+      return signature.substring(firstColon + 1);
     }
-    return signature
+    return signature;
   }
 
   private async transformTokenPoolCreationEvent(

@@ -78,7 +78,7 @@ async function bootstrap() {
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
   const factoryAddress = config.get<string>('FACTORY_CONTRACT_ADDRESS', '');
 
-  const wsUrl = ethConnectUrl.replace('http', 'ws') + '/ws';
+  const wsUrl = new URL('/ws', ethConnectUrl.replace('http', 'ws')).href;
 
   app.get(EventStreamService).configure(ethConnectUrl, username, password);
   app.get(EventStreamProxyGateway).configure(wsUrl, topic);
