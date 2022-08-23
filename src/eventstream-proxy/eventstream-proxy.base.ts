@@ -26,6 +26,7 @@ import {
 } from '../websocket-events/websocket-events.base';
 import {
   AckMessageData,
+  ConnectionListener,
   EventListener,
   WebSocketMessageBatchData,
   WebSocketMessageWithId,
@@ -42,7 +43,8 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   url?: string;
   topic?: string;
 
-  private listeners: EventListener[] = [];
+  private connectListeners: ConnectionListener[] = [];
+  private eventListeners: EventListener[] = [];
   private awaitingAck: WebSocketMessageWithId[] = [];
   private currentClient: WebSocketEx | undefined;
   private subscriptionNames = new Map<string, string>();
@@ -65,8 +67,14 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     super.handleConnection(client);
     if (this.server.clients.size === 1) {
       this.logger.log(`Initializing event stream proxy`);
-      this.setCurrentClient(client);
-      this.startListening();
+      Promise.all(this.connectListeners.map(l => l.onConnect()))
+        .then(() => {
+          this.setCurrentClient(client);
+          this.startListening();
+        })
+        .catch(err => {
+          this.logger.error(`Error initializing event stream proxy: ${err}`);
+        });
     }
   }
 
@@ -108,8 +116,12 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     this.currentClient = undefined;
   }
 
-  addListener(listener: EventListener) {
-    this.listeners.push(listener);
+  addConnectionListener(listener: ConnectionListener) {
+    this.connectListeners.push(listener);
+  }
+
+  addEventListener(listener: EventListener) {
+    this.eventListeners.push(listener);
   }
 
   private async processEvents(events: Event[]) {
@@ -122,7 +134,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
         return;
       }
 
-      for (const listener of this.listeners) {
+      for (const listener of this.eventListeners) {
         try {
           await listener.onEvent(subName, event, (msg: WebSocketMessage | undefined) => {
             if (msg !== undefined) {
@@ -150,12 +162,17 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     if (subName !== undefined) {
       return subName;
     }
-    const sub = await this.eventstream.getSubscription(subId);
-    if (sub === undefined) {
-      return undefined;
+
+    try {
+      const sub = await this.eventstream.getSubscription(subId);
+      if (sub !== undefined) {
+        this.subscriptionNames.set(subId, sub.name);
+        return sub.name;
+      }
+    } catch (err) {
+      this.logger.error(`Error looking up subscription: ${err}`);
     }
-    this.subscriptionNames.set(subId, sub.name);
-    return sub.name;
+    return undefined;
   }
 
   private setCurrentClient(client: WebSocketEx) {

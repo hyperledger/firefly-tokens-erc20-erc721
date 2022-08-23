@@ -157,9 +157,9 @@ export class EventStreamService {
     return response.data;
   }
 
-  async createOrUpdateStream(topic: string): Promise<EventStream> {
+  async createOrUpdateStream(name: string, topic: string): Promise<EventStream> {
     const streamDetails = {
-      name: topic,
+      name,
       errorHandling: 'block',
       batchSize: 50,
       batchTimeoutMS: 500,
@@ -230,14 +230,6 @@ export class EventStreamService {
       return undefined;
     }
     return response.data;
-  }
-
-  async deleteSubscription(subId: string) {
-    await lastValueFrom(
-      this.http.delete(`${this.baseUrl}/subscriptions/${subId}`, {
-        ...basicAuth(this.username, this.password),
-      }),
-    );
   }
 
   async createSubscription(
