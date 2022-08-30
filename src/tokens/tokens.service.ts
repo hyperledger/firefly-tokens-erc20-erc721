@@ -234,7 +234,14 @@ export class TokensService {
     this.username = username;
     this.password = password;
     this.factoryAddress = factoryAddress.toLowerCase();
-    this.proxy.addListener(new TokenListener(this));
+    this.proxy.addConnectionListener(this);
+    this.proxy.addEventListener(new TokenListener(this));
+  }
+
+  async onConnect() {
+    const wsUrl = new URL('/ws', this.baseUrl.replace('http', 'ws')).href;
+    const stream = await this.getStream();
+    this.proxy.configure(wsUrl, stream.name);
   }
 
   private getMethodAbi(
@@ -304,9 +311,13 @@ export class TokensService {
   }
 
   private async getStream() {
-    if (this.stream === undefined) {
-      this.stream = await this.eventstream.createOrUpdateStream(this.topic);
+    const stream = this.stream;
+    if (stream !== undefined) {
+      return stream;
     }
+    await this.migrationCheck();
+    this.logger.log('Creating stream with name ' + this.topic);
+    this.stream = await this.eventstream.createOrUpdateStream(this.topic, this.topic);
     return this.stream;
   }
 
@@ -841,7 +852,7 @@ class TokenListener implements EventListener {
   constructor(private readonly service: TokensService) {}
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
-    let signature = this.trimEventSignature(event.signature);
+    const signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
         process(await this.transformTokenPoolCreationEvent(subName, event));
@@ -897,7 +908,7 @@ class TokenListener implements EventListener {
   }
 
   private trimEventSignature(signature: string) {
-    let firstColon = signature.indexOf(':');
+    const firstColon = signature.indexOf(':');
     if (firstColon > 0) {
       return signature.substring(firstColon + 1);
     }

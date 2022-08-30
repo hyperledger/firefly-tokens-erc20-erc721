@@ -134,9 +134,11 @@ describe('TokensService', () => {
   let service: TokensService;
 
   const eventstream = {
+    getStreams: jest.fn(),
     createOrUpdateStream: jest.fn(),
     getOrCreateSubscription: jest.fn(),
   };
+  eventstream.getStreams.mockReturnValue([]);
 
   const mockPoolQuery = (
     withData: boolean | undefined,
@@ -202,11 +204,14 @@ describe('TokensService', () => {
         },
         {
           provide: EventStreamService,
-          useValue: { addListener: jest.fn() },
+          useValue: eventstream,
         },
         {
           provide: EventStreamProxyGateway,
-          useValue: { addListener: jest.fn() },
+          useValue: {
+            addConnectionListener: jest.fn(),
+            addEventListener: jest.fn(),
+          },
         },
       ],
     })

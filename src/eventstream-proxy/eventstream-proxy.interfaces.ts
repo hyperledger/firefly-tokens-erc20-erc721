@@ -14,12 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ApiProperty } from '@nestjs/swagger';
 import { WebSocketMessage } from '../websocket-events/websocket-events.base';
 import { Event } from '../event-stream/event-stream.interfaces';
 
 export interface EventProcessor {
   (msg: WebSocketMessage | undefined): void;
+}
+
+export interface ConnectionListener {
+  onConnect: () => void | Promise<void>;
 }
 
 export interface EventListener {
