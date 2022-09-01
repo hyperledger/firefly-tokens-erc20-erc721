@@ -239,7 +239,7 @@ export class TokensService {
   }
 
   async onConnect() {
-    const wsUrl = this.baseUrl.replace('http', 'ws') + '/ws';
+    const wsUrl = new URL('/ws', this.baseUrl.replace('http', 'ws')).href;
     const stream = await this.getStream();
     this.proxy.configure(wsUrl, stream.name);
   }
@@ -833,7 +833,7 @@ export class TokensService {
   async getReceipt(id: string): Promise<EventStreamReply> {
     const response = await this.wrapError(
       lastValueFrom(
-        this.http.get<EventStreamReply>(`${this.baseUrl}/reply/${id}`, {
+        this.http.get<EventStreamReply>(new URL(`/reply/${id}`, this.baseUrl).href, {
           validateStatus: status => status < 300 || status === 404,
           ...basicAuth(this.username, this.password),
         }),

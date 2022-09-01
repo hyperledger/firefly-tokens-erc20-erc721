@@ -150,7 +150,7 @@ export class EventStreamService {
 
   async getStreams(): Promise<EventStream[]> {
     const response = await lastValueFrom(
-      this.http.get<EventStream[]>(`${this.baseUrl}/eventstreams`, {
+      this.http.get<EventStream[]>(new URL('/eventstreams', this.baseUrl).href, {
         ...basicAuth(this.username, this.password),
       }),
     );
@@ -175,7 +175,7 @@ export class EventStreamService {
     if (stream) {
       const patchedStreamRes = await lastValueFrom(
         this.http.patch<EventStream>(
-          `${this.baseUrl}/eventstreams/${stream.id}`,
+          new URL(`/eventstreams/${stream.id}`, this.baseUrl).href,
           {
             ...streamDetails,
           },
@@ -189,7 +189,7 @@ export class EventStreamService {
     }
     const newStreamRes = await lastValueFrom(
       this.http.post<EventStream>(
-        `${this.baseUrl}/eventstreams`,
+        new URL('/eventstreams', this.baseUrl).href,
         {
           ...streamDetails,
         },
@@ -204,7 +204,7 @@ export class EventStreamService {
 
   async deleteStream(id: string) {
     await lastValueFrom(
-      this.http.delete(`${this.baseUrl}/eventstreams/${id}`, {
+      this.http.delete(new URL(`/eventstreams/${id}`, this.baseUrl).href, {
         ...basicAuth(this.username, this.password),
       }),
     );
@@ -212,7 +212,7 @@ export class EventStreamService {
 
   async getSubscriptions(): Promise<EventStreamSubscription[]> {
     const response = await lastValueFrom(
-      this.http.get<EventStreamSubscription[]>(`${this.baseUrl}/subscriptions`, {
+      this.http.get<EventStreamSubscription[]>(new URL('/subscriptions', this.baseUrl).href, {
         ...basicAuth(this.username, this.password),
       }),
     );
@@ -221,10 +221,13 @@ export class EventStreamService {
 
   async getSubscription(subId: string): Promise<EventStreamSubscription | undefined> {
     const response = await lastValueFrom(
-      this.http.get<EventStreamSubscription>(`${this.baseUrl}/subscriptions/${subId}`, {
-        validateStatus: status => status < 300 || status === 404,
-        ...basicAuth(this.username, this.password),
-      }),
+      this.http.get<EventStreamSubscription>(
+        new URL(`/subscriptions/${subId}`, this.baseUrl).href,
+        {
+          validateStatus: status => status < 300 || status === 404,
+          ...basicAuth(this.username, this.password),
+        },
+      ),
     );
     if (response.status === 404) {
       return undefined;
