@@ -24,7 +24,7 @@ export class HealthController {
       () =>
         this.http.pingCheck(
           'ethconnect',
-          `${this.tokensService.baseUrl}/status`,
+          `${this.tokensService.baseUrl}/api`,
           basicAuth(this.tokensService.username, this.tokensService.password),
         ),
     ]);
