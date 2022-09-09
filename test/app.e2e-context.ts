@@ -7,7 +7,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
-import { EventStreamReply, Event } from '../src/event-stream/event-stream.interfaces';
+import { EventStreamReply, Event, EventBatch } from '../src/event-stream/event-stream.interfaces';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import { TokensService } from '../src/tokens/tokens.service';
@@ -24,14 +24,14 @@ export class TestContext {
     get: ReturnType<typeof jest.fn>;
     post: ReturnType<typeof jest.fn>;
   };
-  eventHandler: (events: Event[]) => void;
+  eventHandler: (events: EventBatch) => void;
   receiptHandler: (receipt: EventStreamReply) => void;
 
   eventstream = {
     connect: (
       url: string,
       topic: string,
-      handleEvents: (events: Event[]) => void,
+      handleEvents: (events: EventBatch) => void,
       handleReceipt: (receipt: EventStreamReply) => void,
     ) => {
       this.eventHandler = handleEvents;

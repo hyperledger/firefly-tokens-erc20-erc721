@@ -17,7 +17,7 @@
 import { Logger } from '@nestjs/common';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { v4 as uuidv4 } from 'uuid';
-import { Event, EventStreamReply } from '../event-stream/event-stream.interfaces';
+import { Event, EventBatch, EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { EventStreamService, EventStreamSocket } from '../event-stream/event-stream.service';
 import {
   WebSocketEventsBase,
@@ -124,9 +124,9 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     this.eventListeners.push(listener);
   }
 
-  private async processEvents(events: Event[]) {
+  private async processEvents(batch: EventBatch) {
     const messages: WebSocketMessage[] = [];
-    for (const event of events) {
+    for (const event of batch.events) {
       this.logger.log(`Proxying event: ${JSON.stringify(event)}`);
       const subName = await this.getSubscriptionName(event.subId);
       if (subName === undefined) {
@@ -152,6 +152,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       data: <WebSocketMessageBatchData>{
         events: messages,
       },
+      batchNumber: batch.batchNumber,
     };
     this.awaitingAck.push(message);
     this.currentClient?.send(JSON.stringify(message));
@@ -191,8 +192,11 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
     this.logger.log(`Received ack ${data.id}`);
     if (this.socket !== undefined && this.awaitingAck.find(msg => msg.id === data.id)) {
+      const firstAck = this.awaitingAck.find(msg => msg.id === data.id);
       this.awaitingAck = this.awaitingAck.filter(msg => msg.id !== data.id);
-      this.socket.ack();
+      if (firstAck) {
+        this.socket.ack(firstAck.batchNumber);
+      }
     }
   }
 }

@@ -31,6 +31,7 @@ export interface EventListener {
 
 export interface WebSocketMessageWithId extends WebSocketMessage {
   id: string;
+  batchNumber: number | undefined;
 }
 
 export interface AckMessageData {
