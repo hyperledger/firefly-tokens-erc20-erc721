@@ -22,6 +22,7 @@ import { IAbiMethod } from '../tokens/tokens.interfaces';
 import { basicAuth } from '../utils';
 import {
   Event,
+  EventBatch,
   EventStream,
   EventStreamReply,
   EventStreamSubscription,
@@ -44,7 +45,7 @@ export class EventStreamSocket {
     private topic: string,
     private username: string,
     private password: string,
-    private handleEvents: (events: Event[]) => void,
+    private handleEvents: (events: EventBatch) => void,
     private handleReceipt: (receipt: EventStreamReply) => void,
   ) {
     this.init();
@@ -106,8 +107,8 @@ export class EventStreamSocket {
     this.ws.send(JSON.stringify(message));
   }
 
-  ack() {
-    this.produce({ type: 'ack', topic: this.topic });
+  ack(batchNumber: number | undefined) {
+    this.produce({ type: 'ack', topic: this.topic, batchNumber });
   }
 
   close() {
@@ -115,19 +116,25 @@ export class EventStreamSocket {
     this.ws.terminate();
   }
 
-  private handleMessage(message: EventStreamReply | Event[]) {
+  private handleMessage(message: EventStreamReply | Event[] | EventBatch) {
     if (Array.isArray(message)) {
       for (const event of message) {
         this.logger.log(`Ethconnect '${event.signature}' message: ${JSON.stringify(event.data)}`);
       }
+      this.handleEvents({events: message});
+    } else if ('batchNumber' in message && Array.isArray(message.events)) {
+      for (const event of message.events) {
+        this.logger.log(`Ethconnect '${event.signature}' message (batch=${message.batchNumber}): ${JSON.stringify(event.data)}`);
+      }
       this.handleEvents(message);
     } else {
-      const replyType = message.headers.type;
-      const errorMessage = message.errorMessage ?? '';
+      const reply = message as EventStreamReply
+      const replyType = reply.headers.type;
+      const errorMessage = reply.errorMessage ?? '';
       this.logger.log(
-        `Ethconnect '${replyType}' reply request=${message.headers.requestId} tx=${message.transactionHash} ${errorMessage}`,
+        `Ethconnect '${replyType}' reply request=${reply.headers.requestId} tx=${reply.transactionHash} ${errorMessage}`,
       );
-      this.handleReceipt(message);
+      this.handleReceipt(reply);
     }
   }
 }
@@ -296,7 +303,7 @@ export class EventStreamService {
   connect(
     url: string,
     topic: string,
-    handleEvents: (events: Event[]) => void,
+    handleEvents: (events: EventBatch) => void,
     handleReceipt: (receipt: EventStreamReply) => void,
   ) {
     return new EventStreamSocket(

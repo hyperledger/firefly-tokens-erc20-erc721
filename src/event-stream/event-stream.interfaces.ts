@@ -43,6 +43,11 @@ export interface Event {
   inputSigner?: string;
 }
 
+export interface EventBatch {
+  batchNumber?: number;
+  events: Event[];
+}
+
 export class EventStreamReplyHeaders {
   @ApiProperty()
   type: string;
