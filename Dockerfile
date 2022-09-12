@@ -21,13 +21,13 @@ RUN mkdir -p /home/node/contracts/source
 RUN chown node:node /home/node/contracts/source
 WORKDIR /home/node/contracts/source
 USER node
-COPY --from=solidity-build /home/node/contracts /home/node/package*.json ./
+COPY --from=solidity-build --chown=node:node /home/node/contracts /home/node/package*.json ./
 RUN npm install --production
 WORKDIR /home/node/contracts
-COPY --from=solidity-build /home/node/artifacts/contracts/TokenFactory.sol/TokenFactory.json ./
+COPY --from=solidity-build --chown=node:node /home/node/artifacts/contracts/TokenFactory.sol/TokenFactory.json ./
 WORKDIR /home/node
-COPY --from=build /home/node/dist ./dist
-COPY --from=build /home/node/package.json /home/node/package-lock.json ./
+COPY --from=build --chown=node:node /home/node/dist ./dist
+COPY --from=build --chown=node:node /home/node/package.json /home/node/package-lock.json ./
 
 
 RUN npm install --production
