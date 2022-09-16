@@ -149,7 +149,7 @@ describe('ERC721NoData - Unit Tests', function () {
       deployedERC721NoData
         .connect(deployerSignerA)
         ['safeTransferFrom(address,address,uint256)'](signerB.address, signerC.address, 720),
-    ).to.be.revertedWith('ERC721: transfer caller is not owner nor approved');
+    ).to.be.revertedWith('ERC721: caller is not token owner nor approved');
 
     expect(await deployedERC721NoData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC721NoData.balanceOf(signerB.address)).to.equal(2);
