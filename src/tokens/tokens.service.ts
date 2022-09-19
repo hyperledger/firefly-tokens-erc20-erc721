@@ -382,7 +382,10 @@ export class TokensService {
         );
         return true;
       }
-      const allEvents = [abiEvents.TRANSFER, abiEvents.APPROVAL, abiEvents.APPROVALFORALL];
+      const allEvents: string[] = [];
+      [abiEvents.TRANSFER, abiEvents.APPROVAL, abiEvents.APPROVALFORALL].forEach(
+        ev => ev !== null && allEvents.push(ev),
+      );
       if (
         allEvents.length !== events.length ||
         !allEvents.every(event => event === null || events.includes(event))
