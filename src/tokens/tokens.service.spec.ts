@@ -135,6 +135,7 @@ describe('TokensService', () => {
 
   const eventstream = {
     getStreams: jest.fn(),
+    getSubscriptions: jest.fn(),
     createOrUpdateStream: jest.fn(),
     getOrCreateSubscription: jest.fn(),
   };
@@ -1082,6 +1083,43 @@ describe('TokensService', () => {
       expect(http.get).toHaveBeenCalledWith(`${BASE_URL}/reply/requestId`, {
         validateStatus: expect.any(Function),
       });
+    });
+  });
+
+  describe('Subscription migration', () => {
+    it('should not migrate if no subscriptions exists', async () => {
+      service.topic = 'tokens';
+      eventstream.getStreams.mockReturnValueOnce([{ id: 'stream1', name: 'tokens' }]);
+      eventstream.getSubscriptions.mockReturnValueOnce([]);
+      expect(await service.migrationCheck()).toBe(false);
+    });
+
+    it('should migrate if any event subscriptions are missing', async () => {
+      service.topic = 'tokens';
+      eventstream.getStreams.mockReturnValueOnce([{ id: 'stream1', name: 'tokens' }]);
+      eventstream.getSubscriptions.mockReturnValueOnce([
+        {
+          stream: 'stream1',
+          name: 'fft:address=0x123&schema=ERC20WithData&type=fungible:Transfer',
+        },
+      ]);
+      expect(await service.migrationCheck()).toBe(true);
+    });
+
+    it('should not migrate if all event subscriptions exist', async () => {
+      service.topic = 'tokens';
+      eventstream.getStreams.mockReturnValueOnce([{ id: 'stream1', name: 'tokens' }]);
+      eventstream.getSubscriptions.mockReturnValueOnce([
+        {
+          stream: 'stream1',
+          name: 'fft:address=0x123&schema=ERC20WithData&type=fungible:Transfer',
+        },
+        {
+          stream: 'stream1',
+          name: 'fft:address=0x123&schema=ERC20WithData&type=fungible:Approval',
+        },
+      ]);
+      expect(await service.migrationCheck()).toBe(false);
     });
   });
 });
