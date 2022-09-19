@@ -561,7 +561,11 @@ export class TokensService {
 
     const withData = supportsCustomUri ? true : await this.supportsData(address, dto.type);
     const schema = getTokenSchema(dto.type, withData);
-    const poolLocator: IPoolLocator = { address, type: dto.type, schema };
+    const poolLocator: IPoolLocator = {
+      address: address.toLowerCase(),
+      type: dto.type,
+      schema,
+    };
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
@@ -933,7 +937,11 @@ class TokenListener implements EventListener {
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
     const withData = await this.service.supportsData(output.contract_address, type);
     const schema = getTokenSchema(type, withData);
-    const poolLocator: IValidPoolLocator = { address: output.contract_address, type, schema };
+    const poolLocator: IValidPoolLocator = {
+      address: output.contract_address.toLowerCase(),
+      type,
+      schema,
+    };
 
     return {
       event: 'token-pool',
