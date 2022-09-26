@@ -15,8 +15,7 @@ RUN npm install
 ADD --chown=node:node ./samples/solidity .
 RUN npx hardhat compile
 
-FROM node:16-alpine3.15
-RUN apk add curl jq
+FROM node:16-slim
 RUN mkdir -p /home/node/contracts/source
 RUN chown node:node /home/node/contracts/source
 WORKDIR /home/node/contracts/source
