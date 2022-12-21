@@ -84,6 +84,8 @@ export enum ContractSchema {
   ERC721NoData = 'ERC721NoData',
 }
 
+export type ContractSchemaStrings = keyof typeof ContractSchema;
+
 export enum ContractMethod {
   ERC20WithDataMintWithData = 'mintWithData',
   ERC20WithDataTransferWithData = 'transferWithData',
@@ -110,7 +112,7 @@ export interface IPoolLocator {
 
 export interface IValidPoolLocator {
   address: string;
-  schema: string;
+  schema: ContractSchemaStrings;
   type: TokenType;
 }
 

@@ -32,12 +32,14 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
+  ContractSchemaStrings,
 } from './tokens.interfaces';
 import {
   decodeHex,
   packPoolLocator,
   unpackPoolLocator,
   unpackSubscriptionName,
+  validatePoolLocator,
 } from './tokens.util';
 import { TokensService } from './tokens.service';
 import { AbiMapperService } from './abimapper.service';
@@ -81,7 +83,7 @@ export class TokenListener implements EventListener {
 
   private async getTokenUri(
     ctx: Context,
-    schema: string,
+    schema: ContractSchemaStrings,
     tokenIdx: string,
     contractAddress: string,
   ): Promise<string> {
@@ -226,12 +228,15 @@ export class TokenListener implements EventListener {
 
     if (poolLocator.type === TokenType.NONFUNGIBLE && output.tokenId !== undefined) {
       commonData.tokenIndex = output.tokenId;
-      commonData.uri = await this.getTokenUri(
-        newContext(),
-        poolLocator.schema ?? 'ERC721WithData',
-        output.tokenId,
-        poolLocator.address ?? '',
-      );
+
+      if (validatePoolLocator(poolLocator)) {
+        commonData.uri = await this.getTokenUri(
+          newContext(),
+          poolLocator.schema,
+          output.tokenId,
+          poolLocator.address ?? '',
+        );
+      }
     }
 
     if (output.from === ZERO_ADDRESS) {

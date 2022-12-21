@@ -23,7 +23,7 @@ import ERC721NoDataABI from '../abi/ERC721NoData.json';
 import ERC721WithDataABI from '../abi/ERC721WithData.json';
 import IERC165ABI from '../abi/IERC165.json';
 import { BlockchainConnectorService } from './blockchain.service';
-import { ContractSchema, IAbiMethod, TokenType } from './tokens.interfaces';
+import { ContractSchemaStrings, IAbiMethod, TokenType } from './tokens.interfaces';
 
 const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
 abiSchemaMap.set('ERC20NoData', ERC20NoDataABI.abi);
@@ -133,8 +133,6 @@ abiEventMap.set('ERC721WithData', {
   APPROVALFORALL: 'ApprovalForAll',
 });
 
-export type ContractSchemaStrings = keyof typeof ContractSchema;
-
 @Injectable()
 export class AbiMapperService {
   private readonly logger = new Logger(AbiMapperService.name);
@@ -151,9 +149,9 @@ export class AbiMapperService {
     return withData ? 'ERC721WithData' : 'ERC721NoData';
   }
 
-  allMethods(schema: string) {
+  allMethods(schema: ContractSchemaStrings) {
     const names: string[] = [];
-    const methods = abiMethodMap.get(schema as ContractSchemaStrings);
+    const methods = abiMethodMap.get(schema);
     for (const method of Object.values(methods ?? {})) {
       if (method !== null) {
         names.push(method);
@@ -162,10 +160,10 @@ export class AbiMapperService {
     return names;
   }
 
-  allInvokeMethods(schema: string) {
+  allInvokeMethods(schema: ContractSchemaStrings) {
     const excluded = ['NAME', 'SYMBOL', 'DECIMALS', 'URI', 'BASEURI'];
     const names: string[] = [];
-    const methods = abiMethodMap.get(schema as ContractSchemaStrings);
+    const methods = abiMethodMap.get(schema);
     for (const [key, method] of Object.entries(methods ?? {})) {
       if (!excluded.includes(key) && method !== null) {
         names.push(method);
@@ -174,9 +172,9 @@ export class AbiMapperService {
     return names;
   }
 
-  allEvents(schema: string) {
+  allEvents(schema: ContractSchemaStrings) {
     const names: string[] = [];
-    const events = abiEventMap.get(schema as ContractSchemaStrings);
+    const events = abiEventMap.get(schema);
     for (const method of Object.values(events ?? {})) {
       if (method !== null) {
         names.push(method);
@@ -185,13 +183,13 @@ export class AbiMapperService {
     return names;
   }
 
-  getAbi(schema: string) {
-    return abiSchemaMap.get(schema as ContractSchemaStrings);
+  getAbi(schema: ContractSchemaStrings) {
+    return abiSchemaMap.get(schema);
   }
 
-  getMethodAbi(schema: string, operation: keyof AbiMethods): IAbiMethod | undefined {
-    const contractAbi = abiSchemaMap.get(schema as ContractSchemaStrings);
-    const abiMethods = abiMethodMap.get(schema as ContractSchemaStrings);
+  getMethodAbi(schema: ContractSchemaStrings, operation: keyof AbiMethods): IAbiMethod | undefined {
+    const contractAbi = abiSchemaMap.get(schema);
+    const abiMethods = abiMethodMap.get(schema);
     if (contractAbi === undefined || abiMethods === undefined) {
       return undefined;
     }
@@ -202,9 +200,9 @@ export class AbiMapperService {
     return contractAbi.find(abi => abi.name === name);
   }
 
-  getEventAbi(schema: string, operation: keyof AbiEvents): IAbiMethod | undefined {
-    const contractAbi = abiSchemaMap.get(schema as ContractSchemaStrings);
-    const abiEvents = abiEventMap.get(schema as ContractSchemaStrings);
+  getEventAbi(schema: ContractSchemaStrings, operation: keyof AbiEvents): IAbiMethod | undefined {
+    const contractAbi = abiSchemaMap.get(schema);
+    const abiEvents = abiEventMap.get(schema);
     if (contractAbi === undefined || abiEvents === undefined) {
       return undefined;
     }
