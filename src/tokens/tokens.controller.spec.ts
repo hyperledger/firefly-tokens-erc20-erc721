@@ -15,6 +15,7 @@
 // limitations under the License.
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { BlockchainConnectorService } from './blockchain.service';
 import { TokensController } from './tokens.controller';
 import { TokensService } from './tokens.service';
 
@@ -27,6 +28,10 @@ describe('TokensController', () => {
       providers: [
         {
           provide: TokensService,
+          useValue: jest.fn(),
+        },
+        {
+          provide: BlockchainConnectorService,
           useValue: jest.fn(),
         },
       ],

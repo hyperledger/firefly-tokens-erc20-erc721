@@ -25,6 +25,7 @@ import { EventStreamReply } from './event-stream/event-stream.interfaces';
 import { EventStreamService } from './event-stream/event-stream.service';
 import { requestIDMiddleware } from './request-context/request-id.middleware';
 import { RequestLoggingInterceptor } from './request-logging.interceptor';
+import { BlockchainConnectorService } from './tokens/blockchain.service';
 import {
   TokenApprovalEvent,
   TokenBurnEvent,
@@ -87,18 +88,10 @@ async function bootstrap() {
   }
 
   app.get(EventStreamService).configure(ethConnectUrl, username, password, passthroughHeaders);
+  app.get(TokensService).configure(ethConnectUrl, topic, shortPrefix, factoryAddress);
   app
-    .get(TokensService)
-    .configure(
-      ethConnectUrl,
-      fftmUrl,
-      topic,
-      shortPrefix,
-      username,
-      password,
-      factoryAddress,
-      passthroughHeaders,
-    );
+    .get(BlockchainConnectorService)
+    .configure(ethConnectUrl, fftmUrl, username, password, passthroughHeaders);
 
   if (autoInit.toLowerCase() !== 'false') {
     await app.get(TokensService).init(newContext());

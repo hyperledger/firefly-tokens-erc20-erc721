@@ -31,6 +31,8 @@ import {
 } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
+import { AbiMapperService } from './abimapper.service';
+import { BlockchainConnectorService } from './blockchain.service';
 import {
   AsyncResponse,
   EthConnectAsyncResponse,
@@ -87,7 +89,6 @@ const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 const APPROVE_ALL_WITH_DATA = 'setApprovalForAllWithData';
-const BASE_URI = 'baseTokenUri';
 
 const METHODS_NO_DATA = [MINT_NO_DATA, BURN_NO_DATA, APPROVE_NO_DATA, APPROVE_ALL_NO_DATA];
 
@@ -98,7 +99,6 @@ const METHODS_WITH_DATA = [
   TRANSFER_WITH_DATA,
   APPROVE_WITH_DATA,
   APPROVE_ALL_WITH_DATA,
-  BASE_URI,
 ];
 
 const TRANSFER_EVENT = 'Transfer';
@@ -132,6 +132,7 @@ describe('TokensService', () => {
     post: ReturnType<typeof jest.fn>;
   };
   let service: TokensService;
+  let blockchain: BlockchainConnectorService;
 
   const eventstream = {
     getStreams: jest.fn(),
@@ -196,6 +197,8 @@ describe('TokensService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TokensService,
+        AbiMapperService,
+        BlockchainConnectorService,
         {
           provide: HttpService,
           useValue: {
@@ -222,8 +225,10 @@ describe('TokensService', () => {
       .useValue(eventstream)
       .compile();
 
-    service = module.get<TokensService>(TokensService);
-    service.configure(BASE_URL, '', TOPIC, PREFIX, '', '', '', []);
+    service = module.get(TokensService);
+    service.configure(BASE_URL, TOPIC, PREFIX, '');
+    blockchain = module.get(BlockchainConnectorService);
+    blockchain.configure(BASE_URL, '', '', '', []);
   });
 
   it('should be defined', () => {
@@ -301,7 +306,6 @@ describe('TokensService', () => {
         BASE_URL,
         abiTypeMap.ERC20NoData.find(abi => abi.name === TRANSFER_EVENT) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
-        'Transfer',
         `fft:${ERC20_NO_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
         abiTypeMap.ERC20NoData.filter(
@@ -525,7 +529,6 @@ describe('TokensService', () => {
         BASE_URL,
         abiMethodMap.ERC20WithData.find(abi => abi.name === TRANSFER_EVENT) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
-        'Transfer',
         `fft:${ERC20_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
         abiMethodMap.ERC20WithData.filter(
@@ -714,7 +717,6 @@ describe('TokensService', () => {
         BASE_URL,
         abiMethodMap.ERC721NoData.find(abi => abi.name === TRANSFER_EVENT) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
-        'Transfer',
         `fft:${ERC721_NO_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
         abiMethodMap.ERC721NoData.filter(
@@ -956,7 +958,6 @@ describe('TokensService', () => {
         BASE_URL,
         abiTypeMap.ERC721WithData.find(abi => abi.name === TRANSFER_EVENT) as IAbiMethod,
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
-        'Transfer',
         `fft:${ERC721_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
         abiTypeMap.ERC721WithData.filter(
@@ -1167,6 +1168,9 @@ describe('TokensService', () => {
 
     it('should get receipt of id successfully', async () => {
       const ctx = newContext();
+      const headers = {
+        'x-fireflyrequestid': ctx.requestId,
+      };
 
       const response: EventStreamReply = {
         headers: {
@@ -1177,8 +1181,9 @@ describe('TokensService', () => {
       };
 
       http.get = jest.fn(() => new FakeObservable(response));
-      await expect(service.getReceipt(ctx, 'requestId')).resolves.toEqual(response);
+      await expect(blockchain.getReceipt(ctx, 'requestId')).resolves.toEqual(response);
       expect(http.get).toHaveBeenCalledWith(`${BASE_URL}/reply/requestId`, {
+        headers,
         validateStatus: expect.any(Function),
       });
     });

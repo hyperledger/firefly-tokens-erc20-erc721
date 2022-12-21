@@ -35,12 +35,13 @@ import {
 } from './tokens.interfaces';
 import {
   decodeHex,
-  getTokenSchema,
   packPoolLocator,
   unpackPoolLocator,
   unpackSubscriptionName,
 } from './tokens.util';
-import { abiSchemaMap, TokensService } from './tokens.service';
+import { TokensService } from './tokens.service';
+import { AbiMapperService } from './abimapper.service';
+import { BlockchainConnectorService } from './blockchain.service';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -52,7 +53,11 @@ const approvalForAllEventSignature = 'ApprovalForAll(address,address,bool)';
 export class TokenListener implements EventListener {
   private readonly logger = new Logger(TokenListener.name);
 
-  constructor(private readonly service: TokensService) {}
+  constructor(
+    private service: TokensService,
+    private mapper: AbiMapperService,
+    private blockchain: BlockchainConnectorService,
+  ) {}
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     const signature = this.trimEventSignature(event.signature);
@@ -76,18 +81,16 @@ export class TokenListener implements EventListener {
 
   private async getTokenUri(
     ctx: Context,
+    schema: string,
     tokenIdx: string,
     contractAddress: string,
   ): Promise<string> {
-    const abiMethods = abiSchemaMap.get('ERC721WithData');
-    if (abiMethods === undefined) {
-      // should not happen
+    const methodABI = this.mapper.getMethodAbi(schema, 'URI');
+    if (methodABI === undefined) {
       return '';
     }
-
-    const methodABI = abiMethods.find(method => method.name === 'tokenURI');
     try {
-      const response = await this.service.query(ctx, contractAddress, methodABI, [tokenIdx]);
+      const response = await this.blockchain.query(ctx, contractAddress, methodABI, [tokenIdx]);
       return response.output as string;
     } catch (e) {
       this.logger.log(`Burned tokens do not have a URI: ${e}`);
@@ -135,8 +138,8 @@ export class TokenListener implements EventListener {
     }
 
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
-    const withData = await this.service.supportsData(newContext(), output.contract_address, type);
-    const schema = getTokenSchema(type, withData);
+    const withData = await this.mapper.supportsData(newContext(), output.contract_address, type);
+    const schema = this.mapper.getTokenSchema(type, withData);
     const poolLocator: IValidPoolLocator = {
       address: output.contract_address.toLowerCase(),
       type,
@@ -225,6 +228,7 @@ export class TokenListener implements EventListener {
       commonData.tokenIndex = output.tokenId;
       commonData.uri = await this.getTokenUri(
         newContext(),
+        poolLocator.schema ?? 'ERC721WithData',
         output.tokenId,
         poolLocator.address ?? '',
       );

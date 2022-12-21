@@ -14,35 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ClientRequest } from 'http';
-import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { lastValueFrom } from 'rxjs';
-import LRUCache from 'lru-cache';
-import ERC20NoDataABI from '../abi/ERC20NoData.json';
-import ERC20WithDataABI from '../abi/ERC20WithData.json';
-import ERC721NoDataABI from '../abi/ERC721NoData.json';
-import ERC721WithDataABI from '../abi/ERC721WithData.json';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import TokenFactoryABI from '../abi/TokenFactory.json';
-import IERC165ABI from '../abi/IERC165.json';
-import { EventStream, EventStreamReply } from '../event-stream/event-stream.interfaces';
+import { EventStream } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
-import { basicAuth } from '../utils';
-import { FFRequestIDHeader } from '../request-context/constants';
 import { Context, newContext } from '../request-context/request-context.decorator';
 import {
   AsyncResponse,
-  ContractSchema,
-  EthConnectAsyncResponse,
-  EthConnectReturn,
   IAbiMethod,
   IPoolLocator,
   IValidPoolLocator,
@@ -59,7 +38,6 @@ import {
 } from './tokens.interfaces';
 import {
   encodeHex,
-  getTokenSchema,
   packPoolLocator,
   packSubscriptionName,
   unpackPoolLocator,
@@ -67,109 +45,8 @@ import {
   validatePoolLocator,
 } from './tokens.util';
 import { TokenListener } from './tokens.listener';
-
-const ERC20WithDataIID = '0xaefdad0f';
-const ERC721WithDataIID = '0xb2429c12';
-const ERC721WithDataUriIID = '0x8706707d';
-const TokenFactoryIID = '0x83a74a0c';
-const supportsInterfaceABI = IERC165ABI.abi.find(m => m.name === 'supportsInterface');
-
-export const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
-abiSchemaMap.set('ERC20NoData', ERC20NoDataABI.abi);
-abiSchemaMap.set('ERC20WithData', ERC20WithDataABI.abi);
-abiSchemaMap.set('ERC721NoData', ERC721NoDataABI.abi);
-abiSchemaMap.set('ERC721WithData', ERC721WithDataABI.abi);
-
-export interface AbiMethods {
-  MINT: string;
-  MINTURI: string | null;
-  TRANSFER: string;
-  BURN: string;
-  NAME: string;
-  SYMBOL: string;
-  APPROVE: string;
-  APPROVEFORALL: string | null;
-  DECIMALS: string | null;
-  BASEURI: string | null;
-}
-
-export interface AbiEvents {
-  TRANSFER: string;
-  APPROVAL: string;
-  APPROVALFORALL: string | null;
-}
-
-const abiMethodMap = new Map<ContractSchemaStrings, AbiMethods>();
-abiMethodMap.set('ERC20NoData', {
-  MINT: 'mint',
-  MINTURI: null,
-  TRANSFER: 'transferFrom',
-  BURN: 'burn',
-  APPROVE: 'approve',
-  APPROVEFORALL: null,
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: 'decimals',
-  BASEURI: null,
-});
-abiMethodMap.set('ERC20WithData', {
-  MINT: 'mintWithData',
-  MINTURI: null,
-  TRANSFER: 'transferWithData',
-  BURN: 'burnWithData',
-  APPROVE: 'approveWithData',
-  APPROVEFORALL: null,
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: 'decimals',
-  BASEURI: null,
-});
-abiMethodMap.set('ERC721WithData', {
-  MINT: 'mintWithData',
-  MINTURI: 'mintWithURI',
-  TRANSFER: 'transferWithData',
-  BURN: 'burnWithData',
-  APPROVE: 'approveWithData',
-  APPROVEFORALL: 'setApprovalForAllWithData',
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: null,
-  BASEURI: 'baseTokenUri',
-});
-abiMethodMap.set('ERC721NoData', {
-  MINT: 'mint',
-  MINTURI: null,
-  TRANSFER: 'safeTransferFrom',
-  BURN: 'burn',
-  APPROVE: 'approve',
-  APPROVEFORALL: 'setApprovalForAll',
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: null,
-  BASEURI: null,
-});
-
-const abiEventMap = new Map<ContractSchemaStrings, AbiEvents>();
-abiEventMap.set('ERC20NoData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: null,
-});
-abiEventMap.set('ERC20WithData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: null,
-});
-abiEventMap.set('ERC721NoData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: 'ApprovalForAll',
-});
-abiEventMap.set('ERC721WithData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: 'ApprovalForAll',
-});
+import { AbiMapperService } from './abimapper.service';
+import { BlockchainConnectorService } from './blockchain.service';
 
 const tokenCreateMethod = 'create';
 const tokenCreateEvent = 'TokenPoolCreation';
@@ -177,89 +54,36 @@ const tokenCreateEvent = 'TokenPoolCreation';
 const UINT256_MAX = BigInt(2) ** BigInt(256) - BigInt(1);
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const sendTransactionHeader = 'SendTransaction';
-const queryHeader = 'Query';
-
-type ContractSchemaStrings = keyof typeof ContractSchema;
-
 @Injectable()
 export class TokensService {
   private readonly logger = new Logger(TokensService.name);
-  // cache tracking if a contract address supports custom URI's
-  private uriSupportCache: LRUCache<string, boolean>;
 
   baseUrl: string;
-  fftmUrl: string;
   topic: string;
   shortPrefix: string;
   stream: EventStream;
-  username: string;
-  password: string;
   factoryAddress = '';
-  passthroughHeaders: string[];
 
   constructor(
-    public http: HttpService,
     private eventstream: EventStreamService,
     private proxy: EventStreamProxyGateway,
-  ) {
-    this.uriSupportCache = new LRUCache<string, boolean>({ max: 500 });
-  }
+    private mapper: AbiMapperService,
+    private blockchain: BlockchainConnectorService,
+  ) {}
 
-  configure(
-    baseUrl: string,
-    fftmUrl: string,
-    topic: string,
-    shortPrefix: string,
-    username: string,
-    password: string,
-    factoryAddress: string,
-    passthroughHeaders: string[],
-  ) {
+  configure(baseUrl: string, topic: string, shortPrefix: string, factoryAddress: string) {
     this.baseUrl = baseUrl;
-    this.fftmUrl = fftmUrl;
     this.topic = topic;
     this.shortPrefix = shortPrefix;
-    this.username = username;
-    this.password = password;
     this.factoryAddress = factoryAddress.toLowerCase();
-    this.passthroughHeaders = passthroughHeaders;
     this.proxy.addConnectionListener(this);
-    this.proxy.addEventListener(new TokenListener(this));
+    this.proxy.addEventListener(new TokenListener(this, this.mapper, this.blockchain));
   }
 
   async onConnect() {
     const wsUrl = new URL('/ws', this.baseUrl.replace('http', 'ws')).href;
     const stream = await this.getStream(newContext());
     this.proxy.configure(wsUrl, stream.name);
-  }
-
-  private getMethodAbi(
-    schema: ContractSchemaStrings,
-    operation: keyof AbiMethods,
-  ): IAbiMethod | undefined {
-    const contractAbi = abiSchemaMap.get(schema);
-    const abiMethods = abiMethodMap.get(schema);
-    if (contractAbi === undefined || abiMethods === undefined) {
-      return undefined;
-    }
-    const name = abiMethods[operation] ?? undefined;
-    if (name === undefined) {
-      return undefined;
-    }
-    return contractAbi.find(abi => abi.name === name);
-  }
-
-  private getEventAbi(
-    schema: ContractSchemaStrings,
-    operation: keyof AbiEvents,
-  ): IAbiMethod | undefined {
-    const contractAbi = abiSchemaMap.get(schema);
-    const abiEvents = abiEventMap.get(schema);
-    if (contractAbi === undefined || abiEvents === undefined) {
-      return undefined;
-    }
-    return contractAbi.find(abi => abi.name === abiEvents[operation]);
   }
 
   private getAmountOrTokenID(
@@ -291,7 +115,6 @@ export class TokensService {
           this.baseUrl,
           eventABI,
           this.stream.id,
-          tokenCreateEvent,
           packSubscriptionName(this.factoryAddress, tokenCreateEvent),
           this.factoryAddress,
           [methodABI],
@@ -365,18 +188,14 @@ export class TokensService {
         );
         return true;
       }
-      const abiEvents = abiEventMap.get(unpackedLocator.schema as ContractSchemaStrings);
-      if (abiEvents === undefined) {
+      const allEvents = this.mapper.allEvents(unpackedLocator.schema);
+      if (allEvents.length === 0) {
         this.logger.warn(
           `Could not determine schema from pool locator: '${parts.poolLocator}'. ` +
             `This pool may not behave as expected.`,
         );
         return true;
       }
-      const allEvents: string[] = [];
-      [abiEvents.TRANSFER, abiEvents.APPROVAL, abiEvents.APPROVALFORALL].forEach(
-        ev => ev !== null && allEvents.push(ev),
-      );
       if (
         allEvents.length !== events.length ||
         !allEvents.every(event => event === null || events.includes(event))
@@ -392,134 +211,17 @@ export class TokensService {
     return false;
   }
 
-  private requestOptions(ctx: Context): AxiosRequestConfig {
-    const headers = {};
-    for (const key of this.passthroughHeaders) {
-      const value = ctx.headers[key];
-      if (value !== undefined) {
-        headers[key] = value;
-      }
-    }
-    headers[FFRequestIDHeader] = ctx.requestId;
-    const config = basicAuth(this.username, this.password);
-    config.headers = headers;
-    return config;
-  }
-
-  private async wrapError<T>(response: Promise<AxiosResponse<T>>) {
-    return response.catch(err => {
-      if (axios.isAxiosError(err)) {
-        const request: ClientRequest | undefined = err.request;
-        const response: AxiosResponse | undefined = err.response;
-        const errorMessage = response?.data?.error ?? err.message;
-        this.logger.warn(
-          `${request?.path} <-- HTTP ${response?.status} ${response?.statusText}: ${errorMessage}`,
-        );
-        throw new InternalServerErrorException(errorMessage);
-      }
-      throw err;
-    });
-  }
-
-  async query(ctx: Context, to: string, method?: IAbiMethod, params?: any[]) {
-    const response = await this.wrapError(
-      lastValueFrom(
-        this.http.post<EthConnectReturn>(
-          this.baseUrl,
-          { headers: { type: queryHeader }, to, method, params },
-          this.requestOptions(ctx),
-        ),
-      ),
-    );
-    return response.data;
-  }
-
-  async sendTransaction(
-    ctx: Context,
-    from: string,
-    to: string,
-    id?: string,
-    method?: IAbiMethod,
-    params?: any[],
-  ) {
-    const url = this.fftmUrl !== undefined && this.fftmUrl !== '' ? this.fftmUrl : this.baseUrl;
-    const response = await this.wrapError(
-      lastValueFrom(
-        this.http.post<EthConnectAsyncResponse>(
-          url,
-          { headers: { id, type: sendTransactionHeader }, from, to, method, params },
-          this.requestOptions(ctx),
-        ),
-      ),
-    );
-    return response.data;
-  }
-
-  async supportsData(ctx: Context, address: string, type: TokenType) {
-    if (type === TokenType.NONFUNGIBLE) {
-      if (await this.supportsNFTUri(ctx, address, false)) {
-        return true;
-      }
-    }
-
-    let iid: string;
-    switch (type) {
-      case TokenType.NONFUNGIBLE:
-        iid = ERC721WithDataIID;
-        break;
-      case TokenType.FUNGIBLE:
-      default:
-        iid = ERC20WithDataIID;
-        break;
-    }
-
-    try {
-      const result = await this.query(ctx, address, supportsInterfaceABI, [iid]);
-      this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
-      return result.output === true;
-    } catch (err) {
-      this.logger.log(
-        `Failed to query extra data support on contract '${address}': assuming false`,
-      );
-      return false;
-    }
-  }
-
-  async supportsNFTUri(ctx: Context, address: string, factory: boolean): Promise<boolean> {
-    const support = this.uriSupportCache.get(address);
-    if (support !== undefined) {
-      return support;
-    }
-
-    try {
-      const result = await this.query(
-        ctx,
-        address,
-        supportsInterfaceABI,
-        factory ? [TokenFactoryIID] : [ERC721WithDataUriIID],
-      );
-      this.logger.log(`Querying URI support on contract '${address}': ${result.output}`);
-      this.uriSupportCache.set(address, result.output);
-      return result.output === true;
-    } catch (err) {
-      this.logger.log(`Failed to query URI support on contract '${address}': assuming false`);
-      return false;
-    }
-  }
-
   private async queryPool(ctx: Context, poolLocator: IValidPoolLocator) {
-    const schema = poolLocator.schema as ContractSchemaStrings;
-
-    const nameResponse = await this.query(
+    const nameResponse = await this.blockchain.query(
       ctx,
       poolLocator.address,
-      this.getMethodAbi(schema, 'NAME'),
+      this.mapper.getMethodAbi(poolLocator.schema, 'NAME'),
       [],
     );
-    const symbolResponse = await this.query(
+    const symbolResponse = await this.blockchain.query(
       ctx,
       poolLocator.address,
-      this.getMethodAbi(schema, 'SYMBOL'),
+      this.mapper.getMethodAbi(poolLocator.schema, 'SYMBOL'),
       [],
     );
 
@@ -528,9 +230,14 @@ export class TokensService {
     }
 
     let decimals = 0;
-    const decimalsMethod = this.getMethodAbi(schema, 'DECIMALS');
+    const decimalsMethod = this.mapper.getMethodAbi(poolLocator.schema, 'DECIMALS');
     if (decimalsMethod !== undefined) {
-      const decimalsResponse = await this.query(ctx, poolLocator.address, decimalsMethod, []);
+      const decimalsResponse = await this.blockchain.query(
+        ctx,
+        poolLocator.address,
+        decimalsMethod,
+        [],
+      );
       decimals = parseInt(decimalsResponse.output);
       if (isNaN(decimals)) {
         decimals = 0;
@@ -561,11 +268,13 @@ export class TokensService {
   async createFromExisting(ctx: Context, address: string, dto: TokenPool) {
     let supportsCustomUri = false;
     if (dto.type === TokenType.NONFUNGIBLE) {
-      supportsCustomUri = await this.supportsNFTUri(ctx, address, false);
+      supportsCustomUri = await this.mapper.supportsNFTUri(ctx, address, false);
     }
 
-    const withData = supportsCustomUri ? true : await this.supportsData(ctx, address, dto.type);
-    const schema = getTokenSchema(dto.type, withData);
+    const withData = supportsCustomUri
+      ? true
+      : await this.mapper.supportsData(ctx, address, dto.type);
+    const schema = this.mapper.getTokenSchema(dto.type, withData);
     const poolLocator: IPoolLocator = {
       address: address.toLowerCase(),
       type: dto.type,
@@ -589,9 +298,9 @@ export class TokensService {
     };
 
     if (supportsCustomUri) {
-      const method = this.getMethodAbi(schema as ContractSchemaStrings, 'BASEURI');
+      const method = this.mapper.getMethodAbi(schema, 'BASEURI');
       if (method !== undefined) {
-        const baseUriResponse = await this.query(ctx, poolLocator.address, method, []);
+        const baseUriResponse = await this.blockchain.query(ctx, poolLocator.address, method, []);
         eventInfo.uri = baseUriResponse.output;
       }
     }
@@ -616,14 +325,14 @@ export class TokensService {
       throw new BadRequestException('Failed to parse factory contract ABI');
     }
     const params = [dto.name, dto.symbol, isFungible, encodedData];
-    const uri = await this.supportsNFTUri(ctx, this.factoryAddress, true);
+    const uri = await this.mapper.supportsNFTUri(ctx, this.factoryAddress, true);
     if (uri === true) {
       // supply empty string if URI isn't provided
       // the contract itself handles empty base URI's appropriately
       params.push(dto.config?.uri !== undefined ? dto.config.uri : '');
     }
 
-    const response = await this.sendTransaction(
+    const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       this.factoryAddress,
@@ -648,27 +357,22 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const schema = poolLocator.schema as ContractSchemaStrings;
     const stream = await this.getStream(ctx);
-    const transferAbi = this.getEventAbi(schema, 'TRANSFER');
-    if (!transferAbi) {
+    const transferAbi = this.mapper.getEventAbi(poolLocator.schema, 'TRANSFER');
+    if (transferAbi?.name === undefined) {
       throw new NotFoundException('Transfer event ABI not found');
     }
-    const approvalAbi = this.getEventAbi(schema, 'APPROVAL');
-    if (!approvalAbi) {
+    const approvalAbi = this.mapper.getEventAbi(poolLocator.schema, 'APPROVAL');
+    if (approvalAbi?.name === undefined) {
       throw new NotFoundException('Approval event ABI not found');
     }
+    const approvalForAllAbi = this.mapper.getEventAbi(poolLocator.schema, 'APPROVALFORALL');
 
-    const abiMethods = abiMethodMap.get(poolLocator.schema as ContractSchemaStrings);
-    const abiEvents = abiEventMap.get(poolLocator.schema as ContractSchemaStrings);
-    const contractAbi = abiSchemaMap.get(schema);
-    if (abiMethods === undefined || abiEvents === undefined || contractAbi === undefined) {
+    const contractAbi = this.mapper.getAbi(poolLocator.schema);
+    const possibleMethods = this.mapper.allInvokeMethods(poolLocator.schema);
+    if (possibleMethods.length === 0 || contractAbi === undefined) {
       throw new BadRequestException(`Unknown schema: ${poolLocator.schema}`);
     }
-
-    const possibleMethods: string[] = Object.values(abiMethods).filter(
-      m => !['name', 'symbol', 'decimals'].includes(m),
-    );
     const methodsToSubTo: IAbiMethod[] = contractAbi.filter(
       method => method.name !== undefined && possibleMethods.includes(method.name),
     );
@@ -679,8 +383,7 @@ export class TokensService {
         this.baseUrl,
         transferAbi,
         stream.id,
-        abiEvents.TRANSFER,
-        packSubscriptionName(dto.poolLocator, abiEvents.TRANSFER, dto.poolData),
+        packSubscriptionName(dto.poolLocator, transferAbi.name, dto.poolData),
         poolLocator.address,
         methodsToSubTo,
         this.getSubscriptionBlockNumber(dto.config),
@@ -690,26 +393,20 @@ export class TokensService {
         this.baseUrl,
         approvalAbi,
         stream.id,
-        abiEvents.APPROVAL,
-        packSubscriptionName(dto.poolLocator, abiEvents.APPROVAL, dto.poolData),
+        packSubscriptionName(dto.poolLocator, approvalAbi.name, dto.poolData),
         poolLocator.address,
         methodsToSubTo,
         this.getSubscriptionBlockNumber(dto.config),
       ),
     ];
-    if (abiEvents.APPROVALFORALL !== null) {
-      const approvalForAllAbi = this.getEventAbi(schema, 'APPROVALFORALL');
-      if (!approvalForAllAbi) {
-        throw new NotFoundException('ApprovalForAll event ABI not found');
-      }
+    if (approvalForAllAbi?.name !== undefined) {
       promises.push(
         this.eventstream.getOrCreateSubscription(
           ctx,
           this.baseUrl,
           approvalForAllAbi,
           stream.id,
-          abiEvents.APPROVALFORALL,
-          packSubscriptionName(dto.poolLocator, abiEvents.APPROVALFORALL, dto.poolData),
+          packSubscriptionName(dto.poolLocator, approvalForAllAbi.name, dto.poolData),
           poolLocator.address,
           methodsToSubTo,
           this.getSubscriptionBlockNumber(dto.config),
@@ -743,16 +440,18 @@ export class TokensService {
 
     let supportsUri = false;
     if (dto.uri !== undefined) {
-      supportsUri = await this.supportsNFTUri(ctx, poolLocator.address, false);
+      supportsUri = await this.mapper.supportsNFTUri(ctx, poolLocator.address, false);
     }
 
-    const schema = poolLocator.schema as ContractSchemaStrings;
-    const methodAbi = this.getMethodAbi(schema, supportsUri ? 'MINTURI' : 'MINT');
+    const methodAbi = this.mapper.getMethodAbi(
+      poolLocator.schema,
+      supportsUri ? 'MINTURI' : 'MINT',
+    );
     const params = [dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
     supportsUri && params.push(dto.uri);
 
-    const response = await this.sendTransaction(
+    const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       poolLocator.address,
@@ -769,12 +468,11 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const schema = poolLocator.schema as ContractSchemaStrings;
-    const methodAbi = this.getMethodAbi(schema, 'TRANSFER');
+    const methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'TRANSFER');
     const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
-    const response = await this.sendTransaction(
+    const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       poolLocator.address,
@@ -791,12 +489,11 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const schema = poolLocator.schema as ContractSchemaStrings;
-    const methodAbi = this.getMethodAbi(schema, 'BURN');
+    const methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'BURN');
     const params = [dto.from, this.getAmountOrTokenID(dto, poolLocator.type)];
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
-    const response = await this.sendTransaction(
+    const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       poolLocator.address,
@@ -815,14 +512,13 @@ export class TokensService {
 
     let methodAbi: IAbiMethod | undefined;
     const params: any[] = [];
-    const schema = poolLocator.schema as ContractSchemaStrings;
 
     switch (poolLocator.type) {
       case TokenType.FUNGIBLE: {
         // Not approved means 0 allowance; approved with no allowance means unlimited allowance
         const allowance = !dto.approved ? '0' : dto.config?.allowance ?? UINT256_MAX.toString();
         params.push(dto.operator, allowance);
-        methodAbi = this.getMethodAbi(schema, 'APPROVE');
+        methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'APPROVE');
         break;
       }
       case TokenType.NONFUNGIBLE:
@@ -830,16 +526,16 @@ export class TokensService {
           // Not approved means setting approved operator to 0
           const operator = !dto.approved ? ZERO_ADDRESS : dto.operator;
           params.push(operator, dto.config.tokenIndex);
-          methodAbi = this.getMethodAbi(schema, 'APPROVE');
+          methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'APPROVE');
         } else {
           params.push(dto.operator, dto.approved);
-          methodAbi = this.getMethodAbi(schema, 'APPROVEFORALL');
+          methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'APPROVEFORALL');
         }
         break;
     }
 
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
-    const response = await this.sendTransaction(
+    const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       poolLocator.address,
@@ -848,20 +544,5 @@ export class TokensService {
       params,
     );
     return { id: response.id };
-  }
-
-  async getReceipt(ctx: Context, id: string): Promise<EventStreamReply> {
-    const response = await this.wrapError(
-      lastValueFrom(
-        this.http.get<EventStreamReply>(new URL(`/reply/${id}`, this.baseUrl).href, {
-          validateStatus: status => status < 300 || status === 404,
-          ...basicAuth(this.username, this.password),
-        }),
-      ),
-    );
-    if (response.status === 404) {
-      throw new NotFoundException();
-    }
-    return response.data;
   }
 }

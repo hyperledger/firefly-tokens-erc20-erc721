@@ -103,13 +103,6 @@ export function unpackPoolLocator(data: string): IPoolLocator {
   };
 }
 
-export function getTokenSchema(type: TokenType, withData = true): string {
-  if (type === TokenType.FUNGIBLE) {
-    return withData ? 'ERC20WithData' : 'ERC20NoData';
-  }
-  return withData ? 'ERC721WithData' : 'ERC721NoData';
-}
-
 export function validatePoolLocator(poolLocator: IPoolLocator): poolLocator is IValidPoolLocator {
   return poolLocator.address !== null && poolLocator.schema !== null && poolLocator.type !== null;
 }
