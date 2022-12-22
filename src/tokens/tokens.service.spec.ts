@@ -1151,7 +1151,7 @@ describe('TokensService', () => {
         poolData: 'ns1',
       };
       await expect(service.activatePool(ctx, request)).rejects.toThrowError(
-        new HttpException('Transfer event ABI not found', HttpStatus.NOT_FOUND),
+        new HttpException('Unknown schema: notAStandard', HttpStatus.BAD_REQUEST),
       );
     });
 

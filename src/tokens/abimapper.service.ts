@@ -24,6 +24,7 @@ import ERC721WithURIABI from '../abi/ERC721WithData.json';
 import ERC721WithDataABI from '../abi/ERC721WithDataOld.json';
 import IERC165ABI from '../abi/IERC165.json';
 import { BlockchainConnectorService } from './blockchain.service';
+import { ERC20Events, ERC721Events } from './events';
 import { erc20Methods, erc721Methods, MethodSignature, OpTypes } from './supportedmethods';
 import { ContractSchemaStrings, IAbiMethod, TokenType } from './tokens.interfaces';
 
@@ -45,12 +46,6 @@ export interface AbiMethods {
   DECIMALS: string | null;
   BASEURI: string | null;
   URI: string | null;
-}
-
-export interface AbiEvents {
-  TRANSFER: string;
-  APPROVAL: string;
-  APPROVALFORALL: string | null;
 }
 
 const abiMethodMap = new Map<ContractSchemaStrings, AbiMethods & Record<string, string | null>>();
@@ -81,28 +76,6 @@ abiMethodMap.set('ERC721NoData', {
   DECIMALS: null,
   BASEURI: null,
   URI: null,
-});
-
-const abiEventMap = new Map<ContractSchemaStrings, AbiEvents & Record<string, string | null>>();
-abiEventMap.set('ERC20NoData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: null,
-});
-abiEventMap.set('ERC20WithData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: null,
-});
-abiEventMap.set('ERC721NoData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: 'ApprovalForAll',
-});
-abiEventMap.set('ERC721WithData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: 'ApprovalForAll',
 });
 
 @Injectable()
@@ -139,14 +112,8 @@ export class AbiMapperService {
   }
 
   allEvents(schema: ContractSchemaStrings) {
-    const names: string[] = [];
-    const events = abiEventMap.get(schema);
-    for (const method of Object.values(events ?? {})) {
-      if (method !== null) {
-        names.push(method);
-      }
-    }
-    return names;
+    const events = schema.startsWith('ERC20') ? ERC20Events : ERC721Events;
+    return events.map(event => event.name);
   }
 
   getAbi(schema: ContractSchemaStrings, uriSupport = true) {
@@ -220,12 +187,9 @@ export class AbiMapperService {
     uriSupport?: boolean,
   ) {
     const abi = this.getAbi(schema, uriSupport);
-    if (schema.startsWith('ERC20')) {
-      return this.findFirstMatch(abi, erc20Methods[operation], dto);
-    } else {
-      return this.findFirstMatch(abi, erc721Methods[operation], dto);
-    }
-    return {};
+    return schema.startsWith('ERC20')
+      ? this.findFirstMatch(abi, erc20Methods[operation], dto)
+      : this.findFirstMatch(abi, erc721Methods[operation], dto);
   }
 
   getMethodAbi(schema: ContractSchemaStrings, operation: keyof AbiMethods): IAbiMethod | undefined {
@@ -239,15 +203,6 @@ export class AbiMapperService {
       return undefined;
     }
     return contractAbi.find(abi => abi.name === name);
-  }
-
-  getEventAbi(schema: ContractSchemaStrings, operation: keyof AbiEvents): IAbiMethod | undefined {
-    const contractAbi = abiSchemaMap.get(schema);
-    const abiEvents = abiEventMap.get(schema);
-    if (contractAbi === undefined || abiEvents === undefined) {
-      return undefined;
-    }
-    return contractAbi.find(abi => abi.name === abiEvents[operation]);
   }
 
   async supportsData(ctx: Context, address: string, type: TokenType) {

@@ -46,6 +46,13 @@ import {
 import { TokenListener } from './tokens.listener';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService } from './blockchain.service';
+import {
+  ERC20Approval,
+  ERC20Transfer,
+  ERC721Approval,
+  ERC721ApprovalForAll,
+  ERC721Transfer,
+} from './events';
 
 const tokenCreateMethod = 'create';
 const tokenCreateEvent = 'TokenPoolCreation';
@@ -351,21 +358,22 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const stream = await this.getStream(ctx);
-    const transferAbi = this.mapper.getEventAbi(poolLocator.schema, 'TRANSFER');
-    if (transferAbi?.name === undefined) {
-      throw new NotFoundException('Transfer event ABI not found');
-    }
-    const approvalAbi = this.mapper.getEventAbi(poolLocator.schema, 'APPROVAL');
-    if (approvalAbi?.name === undefined) {
-      throw new NotFoundException('Approval event ABI not found');
-    }
-    const approvalForAllAbi = this.mapper.getEventAbi(poolLocator.schema, 'APPROVALFORALL');
-
     const possibleMethods = this.mapper.allInvokeMethods(poolLocator.schema);
     if (possibleMethods.length === 0) {
       throw new BadRequestException(`Unknown schema: ${poolLocator.schema}`);
     }
+
+    const stream = await this.getStream(ctx);
+    const transferAbi = poolLocator.type === TokenType.FUNGIBLE ? ERC20Transfer : ERC721Transfer;
+    if (transferAbi?.name === undefined) {
+      throw new NotFoundException('Transfer event ABI not found');
+    }
+    const approvalAbi = poolLocator.type === TokenType.FUNGIBLE ? ERC20Approval : ERC721Approval;
+    if (approvalAbi?.name === undefined) {
+      throw new NotFoundException('Approval event ABI not found');
+    }
+    const approvalForAllAbi =
+      poolLocator.type === TokenType.FUNGIBLE ? undefined : ERC721ApprovalForAll;
 
     const promises = [
       this.eventstream.getOrCreateSubscription(

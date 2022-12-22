@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { TokenApproval, TokenBurn, TokenMint, TokenTransfer, TokenType } from './tokens.interfaces';
+import { TokenApproval, TokenBurn, TokenMint, TokenTransfer } from './tokens.interfaces';
 import { encodeHex } from './tokens.util';
 
 const UINT256_MAX = BigInt(2) ** BigInt(256) - BigInt(1);
