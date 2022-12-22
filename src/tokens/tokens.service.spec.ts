@@ -89,15 +89,17 @@ const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 const APPROVE_ALL_WITH_DATA = 'setApprovalForAllWithData';
 
-const METHODS_NO_DATA = [MINT_NO_DATA, BURN_NO_DATA, APPROVE_NO_DATA, APPROVE_ALL_NO_DATA];
+const METHODS_NO_DATA = [APPROVE_NO_DATA, APPROVE_ALL_NO_DATA, BURN_NO_DATA, MINT_NO_DATA];
 
 const METHODS_WITH_DATA = [
-  MINT_WITH_DATA,
-  MINT_WITH_URI,
-  BURN_WITH_DATA,
-  TRANSFER_WITH_DATA,
   APPROVE_WITH_DATA,
   APPROVE_ALL_WITH_DATA,
+  APPROVE_NO_DATA,
+  APPROVE_ALL_NO_DATA,
+  BURN_WITH_DATA,
+  MINT_WITH_URI,
+  MINT_WITH_DATA,
+  TRANSFER_WITH_DATA,
 ];
 
 const TRANSFER_EVENT = 'Transfer';
@@ -307,11 +309,11 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC20_NO_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        abiTypeMap.ERC20NoData.filter(
-          abi =>
-            abi.name !== undefined &&
-            [...METHODS_NO_DATA, ERC20_TRANSFER_NO_DATA].includes(abi.name),
-        ) as IAbiMethod[],
+        [...METHODS_NO_DATA, ERC20_TRANSFER_NO_DATA]
+          .map(name => {
+            return abiTypeMap.ERC20NoData.find(abi => abi.name === name);
+          })
+          .filter(abi => abi !== undefined),
         '0',
       );
     });
@@ -530,9 +532,11 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC20_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        abiMethodMap.ERC20WithData.filter(
-          abi => abi.name !== undefined && METHODS_WITH_DATA.includes(abi.name),
-        ) as IAbiMethod[],
+        [...METHODS_WITH_DATA, ERC20_TRANSFER_NO_DATA]
+          .map(name => {
+            return abiMethodMap.ERC20WithData.find(abi => abi.name === name);
+          })
+          .filter(abi => abi !== undefined),
         '0',
       );
     });
@@ -718,11 +722,9 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC721_NO_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        abiMethodMap.ERC721NoData.filter(
-          abi =>
-            abi.name !== undefined &&
-            [...METHODS_NO_DATA, ERC721_TRANSFER_NO_DATA].includes(abi.name),
-        ) as IAbiMethod[],
+        [...METHODS_NO_DATA, ERC721_TRANSFER_NO_DATA].map(name => {
+          return abiMethodMap.ERC721NoData.find(abi => abi.name === name);
+        }),
         '0',
       );
     });
@@ -959,9 +961,9 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC721_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        abiTypeMap.ERC721WithData.filter(
-          abi => abi.name !== undefined && METHODS_WITH_DATA.includes(abi.name),
-        ) as IAbiMethod[],
+        [...METHODS_WITH_DATA, ERC721_TRANSFER_NO_DATA].map(name => {
+          return abiTypeMap.ERC721WithData.find(abi => abi.name === name);
+        }),
         '0',
       );
     });

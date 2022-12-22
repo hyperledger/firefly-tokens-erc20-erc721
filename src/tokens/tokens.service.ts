@@ -22,7 +22,6 @@ import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.
 import { Context, newContext } from '../request-context/request-context.decorator';
 import {
   AsyncResponse,
-  IAbiMethod,
   IPoolLocator,
   IValidPoolLocator,
   TokenApproval,
@@ -50,9 +49,6 @@ import { BlockchainConnectorService } from './blockchain.service';
 
 const tokenCreateMethod = 'create';
 const tokenCreateEvent = 'TokenPoolCreation';
-
-const UINT256_MAX = BigInt(2) ** BigInt(256) - BigInt(1);
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 @Injectable()
 export class TokensService {
@@ -371,9 +367,6 @@ export class TokensService {
     if (possibleMethods.length === 0 || contractAbi === undefined) {
       throw new BadRequestException(`Unknown schema: ${poolLocator.schema}`);
     }
-    const methodsToSubTo: IAbiMethod[] = contractAbi.filter(
-      method => method.name !== undefined && possibleMethods.includes(method.name),
-    );
 
     const promises = [
       this.eventstream.getOrCreateSubscription(
@@ -383,7 +376,7 @@ export class TokensService {
         stream.id,
         packSubscriptionName(dto.poolLocator, transferAbi.name, dto.poolData),
         poolLocator.address,
-        methodsToSubTo,
+        possibleMethods,
         this.getSubscriptionBlockNumber(dto.config),
       ),
       this.eventstream.getOrCreateSubscription(
@@ -393,7 +386,7 @@ export class TokensService {
         stream.id,
         packSubscriptionName(dto.poolLocator, approvalAbi.name, dto.poolData),
         poolLocator.address,
-        methodsToSubTo,
+        possibleMethods,
         this.getSubscriptionBlockNumber(dto.config),
       ),
     ];
@@ -406,7 +399,7 @@ export class TokensService {
           stream.id,
           packSubscriptionName(dto.poolLocator, approvalForAllAbi.name, dto.poolData),
           poolLocator.address,
-          methodsToSubTo,
+          possibleMethods,
           this.getSubscriptionBlockNumber(dto.config),
         ),
       );
@@ -466,16 +459,13 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'TRANSFER');
-    const params = [dto.from, dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
-    poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
-
+    const { method, params } = this.mapper.getMethodAndParams(poolLocator.schema, 'transfer', dto);
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       poolLocator.address,
       dto.requestId,
-      methodAbi,
+      method,
       params,
     );
     return { id: response.id };
@@ -487,16 +477,13 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'BURN');
-    const params = [dto.from, this.getAmountOrTokenID(dto, poolLocator.type)];
-    poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
-
+    const { method, params } = this.mapper.getMethodAndParams(poolLocator.schema, 'burn', dto);
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       poolLocator.address,
       dto.requestId,
-      methodAbi,
+      method,
       params,
     );
     return { id: response.id };
@@ -508,37 +495,13 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    let methodAbi: IAbiMethod | undefined;
-    const params: any[] = [];
-
-    switch (poolLocator.type) {
-      case TokenType.FUNGIBLE: {
-        // Not approved means 0 allowance; approved with no allowance means unlimited allowance
-        const allowance = !dto.approved ? '0' : dto.config?.allowance ?? UINT256_MAX.toString();
-        params.push(dto.operator, allowance);
-        methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'APPROVE');
-        break;
-      }
-      case TokenType.NONFUNGIBLE:
-        if (dto.config?.tokenIndex !== undefined) {
-          // Not approved means setting approved operator to 0
-          const operator = !dto.approved ? ZERO_ADDRESS : dto.operator;
-          params.push(operator, dto.config.tokenIndex);
-          methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'APPROVE');
-        } else {
-          params.push(dto.operator, dto.approved);
-          methodAbi = this.mapper.getMethodAbi(poolLocator.schema, 'APPROVEFORALL');
-        }
-        break;
-    }
-
-    poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
+    const { method, params } = this.mapper.getMethodAndParams(poolLocator.schema, 'approve', dto);
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       poolLocator.address,
       dto.requestId,
-      methodAbi,
+      method,
       params,
     );
     return { id: response.id };

@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import LRUCache from 'lru-cache';
 import { Context } from '../request-context/request-context.decorator';
 import ERC20NoDataABI from '../abi/ERC20NoData.json';
@@ -23,6 +23,7 @@ import ERC721NoDataABI from '../abi/ERC721NoData.json';
 import ERC721WithDataABI from '../abi/ERC721WithData.json';
 import IERC165ABI from '../abi/IERC165.json';
 import { BlockchainConnectorService } from './blockchain.service';
+import { erc20Methods, erc721Methods, MethodSignature, OpTypes } from './supportedmethods';
 import { ContractSchemaStrings, IAbiMethod, TokenType } from './tokens.interfaces';
 
 const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
@@ -40,12 +41,8 @@ const supportsInterfaceABI = IERC165ABI.abi.find(m => m.name === 'supportsInterf
 export interface AbiMethods {
   MINT: string;
   MINTURI: string | null;
-  TRANSFER: string;
-  BURN: string;
   NAME: string;
   SYMBOL: string;
-  APPROVE: string;
-  APPROVEFORALL: string | null;
   DECIMALS: string | null;
   BASEURI: string | null;
   URI: string | null;
@@ -61,10 +58,6 @@ const abiMethodMap = new Map<ContractSchemaStrings, AbiMethods & Record<string, 
 abiMethodMap.set('ERC20NoData', {
   MINT: 'mint',
   MINTURI: null,
-  TRANSFER: 'transferFrom',
-  BURN: 'burn',
-  APPROVE: 'approve',
-  APPROVEFORALL: null,
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: 'decimals',
@@ -74,10 +67,6 @@ abiMethodMap.set('ERC20NoData', {
 abiMethodMap.set('ERC20WithData', {
   MINT: 'mintWithData',
   MINTURI: null,
-  TRANSFER: 'transferWithData',
-  BURN: 'burnWithData',
-  APPROVE: 'approveWithData',
-  APPROVEFORALL: null,
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: 'decimals',
@@ -87,10 +76,6 @@ abiMethodMap.set('ERC20WithData', {
 abiMethodMap.set('ERC721WithData', {
   MINT: 'mintWithData',
   MINTURI: 'mintWithURI',
-  TRANSFER: 'transferWithData',
-  BURN: 'burnWithData',
-  APPROVE: 'approveWithData',
-  APPROVEFORALL: 'setApprovalForAllWithData',
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: null,
@@ -100,10 +85,6 @@ abiMethodMap.set('ERC721WithData', {
 abiMethodMap.set('ERC721NoData', {
   MINT: 'mint',
   MINTURI: null,
-  TRANSFER: 'safeTransferFrom',
-  BURN: 'burn',
-  APPROVE: 'approve',
-  APPROVEFORALL: 'setApprovalForAll',
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: null,
@@ -149,27 +130,21 @@ export class AbiMapperService {
     return withData ? 'ERC721WithData' : 'ERC721NoData';
   }
 
-  allMethods(schema: ContractSchemaStrings) {
-    const names: string[] = [];
-    const methods = abiMethodMap.get(schema);
-    for (const method of Object.values(methods ?? {})) {
-      if (method !== null) {
-        names.push(method);
-      }
-    }
-    return names;
-  }
-
   allInvokeMethods(schema: ContractSchemaStrings) {
-    const excluded = ['NAME', 'SYMBOL', 'DECIMALS', 'URI', 'BASEURI'];
-    const names: string[] = [];
-    const methods = abiMethodMap.get(schema);
-    for (const [key, method] of Object.entries(methods ?? {})) {
-      if (!excluded.includes(key) && method !== null) {
-        names.push(method);
-      }
-    }
-    return names;
+    const allSignatures = schema.startsWith('ERC20')
+      ? [
+          ...erc20Methods.approve,
+          ...erc20Methods.burn,
+          ...erc20Methods.mint,
+          ...erc20Methods.transfer,
+        ]
+      : [
+          ...erc721Methods.approve,
+          ...erc721Methods.burn,
+          ...erc721Methods.mint,
+          ...erc721Methods.transfer,
+        ];
+    return this.findAllMatches(this.getAbi(schema), allSignatures);
   }
 
   allEvents(schema: ContractSchemaStrings) {
@@ -184,7 +159,71 @@ export class AbiMapperService {
   }
 
   getAbi(schema: ContractSchemaStrings) {
-    return abiSchemaMap.get(schema);
+    const abi = abiSchemaMap.get(schema);
+    if (abi === undefined) {
+      throw new BadRequestException(`Unknown schema: ${schema}`);
+    }
+    return abi;
+  }
+
+  private findAllMatches(abi: IAbiMethod[], signatures: MethodSignature[]) {
+    const methods: IAbiMethod[] = [];
+    for (const signature of signatures) {
+      for (const method of abi) {
+        if (signature.name === method.name && signature.inputs.length === method.inputs?.length) {
+          let matched = true;
+          for (let i = 0; i < signature.inputs.length; i++) {
+            if (
+              signature.inputs[i].name !== method.inputs[i].name ||
+              signature.inputs[i].type !== method.inputs[i].type
+            ) {
+              matched = false;
+              break;
+            }
+          }
+          if (matched) {
+            methods.push(method);
+          }
+        }
+      }
+    }
+    return methods;
+  }
+
+  private findFirstMatch(abi: IAbiMethod[], signatures: MethodSignature[], dto?: any) {
+    for (const signature of signatures) {
+      for (const method of abi) {
+        if (signature.name === method.name && signature.inputs.length === method.inputs?.length) {
+          let matched = true;
+          for (let i = 0; i < signature.inputs.length; i++) {
+            if (
+              signature.inputs[i].name !== method.inputs[i].name ||
+              signature.inputs[i].type !== method.inputs[i].type
+            ) {
+              matched = false;
+              break;
+            }
+          }
+          if (matched) {
+            const params = signature.map(dto);
+            if (params !== undefined) {
+              return { method, params };
+            }
+          }
+        }
+      }
+    }
+    return {};
+  }
+
+  getMethodAndParams(schema: ContractSchemaStrings, operation: OpTypes, dto: any) {
+    const abi = this.getAbi(schema);
+    if (schema.startsWith('ERC20')) {
+      return this.findFirstMatch(abi, erc20Methods[operation], dto);
+    } else {
+      return this.findFirstMatch(abi, erc721Methods[operation], dto);
+    }
+    return {};
   }
 
   getMethodAbi(schema: ContractSchemaStrings, operation: keyof AbiMethods): IAbiMethod | undefined {
