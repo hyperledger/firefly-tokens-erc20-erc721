@@ -111,6 +111,20 @@ export const erc20Methods: Record<OpTypes, MethodSignature[]> = {
       },
     },
     {
+      name: 'transfer',
+      inputs: [
+        { name: 'recipient', type: 'address' },
+        { name: 'amount', type: 'uint256' },
+      ],
+      map: (dto: TokenTransfer) => {
+        if (dto.from === dto.signer) {
+          // Can only be used to transfer from the signer's address
+          return [dto.to, dto.amount];
+        }
+        return undefined;
+      },
+    },
+    {
       name: 'transferFrom',
       inputs: [
         { name: 'from', type: 'address' },

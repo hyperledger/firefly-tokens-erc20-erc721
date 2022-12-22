@@ -50,7 +50,8 @@ const ERC20_WITH_DATA_SCHEMA = 'ERC20WithData';
 const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
 
 const MINT_NO_DATA = 'mint';
-const TRANSFER_NO_DATA = 'transferFrom';
+const TRANSFER_NO_DATA = 'transfer';
+const TRANSFER_FROM_NO_DATA = 'transferFrom';
 const BURN_NO_DATA = 'burn';
 const APPROVE_NO_DATA = 'approve';
 const MINT_WITH_DATA = 'mintWithData';
@@ -470,7 +471,7 @@ export default (context: TestContext) => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiMethodMap.ERC20NoData.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '0x123', '20'],
+        params: ['0x123', '20'],
       };
 
       const response: EthConnectAsyncResponse = {
