@@ -20,7 +20,8 @@ import { Context } from '../request-context/request-context.decorator';
 import ERC20NoDataABI from '../abi/ERC20NoData.json';
 import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
-import ERC721WithDataABI from '../abi/ERC721WithData.json';
+import ERC721WithURIABI from '../abi/ERC721WithData.json';
+import ERC721WithDataABI from '../abi/ERC721WithDataOld.json';
 import IERC165ABI from '../abi/IERC165.json';
 import { BlockchainConnectorService } from './blockchain.service';
 import { erc20Methods, erc721Methods, MethodSignature, OpTypes } from './supportedmethods';
@@ -30,7 +31,7 @@ const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
 abiSchemaMap.set('ERC20NoData', ERC20NoDataABI.abi);
 abiSchemaMap.set('ERC20WithData', ERC20WithDataABI.abi);
 abiSchemaMap.set('ERC721NoData', ERC721NoDataABI.abi);
-abiSchemaMap.set('ERC721WithData', ERC721WithDataABI.abi);
+abiSchemaMap.set('ERC721WithData', ERC721WithURIABI.abi);
 
 const ERC20WithDataIID = '0xaefdad0f';
 const ERC721WithDataIID = '0xb2429c12';
@@ -39,8 +40,6 @@ const TokenFactoryIID = '0x83a74a0c';
 const supportsInterfaceABI = IERC165ABI.abi.find(m => m.name === 'supportsInterface');
 
 export interface AbiMethods {
-  MINT: string;
-  MINTURI: string | null;
   NAME: string;
   SYMBOL: string;
   DECIMALS: string | null;
@@ -56,8 +55,6 @@ export interface AbiEvents {
 
 const abiMethodMap = new Map<ContractSchemaStrings, AbiMethods & Record<string, string | null>>();
 abiMethodMap.set('ERC20NoData', {
-  MINT: 'mint',
-  MINTURI: null,
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: 'decimals',
@@ -65,8 +62,6 @@ abiMethodMap.set('ERC20NoData', {
   URI: null,
 });
 abiMethodMap.set('ERC20WithData', {
-  MINT: 'mintWithData',
-  MINTURI: null,
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: 'decimals',
@@ -74,8 +69,6 @@ abiMethodMap.set('ERC20WithData', {
   URI: null,
 });
 abiMethodMap.set('ERC721WithData', {
-  MINT: 'mintWithData',
-  MINTURI: 'mintWithURI',
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: null,
@@ -83,8 +76,6 @@ abiMethodMap.set('ERC721WithData', {
   URI: 'tokenURI',
 });
 abiMethodMap.set('ERC721NoData', {
-  MINT: 'mint',
-  MINTURI: null,
   NAME: 'name',
   SYMBOL: 'symbol',
   DECIMALS: null,
@@ -158,7 +149,13 @@ export class AbiMapperService {
     return names;
   }
 
-  getAbi(schema: ContractSchemaStrings) {
+  getAbi(schema: ContractSchemaStrings, uriSupport = true) {
+    if (schema === 'ERC721WithData' && uriSupport === false) {
+      // Special case outside the schema map
+      // ERC721WithURI is a strict superset of ERC721WithData with a few extra methods.
+      // Assume the URI methods exist, unless uriSupport is explicitly set to false.
+      return ERC721WithDataABI.abi;
+    }
     const abi = abiSchemaMap.get(schema);
     if (abi === undefined) {
       throw new BadRequestException(`Unknown schema: ${schema}`);
@@ -216,8 +213,13 @@ export class AbiMapperService {
     return {};
   }
 
-  getMethodAndParams(schema: ContractSchemaStrings, operation: OpTypes, dto: any) {
-    const abi = this.getAbi(schema);
+  getMethodAndParams(
+    schema: ContractSchemaStrings,
+    operation: OpTypes,
+    dto: any,
+    uriSupport?: boolean,
+  ) {
+    const abi = this.getAbi(schema, uriSupport);
     if (schema.startsWith('ERC20')) {
       return this.findFirstMatch(abi, erc20Methods[operation], dto);
     } else {

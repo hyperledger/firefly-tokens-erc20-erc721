@@ -362,9 +362,8 @@ export class TokensService {
     }
     const approvalForAllAbi = this.mapper.getEventAbi(poolLocator.schema, 'APPROVALFORALL');
 
-    const contractAbi = this.mapper.getAbi(poolLocator.schema);
     const possibleMethods = this.mapper.allInvokeMethods(poolLocator.schema);
-    if (possibleMethods.length === 0 || contractAbi === undefined) {
+    if (possibleMethods.length === 0) {
       throw new BadRequestException(`Unknown schema: ${poolLocator.schema}`);
     }
 
@@ -434,20 +433,18 @@ export class TokensService {
       supportsUri = await this.mapper.supportsNFTUri(ctx, poolLocator.address, false);
     }
 
-    const methodAbi = this.mapper.getMethodAbi(
+    const { method, params } = this.mapper.getMethodAndParams(
       poolLocator.schema,
-      supportsUri ? 'MINTURI' : 'MINT',
+      'mint',
+      dto,
+      supportsUri,
     );
-    const params = [dto.to, this.getAmountOrTokenID(dto, poolLocator.type)];
-    poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
-    supportsUri && params.push(dto.uri);
-
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
       poolLocator.address,
       dto.requestId,
-      methodAbi,
+      method,
       params,
     );
     return { id: response.id };

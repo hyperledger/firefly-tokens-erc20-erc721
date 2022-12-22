@@ -11,18 +11,10 @@ export interface MethodSignature {
   map: (dto: any) => any[] | undefined;
 }
 
-function getAmountOrTokenID(
-  dto: TokenMint | TokenTransfer | TokenBurn,
-  type: TokenType,
-): string | undefined {
-  if (type === TokenType.FUNGIBLE) {
-    return dto.amount;
-  }
-
+function getTokenID(dto: TokenMint | TokenTransfer | TokenBurn): string | undefined {
   if (dto.amount !== undefined && dto.amount !== '1') {
     throw new BadRequestException('Amount for nonfungible tokens must be 1');
   }
-
   return dto.tokenIndex;
 }
 
@@ -66,7 +58,7 @@ export const erc20Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'data', type: 'bytes' },
       ],
       map: (dto: TokenBurn) => {
-        return [dto.from, getAmountOrTokenID(dto, TokenType.FUNGIBLE), encodeHex(dto.data ?? '')];
+        return [dto.from, dto.amount, encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -76,7 +68,7 @@ export const erc20Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'amount', type: 'uint256' },
       ],
       map: (dto: TokenBurn) => {
-        return [dto.from, getAmountOrTokenID(dto, TokenType.FUNGIBLE)];
+        return [dto.from, dto.amount];
       },
     },
   ],
@@ -90,7 +82,7 @@ export const erc20Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'data', type: 'bytes' },
       ],
       map: (dto: TokenMint) => {
-        return [dto.to, getAmountOrTokenID(dto, TokenType.FUNGIBLE), encodeHex(dto.data ?? '')];
+        return [dto.to, dto.amount, encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -100,7 +92,7 @@ export const erc20Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'amount', type: 'uint256' },
       ],
       map: (dto: TokenMint) => {
-        return [dto.to, getAmountOrTokenID(dto, TokenType.FUNGIBLE)];
+        return [dto.to, dto.amount];
       },
     },
   ],
@@ -115,12 +107,7 @@ export const erc20Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'data', type: 'bytes' },
       ],
       map: (dto: TokenTransfer) => {
-        return [
-          dto.from,
-          dto.to,
-          getAmountOrTokenID(dto, TokenType.FUNGIBLE),
-          encodeHex(dto.data ?? ''),
-        ];
+        return [dto.from, dto.to, dto.amount, encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -131,7 +118,7 @@ export const erc20Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'amount', type: 'uint256' },
       ],
       map: (dto: TokenTransfer) => {
-        return [dto.from, dto.to, getAmountOrTokenID(dto, TokenType.FUNGIBLE)];
+        return [dto.from, dto.to, dto.amount];
       },
     },
   ],
@@ -212,11 +199,7 @@ export const erc721Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'data', type: 'bytes' },
       ],
       map: (dto: TokenBurn) => {
-        return [
-          dto.from,
-          getAmountOrTokenID(dto, TokenType.NONFUNGIBLE),
-          encodeHex(dto.data ?? ''),
-        ];
+        return [dto.from, getTokenID(dto), encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -226,7 +209,7 @@ export const erc721Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'tokenId', type: 'uint256' },
       ],
       map: (dto: TokenBurn) => {
-        return [dto.from, getAmountOrTokenID(dto, TokenType.NONFUNGIBLE)];
+        return [dto.from, getTokenID(dto)];
       },
     },
   ],
@@ -241,12 +224,7 @@ export const erc721Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'tokenURI_', type: 'string' },
       ],
       map: (dto: TokenMint) => {
-        return [
-          dto.to,
-          getAmountOrTokenID(dto, TokenType.NONFUNGIBLE),
-          encodeHex(dto.data ?? ''),
-          dto.uri,
-        ];
+        return [dto.to, getTokenID(dto), encodeHex(dto.data ?? ''), dto.uri];
       },
     },
     {
@@ -257,7 +235,7 @@ export const erc721Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'data', type: 'bytes' },
       ],
       map: (dto: TokenMint) => {
-        return [dto.to, getAmountOrTokenID(dto, TokenType.NONFUNGIBLE), encodeHex(dto.data ?? '')];
+        return [dto.to, getTokenID(dto), encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -267,7 +245,7 @@ export const erc721Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'tokenId', type: 'uint256' },
       ],
       map: (dto: TokenMint) => {
-        return [dto.to, getAmountOrTokenID(dto, TokenType.NONFUNGIBLE)];
+        return [dto.to, getTokenID(dto)];
       },
     },
   ],
@@ -282,12 +260,7 @@ export const erc721Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'data', type: 'bytes' },
       ],
       map: (dto: TokenTransfer) => {
-        return [
-          dto.from,
-          dto.to,
-          getAmountOrTokenID(dto, TokenType.NONFUNGIBLE),
-          encodeHex(dto.data ?? ''),
-        ];
+        return [dto.from, dto.to, getTokenID(dto), encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -298,7 +271,7 @@ export const erc721Methods: Record<OpTypes, MethodSignature[]> = {
         { name: 'tokenId', type: 'uint256' },
       ],
       map: (dto: TokenTransfer) => {
-        return [dto.from, dto.to, getAmountOrTokenID(dto, TokenType.NONFUNGIBLE)];
+        return [dto.from, dto.to, getTokenID(dto)];
       },
     },
   ],
