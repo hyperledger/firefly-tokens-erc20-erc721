@@ -24,10 +24,15 @@ import ERC721WithURIABI from '../abi/ERC721WithData.json';
 import ERC721WithDataABI from '../abi/ERC721WithDataOld.json';
 import IERC165ABI from '../abi/IERC165.json';
 import { BlockchainConnectorService } from './blockchain.service';
-import { AllEvents as ERC20Events } from './erc20';
-import { AllEvents as ERC721Events } from './erc721';
-import { erc20Methods, erc721Methods, MethodSignature, OpTypes } from './supportedmethods';
-import { ContractSchemaStrings, IAbiMethod, TokenType } from './tokens.interfaces';
+import { AllEvents as ERC20Events, DynamicMethods as ERC20Methods } from './erc20';
+import { AllEvents as ERC721Events, DynamicMethods as ERC721Methods } from './erc721';
+import {
+  ContractSchemaStrings,
+  IAbiMethod,
+  MethodSignature,
+  TokenOperation,
+  TokenType,
+} from './tokens.interfaces';
 
 const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
 abiSchemaMap.set('ERC20NoData', ERC20NoDataABI.abi);
@@ -78,16 +83,16 @@ export class AbiMapperService {
   allInvokeMethods(schema: ContractSchemaStrings) {
     const allSignatures = schema.startsWith('ERC20')
       ? [
-          ...erc20Methods.approve,
-          ...erc20Methods.burn,
-          ...erc20Methods.mint,
-          ...erc20Methods.transfer,
+          ...ERC20Methods.approve,
+          ...ERC20Methods.burn,
+          ...ERC20Methods.mint,
+          ...ERC20Methods.transfer,
         ]
       : [
-          ...erc721Methods.approve,
-          ...erc721Methods.burn,
-          ...erc721Methods.mint,
-          ...erc721Methods.transfer,
+          ...ERC721Methods.approve,
+          ...ERC721Methods.burn,
+          ...ERC721Methods.mint,
+          ...ERC721Methods.transfer,
         ];
     return this.findAllMatches(this.getAbi(schema), allSignatures);
   }
@@ -163,14 +168,13 @@ export class AbiMapperService {
 
   getMethodAndParams(
     schema: ContractSchemaStrings,
-    operation: OpTypes,
+    operation: TokenOperation,
     dto: any,
     uriSupport?: boolean,
   ) {
     const abi = this.getAbi(schema, uriSupport);
-    return schema.startsWith('ERC20')
-      ? this.findFirstMatch(abi, erc20Methods[operation], dto)
-      : this.findFirstMatch(abi, erc721Methods[operation], dto);
+    const methods = schema.startsWith('ERC20') ? ERC20Methods[operation] : ERC721Methods[operation];
+    return this.findFirstMatch(abi, methods, dto);
   }
 
   getMethodAbi(schema: ContractSchemaStrings, operation: keyof AbiMethods): IAbiMethod | undefined {

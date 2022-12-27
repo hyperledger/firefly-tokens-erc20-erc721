@@ -435,3 +435,11 @@ export interface EthConnectMsgRequest {
   method: IAbiMethod;
   params: any[];
 }
+
+export interface MethodSignature {
+  name: string;
+  inputs: { name: string; type: string }[];
+  map: (dto: any) => any[] | undefined;
+}
+
+export type TokenOperation = 'approve' | 'burn' | 'mint' | 'transfer';
