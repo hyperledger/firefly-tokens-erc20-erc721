@@ -119,6 +119,7 @@ export const AllEvents = [Transfer, Approval];
 export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   approve: [
     {
+      // Source: FireFly extension
       name: 'approveWithData',
       inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenApproval) => {
@@ -128,6 +129,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
+      // Source: base standard
       name: 'approve',
       inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenApproval) => {
@@ -140,6 +142,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
 
   burn: [
     {
+      // Source: FireFly extension
       name: 'burnWithData',
       inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenBurn) => {
@@ -147,7 +150,28 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
+      // Source: ??
       name: 'burn',
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
+      map: (dto: TokenBurn) => {
+        return [dto.from, dto.amount];
+      },
+    },
+    {
+      // Source: OpenZeppelin extension
+      name: 'burn',
+      inputs: [{ type: 'uint256' }],
+      map: (dto: TokenBurn) => {
+        if (dto.from === dto.signer) {
+          // Can only be used to burn the signer's tokens
+          return [dto.amount];
+        }
+        return undefined;
+      },
+    },
+    {
+      // Source: OpenZeppelin extension
+      name: 'burnFrom',
       inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenBurn) => {
         return [dto.from, dto.amount];
@@ -157,6 +181,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
 
   mint: [
     {
+      // Source: FireFly extension
       name: 'mintWithData',
       inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenMint) => {
@@ -164,6 +189,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
+      // Source: OpenZeppelin extension
       name: 'mint',
       inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenMint) => {
@@ -174,6 +200,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
 
   transfer: [
     {
+      // Source: FireFly extension
       name: 'transferWithData',
       inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenTransfer) => {
@@ -181,6 +208,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
+      // Source: base standard
       name: 'transfer',
       inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenTransfer) => {
@@ -192,6 +220,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
+      // Source: base standard
       name: 'transferFrom',
       inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenTransfer) => {
