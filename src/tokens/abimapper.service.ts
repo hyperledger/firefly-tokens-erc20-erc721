@@ -22,6 +22,7 @@ import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
 import ERC721WithDataABI from '../abi/ERC721WithData.json';
 import ERC721WithDataOldABI from '../abi/ERC721WithDataOld.json';
+import TokenFactoryABI from '../abi/TokenFactory.json';
 import { BlockchainConnectorService } from './blockchain.service';
 import { SupportsInterface } from './erc165';
 import { AllEvents as ERC20Events, DynamicMethods as ERC20Methods } from './erc20';
@@ -31,8 +32,10 @@ import {
   IAbiMethod,
   MethodSignature,
   TokenOperation,
+  TokenPool,
   TokenType,
 } from './tokens.interfaces';
+import { encodeHex } from './tokens.util';
 
 const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
 abiSchemaMap.set('ERC20NoData', ERC20NoDataABI.abi);
@@ -51,6 +54,9 @@ const ERC721WithDataOldIID = '0xb2429c12';
 
 // The current version of ITokenFactory
 const TokenFactoryIID = '0x83a74a0c';
+
+const tokenCreateMethod = 'create';
+const tokenCreateEvent = 'TokenPoolCreation';
 
 @Injectable()
 export class AbiMapperService {
@@ -142,6 +148,30 @@ export class AbiMapperService {
       }
     }
     return {};
+  }
+
+  getCreateMethod() {
+    return TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
+  }
+
+  getCreateEvent() {
+    return TokenFactoryABI.abi.find(m => m.name === tokenCreateEvent);
+  }
+
+  getCreateMethodAndParams(dto: TokenPool, uriSupport = true) {
+    const isFungible = dto.type === TokenType.FUNGIBLE;
+    const encodedData = encodeHex(dto.data ?? '');
+    const method = this.getCreateMethod();
+    if (method === undefined) {
+      throw new BadRequestException('Failed to parse factory contract ABI');
+    }
+    const params = [dto.name, dto.symbol, isFungible, encodedData];
+    if (uriSupport) {
+      // supply empty string if URI isn't provided
+      // the contract itself handles empty base URIs appropriately
+      params.push(dto.config?.uri !== undefined ? dto.config.uri : '');
+    }
+    return { method, params };
   }
 
   private async supportsInterface(ctx: Context, address: string, iid: string) {

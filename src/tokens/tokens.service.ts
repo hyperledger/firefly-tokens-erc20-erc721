@@ -15,7 +15,6 @@
 // limitations under the License.
 
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import TokenFactoryABI from '../abi/TokenFactory.json';
 import { EventStream } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
@@ -36,7 +35,6 @@ import {
   TokenPoolEventInfo,
 } from './tokens.interfaces';
 import {
-  encodeHex,
   packPoolLocator,
   packSubscriptionName,
   unpackPoolLocator,
@@ -60,9 +58,6 @@ import {
   Name as ERC721Name,
   Symbol as ERC721Symbol,
 } from './erc721';
-
-const tokenCreateMethod = 'create';
-const tokenCreateEvent = 'TokenPoolCreation';
 
 @Injectable()
 export class TokensService {
@@ -94,36 +89,21 @@ export class TokensService {
     this.proxy.configure(wsUrl, stream.name);
   }
 
-  private getAmountOrTokenID(
-    dto: TokenMint | TokenTransfer | TokenBurn,
-    type: TokenType,
-  ): string | undefined {
-    if (type === TokenType.FUNGIBLE) {
-      return dto.amount;
-    }
-
-    if (dto.amount !== undefined && dto.amount !== '1') {
-      throw new BadRequestException('Amount for nonfungible tokens must be 1');
-    }
-
-    return dto.tokenIndex;
-  }
-
   /**
    * One-time initialization of event stream and base subscription.
    */
   async init(ctx: Context) {
     this.stream = await this.getStream(ctx);
     if (this.factoryAddress !== '') {
-      const eventABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateEvent);
-      const methodABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
+      const eventABI = this.mapper.getCreateEvent();
+      const methodABI = this.mapper.getCreateMethod();
       if (eventABI !== undefined && methodABI !== undefined) {
         await this.eventstream.getOrCreateSubscription(
           ctx,
           this.baseUrl,
           eventABI,
           this.stream.id,
-          packSubscriptionName(this.factoryAddress, tokenCreateEvent),
+          packSubscriptionName(this.factoryAddress, eventABI.name),
           this.factoryAddress,
           [methodABI],
           '0',
@@ -302,19 +282,8 @@ export class TokensService {
   }
 
   async createFromFactory(ctx: Context, dto: TokenPool): Promise<AsyncResponse> {
-    const isFungible = dto.type === TokenType.FUNGIBLE;
-    const encodedData = encodeHex(dto.data ?? '');
-    const method = TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
-    if (method === undefined) {
-      throw new BadRequestException('Failed to parse factory contract ABI');
-    }
-    const params = [dto.name, dto.symbol, isFungible, encodedData];
-    const uri = await this.mapper.supportsFactoryWithUri(ctx, this.factoryAddress);
-    if (uri === true) {
-      // supply empty string if URI isn't provided
-      // the contract itself handles empty base URIs appropriately
-      params.push(dto.config?.uri !== undefined ? dto.config.uri : '');
-    }
+    const supportsUri = await this.mapper.supportsFactoryWithUri(ctx, this.factoryAddress);
+    const { method, params } = this.mapper.getCreateMethodAndParams(dto, supportsUri);
 
     const response = await this.blockchain.sendTransaction(
       ctx,
