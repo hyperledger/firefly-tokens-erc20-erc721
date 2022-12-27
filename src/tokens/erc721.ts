@@ -1,55 +1,9 @@
-export const ERC20Transfer = {
-  name: 'Transfer',
-  type: 'event',
-  anonymous: false,
-  inputs: [
-    {
-      indexed: true,
-      internalType: 'address',
-      name: 'from',
-      type: 'address',
-    },
-    {
-      indexed: true,
-      internalType: 'address',
-      name: 'to',
-      type: 'address',
-    },
-    {
-      indexed: false,
-      internalType: 'uint256',
-      name: 'value',
-      type: 'uint256',
-    },
-  ],
-};
+/**
+ * This file contains ABI signatures for methods and events that are
+ * defined as part of the ERC721 standard, and therefore cannot change.
+ */
 
-export const ERC20Approval = {
-  name: 'Approval',
-  type: 'event',
-  inputs: [
-    {
-      indexed: true,
-      internalType: 'address',
-      name: 'owner',
-      type: 'address',
-    },
-    {
-      indexed: true,
-      internalType: 'address',
-      name: 'spender',
-      type: 'address',
-    },
-    {
-      indexed: false,
-      internalType: 'uint256',
-      name: 'value',
-      type: 'uint256',
-    },
-  ],
-};
-
-export const ERC721Transfer = {
+export const Transfer = {
   name: 'Transfer',
   type: 'event',
   anonymous: false,
@@ -75,7 +29,7 @@ export const ERC721Transfer = {
   ],
 };
 
-export const ERC721Approval = {
+export const Approval = {
   name: 'Approval',
   type: 'event',
   anonymous: false,
@@ -101,7 +55,7 @@ export const ERC721Approval = {
   ],
 };
 
-export const ERC721ApprovalForAll = {
+export const ApprovalForAll = {
   name: 'ApprovalForAll',
   type: 'event',
   anonymous: false,
@@ -127,5 +81,4 @@ export const ERC721ApprovalForAll = {
   ],
 };
 
-export const ERC20Events = [ERC20Transfer, ERC20Approval];
-export const ERC721Events = [ERC721Transfer, ERC721Approval, ERC721ApprovalForAll];
+export const AllEvents = [Transfer, Approval, ApprovalForAll];

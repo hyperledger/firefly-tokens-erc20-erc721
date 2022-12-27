@@ -51,7 +51,6 @@ const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH
 
 const MINT_NO_DATA = 'mint';
 const TRANSFER_NO_DATA = 'transfer';
-const TRANSFER_FROM_NO_DATA = 'transferFrom';
 const BURN_NO_DATA = 'burn';
 const APPROVE_NO_DATA = 'approve';
 const MINT_WITH_DATA = 'mintWithData';

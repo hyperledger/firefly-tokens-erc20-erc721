@@ -46,13 +46,12 @@ import {
 import { TokenListener } from './tokens.listener';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService } from './blockchain.service';
+import { Approval as ERC20Approval, Transfer as ERC20Transfer } from './erc20';
 import {
-  ERC20Approval,
-  ERC20Transfer,
-  ERC721Approval,
-  ERC721ApprovalForAll,
-  ERC721Transfer,
-} from './events';
+  Approval as ERC721Approval,
+  ApprovalForAll as ERC721ApprovalForAll,
+  Transfer as ERC721Transfer,
+} from './erc721';
 
 const tokenCreateMethod = 'create';
 const tokenCreateEvent = 'TokenPoolCreation';

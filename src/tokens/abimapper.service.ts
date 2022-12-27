@@ -24,7 +24,8 @@ import ERC721WithURIABI from '../abi/ERC721WithData.json';
 import ERC721WithDataABI from '../abi/ERC721WithDataOld.json';
 import IERC165ABI from '../abi/IERC165.json';
 import { BlockchainConnectorService } from './blockchain.service';
-import { ERC20Events, ERC721Events } from './events';
+import { AllEvents as ERC20Events } from './erc20';
+import { AllEvents as ERC721Events } from './erc721';
 import { erc20Methods, erc721Methods, MethodSignature, OpTypes } from './supportedmethods';
 import { ContractSchemaStrings, IAbiMethod, TokenType } from './tokens.interfaces';
 
