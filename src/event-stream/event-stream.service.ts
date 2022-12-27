@@ -16,7 +16,7 @@
 
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import { AxiosRequestConfig } from '@nestjs/terminus/dist/health-indicator/http/axios.interfaces';
+import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import { FFRequestIDHeader } from '../constants';
 import { Context } from '../request-context/request-context.decorator';

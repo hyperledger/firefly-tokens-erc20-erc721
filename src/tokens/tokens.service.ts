@@ -890,10 +890,10 @@ class TokenListener implements EventListener {
     const signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
-        process(await this.transformTokenPoolCreationEvent(newContext(), subName, event));
+        process(await this.transformTokenPoolCreationEvent(subName, event));
         break;
       case transferEventSignature:
-        process(await this.transformTransferEvent(newContext(), subName, event));
+        process(await this.transformTransferEvent(subName, event));
         break;
       case approvalEventSignature:
         process(this.transformApprovalEvent(subName, event));
@@ -955,7 +955,6 @@ class TokenListener implements EventListener {
   }
 
   private async transformTokenPoolCreationEvent(
-    ctx: Context,
     subName: string,
     event: TokenPoolCreationEvent,
   ): Promise<WebSocketMessage | undefined> {
@@ -968,7 +967,7 @@ class TokenListener implements EventListener {
     }
 
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
-    const withData = await this.service.supportsData(ctx, output.contract_address, type);
+    const withData = await this.service.supportsData(newContext(), output.contract_address, type);
     const schema = getTokenSchema(type, withData);
     const poolLocator: IValidPoolLocator = {
       address: output.contract_address.toLowerCase(),
@@ -1011,7 +1010,6 @@ class TokenListener implements EventListener {
   }
 
   private async transformTransferEvent(
-    ctx: Context,
     subName: string,
     event: TransferEvent,
   ): Promise<WebSocketMessage | undefined> {
@@ -1057,7 +1055,11 @@ class TokenListener implements EventListener {
 
     if (poolLocator.type === TokenType.NONFUNGIBLE && output.tokenId !== undefined) {
       commonData.tokenIndex = output.tokenId;
-      commonData.uri = await this.getTokenUri(ctx, output.tokenId, poolLocator.address ?? '');
+      commonData.uri = await this.getTokenUri(
+        newContext(),
+        output.tokenId,
+        poolLocator.address ?? '',
+      );
     }
 
     if (output.from === ZERO_ADDRESS) {
