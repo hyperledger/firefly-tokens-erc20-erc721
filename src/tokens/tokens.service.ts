@@ -46,11 +46,19 @@ import {
 import { TokenListener } from './tokens.listener';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService } from './blockchain.service';
-import { Approval as ERC20Approval, Transfer as ERC20Transfer } from './erc20';
+import {
+  Approval as ERC20Approval,
+  Transfer as ERC20Transfer,
+  Name as ERC20Name,
+  Symbol as ERC20Symbol,
+  Decimals as ERC20Decimals,
+} from './erc20';
 import {
   Approval as ERC721Approval,
   ApprovalForAll as ERC721ApprovalForAll,
   Transfer as ERC721Transfer,
+  Name as ERC721Name,
+  Symbol as ERC721Symbol,
 } from './erc721';
 
 const tokenCreateMethod = 'create';
@@ -212,36 +220,27 @@ export class TokensService {
   }
 
   private async queryPool(ctx: Context, poolLocator: IValidPoolLocator) {
-    const nameResponse = await this.blockchain.query(
-      ctx,
-      poolLocator.address,
-      this.mapper.getMethodAbi(poolLocator.schema, 'NAME'),
-      [],
-    );
-    const symbolResponse = await this.blockchain.query(
-      ctx,
-      poolLocator.address,
-      this.mapper.getMethodAbi(poolLocator.schema, 'SYMBOL'),
-      [],
-    );
+    const nameABI = poolLocator.type === TokenType.FUNGIBLE ? ERC20Name : ERC721Name;
+    const nameResponse = await this.blockchain.query(ctx, poolLocator.address, nameABI, []);
+    if (nameResponse?.output === undefined) {
+      throw new NotFoundException('Unable to query token name');
+    }
 
-    if (nameResponse?.output === undefined || symbolResponse?.output === undefined) {
-      throw new NotFoundException('Unable to query token contract');
+    const symbolABI = poolLocator.type === TokenType.FUNGIBLE ? ERC20Symbol : ERC721Symbol;
+    const symbolResponse = await this.blockchain.query(ctx, poolLocator.address, symbolABI, []);
+    if (symbolResponse?.output === undefined) {
+      throw new NotFoundException('Unable to query token symbol');
     }
 
     let decimals = 0;
-    const decimalsMethod = this.mapper.getMethodAbi(poolLocator.schema, 'DECIMALS');
-    if (decimalsMethod !== undefined) {
+    if (poolLocator.type === TokenType.FUNGIBLE) {
       const decimalsResponse = await this.blockchain.query(
         ctx,
         poolLocator.address,
-        decimalsMethod,
+        ERC20Decimals,
         [],
       );
-      decimals = parseInt(decimalsResponse.output);
-      if (isNaN(decimals)) {
-        decimals = 0;
-      }
+      decimals = parseInt(decimalsResponse.output) || 0;
     }
 
     return {

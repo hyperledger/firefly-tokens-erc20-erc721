@@ -3,6 +3,54 @@
  * defined as part of the ERC721 standard, and therefore cannot change.
  */
 
+export const Name = {
+  name: 'name',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [],
+  outputs: [
+    {
+      internalType: 'string',
+      name: '',
+      type: 'string',
+    },
+  ],
+};
+
+export const Symbol = {
+  name: 'symbol',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [],
+  outputs: [
+    {
+      internalType: 'string',
+      name: '',
+      type: 'string',
+    },
+  ],
+};
+
+export const TokenURI = {
+  name: 'tokenURI',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [
+    {
+      internalType: 'uint256',
+      name: 'tokenId',
+      type: 'uint256',
+    },
+  ],
+  outputs: [
+    {
+      internalType: 'string',
+      name: '',
+      type: 'string',
+    },
+  ],
+};
+
 export const Transfer = {
   name: 'Transfer',
   type: 'event',

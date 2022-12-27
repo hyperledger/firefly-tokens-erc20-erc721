@@ -42,41 +42,21 @@ const TokenFactoryIID = '0x83a74a0c';
 const supportsInterfaceABI = IERC165ABI.abi.find(m => m.name === 'supportsInterface');
 
 export interface AbiMethods {
-  NAME: string;
-  SYMBOL: string;
-  DECIMALS: string | null;
   BASEURI: string | null;
-  URI: string | null;
 }
 
 const abiMethodMap = new Map<ContractSchemaStrings, AbiMethods & Record<string, string | null>>();
 abiMethodMap.set('ERC20NoData', {
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: 'decimals',
   BASEURI: null,
-  URI: null,
 });
 abiMethodMap.set('ERC20WithData', {
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: 'decimals',
   BASEURI: null,
-  URI: null,
 });
 abiMethodMap.set('ERC721WithData', {
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: null,
   BASEURI: 'baseTokenUri',
-  URI: 'tokenURI',
 });
 abiMethodMap.set('ERC721NoData', {
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: null,
   BASEURI: null,
-  URI: null,
 });
 
 @Injectable()

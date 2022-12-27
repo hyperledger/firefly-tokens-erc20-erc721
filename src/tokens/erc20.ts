@@ -3,6 +3,48 @@
  * defined as part of the ERC20 standard, and therefore cannot change.
  */
 
+export const Name = {
+  name: 'name',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [],
+  outputs: [
+    {
+      internalType: 'string',
+      name: '',
+      type: 'string',
+    },
+  ],
+};
+
+export const Symbol = {
+  name: 'symbol',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [],
+  outputs: [
+    {
+      internalType: 'string',
+      name: '',
+      type: 'string',
+    },
+  ],
+};
+
+export const Decimals = {
+  name: 'decimals',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [],
+  outputs: [
+    {
+      internalType: 'uint8',
+      name: '',
+      type: 'uint8',
+    },
+  ],
+};
+
 export const Transfer = {
   name: 'Transfer',
   type: 'event',

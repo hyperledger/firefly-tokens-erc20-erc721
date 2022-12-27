@@ -32,7 +32,6 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
-  ContractSchemaStrings,
 } from './tokens.interfaces';
 import {
   decodeHex,
@@ -44,6 +43,7 @@ import {
 import { TokensService } from './tokens.service';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService } from './blockchain.service';
+import { TokenURI as ERC721URI } from './erc721';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -83,16 +83,11 @@ export class TokenListener implements EventListener {
 
   private async getTokenUri(
     ctx: Context,
-    schema: ContractSchemaStrings,
     tokenIdx: string,
     contractAddress: string,
   ): Promise<string> {
-    const methodABI = this.mapper.getMethodAbi(schema, 'URI');
-    if (methodABI === undefined) {
-      return '';
-    }
     try {
-      const response = await this.blockchain.query(ctx, contractAddress, methodABI, [tokenIdx]);
+      const response = await this.blockchain.query(ctx, contractAddress, ERC721URI, [tokenIdx]);
       return response.output as string;
     } catch (e) {
       this.logger.log(`Burned tokens do not have a URI: ${e}`);
@@ -232,7 +227,6 @@ export class TokenListener implements EventListener {
       if (validatePoolLocator(poolLocator)) {
         commonData.uri = await this.getTokenUri(
           newContext(),
-          poolLocator.schema,
           output.tokenId,
           poolLocator.address ?? '',
         );
