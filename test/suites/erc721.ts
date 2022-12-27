@@ -159,38 +159,6 @@ export default (context: TestContext) => {
       expect(response.body).toEqual(expectedResponse);
     });
 
-    it('Create pool - correct fields - explicit standard', async () => {
-      const request: TokenPool = {
-        type: TokenType.NONFUNGIBLE,
-        requestId: REQUEST,
-        signer: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: NAME,
-        symbol: SYMBOL,
-      };
-
-      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
-        data: `{"tx":${TX}}`,
-        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
-        standard: 'ERC721',
-        type: TokenType.NONFUNGIBLE,
-        symbol: SYMBOL,
-        info: {
-          name: NAME,
-          address: CONTRACT_ADDRESS,
-          schema: ERC721_WITH_DATA_SCHEMA,
-        },
-      });
-
-      mockURIQuery(false);
-      mockPoolQuery(true);
-      context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
-      const response = await context.server.post('/createpool').send(request).expect(200);
-      expect(response.body).toEqual(expectedResponse);
-    });
-
     it('Mint token', async () => {
       const request: TokenMint = {
         tokenIndex: '721',
@@ -544,6 +512,54 @@ export default (context: TestContext) => {
       context.http.post = jest.fn(() => new FakeObservable(response));
 
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
+
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('Mint token - custom ABI', async () => {
+      const safeMintAutoIndex = {
+        name: 'safeMint',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [
+          {
+            internalType: 'address',
+            name: 'to',
+            type: 'address',
+          },
+        ],
+        outputs: [],
+      };
+
+      const request: TokenMint = {
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
+        to: '0x123',
+        interface: {
+          abi: [safeMintAutoIndex],
+        },
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: safeMintAutoIndex,
+        params: ['0x123'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      context.http.post = jest.fn(() => new FakeObservable(response));
+
+      await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);

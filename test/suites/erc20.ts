@@ -177,37 +177,6 @@ export default (context: TestContext) => {
       expect(response.body).toEqual(expectedResponse);
     });
 
-    it('Create pool - correct fields - explicit standard', async () => {
-      const request: TokenPool = {
-        type: TokenType.FUNGIBLE,
-        requestId: REQUEST,
-        signer: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: NAME,
-        symbol: SYMBOL,
-      };
-
-      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
-        data: `{"tx":${TX}}`,
-        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
-        standard: 'ERC20',
-        type: TokenType.FUNGIBLE,
-        symbol: SYMBOL,
-        info: {
-          name: NAME,
-          address: CONTRACT_ADDRESS,
-          schema: ERC20_WITH_DATA_SCHEMA,
-        },
-      });
-
-      mockPoolQuery(true);
-      context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
-      const response = await context.server.post('/createpool').send(request).expect(200);
-      expect(response.body).toEqual(expectedResponse);
-    });
-
     it('Mint token', async () => {
       const request: TokenMint = {
         amount: '20',
@@ -544,6 +513,142 @@ export default (context: TestContext) => {
       context.http.post = jest.fn(() => new FakeObservable(response));
 
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
+
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('Burn token - custom ABI', async () => {
+      const burnMethods = [
+        {
+          name: 'burn',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              internalType: 'uint256',
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [],
+        },
+        {
+          name: 'burnFrom',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              internalType: 'address',
+              name: 'account',
+              type: 'address',
+            },
+            {
+              internalType: 'uint256',
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [],
+        },
+      ];
+
+      const request: TokenBurn = {
+        amount: '20',
+        signer: IDENTITY,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
+        from: IDENTITY,
+        interface: {
+          abi: burnMethods,
+        },
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: burnMethods[0],
+        params: ['20'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      context.http.post = jest.fn(() => new FakeObservable(response));
+
+      await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
+
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('Burn token - custom ABI, burn from other', async () => {
+      const burnMethods = [
+        {
+          name: 'burn',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              internalType: 'uint256',
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [],
+        },
+        {
+          name: 'burnFrom',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              internalType: 'address',
+              name: 'account',
+              type: 'address',
+            },
+            {
+              internalType: 'uint256',
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [],
+        },
+      ];
+
+      const request: TokenBurn = {
+        amount: '20',
+        signer: IDENTITY,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
+        from: '0x2',
+        interface: {
+          abi: burnMethods,
+        },
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: burnMethods[1],
+        params: ['0x2', '20'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      context.http.post = jest.fn(() => new FakeObservable(response));
+
+      await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);

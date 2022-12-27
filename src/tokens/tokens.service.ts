@@ -394,7 +394,7 @@ export class TokensService {
       supportsUri = await this.mapper.supportsMintWithUri(ctx, poolLocator.address);
     }
 
-    const abi = this.mapper.getAbi(poolLocator.schema, supportsUri);
+    const abi = dto.interface?.abi ?? this.mapper.getAbi(poolLocator.schema, supportsUri);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -418,7 +418,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.abi ?? this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -442,7 +442,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.abi ?? this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -466,7 +466,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.abi ?? this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
