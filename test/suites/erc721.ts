@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { newContext } from '../../src/request-context/request-context.decorator';
 import ERC721NoDataABI from '../../src/abi/ERC721NoData.json';
 import ERC721WithDataABI from '../../src/abi/ERC721WithData.json';
 import {
@@ -457,6 +458,11 @@ export default (context: TestContext) => {
     });
 
     it('Burn token', async () => {
+      const ctx = newContext();
+      const headers = {
+        'x-fireflyrequestid': ctx.requestId,
+      };
+
       const request: TokenBurn = {
         tokenIndex: '721',
         signer: IDENTITY,
@@ -484,10 +490,15 @@ export default (context: TestContext) => {
       await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
-      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, { headers });
     });
 
     it('Token approval for all', async () => {
+      const ctx = newContext();
+      const headers = {
+        'x-fireflyrequestid': ctx.requestId,
+      };
+
       const request: TokenApproval = {
         poolLocator: ERC721_NO_DATA_POOL_ID,
         signer: IDENTITY,
@@ -518,10 +529,15 @@ export default (context: TestContext) => {
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
-      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, { headers });
     });
 
     it('Token approval for one', async () => {
+      const ctx = newContext();
+      const headers = {
+        'x-fireflyrequestid': ctx.requestId,
+      };
+
       const request: TokenApproval = {
         poolLocator: ERC721_NO_DATA_POOL_ID,
         signer: IDENTITY,
@@ -550,7 +566,7 @@ export default (context: TestContext) => {
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
-      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, { headers });
     });
   });
 };

@@ -16,7 +16,10 @@
 
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
+import { AxiosRequestConfig } from '@nestjs/terminus/dist/health-indicator/http/axios.interfaces';
 import { lastValueFrom } from 'rxjs';
+import { FFRequestIDHeader } from '../constants';
+import { Context } from '../request-context/request-context.decorator';
 import WebSocket from 'ws';
 import { IAbiMethod } from '../tokens/tokens.interfaces';
 import { basicAuth } from '../utils';
@@ -121,14 +124,18 @@ export class EventStreamSocket {
       for (const event of message) {
         this.logger.log(`Ethconnect '${event.signature}' message: ${JSON.stringify(event.data)}`);
       }
-      this.handleEvents({events: message});
+      this.handleEvents({ events: message });
     } else if ('batchNumber' in message && Array.isArray(message.events)) {
       for (const event of message.events) {
-        this.logger.log(`Ethconnect '${event.signature}' message (batch=${message.batchNumber}): ${JSON.stringify(event.data)}`);
+        this.logger.log(
+          `Ethconnect '${event.signature}' message (batch=${message.batchNumber}): ${JSON.stringify(
+            event.data,
+          )}`,
+        );
       }
       this.handleEvents(message);
     } else {
-      const reply = message as EventStreamReply
+      const reply = message as EventStreamReply;
       const replyType = reply.headers.type;
       const errorMessage = reply.errorMessage ?? '';
       this.logger.log(
@@ -146,25 +153,42 @@ export class EventStreamService {
   private baseUrl: string;
   private username: string;
   private password: string;
+  private passthroughHeaders: string[];
 
   constructor(private http: HttpService) {}
 
-  configure(baseUrl: string, username: string, password: string) {
+  configure(baseUrl: string, username: string, password: string, passthroughHeaders: string[]) {
     this.baseUrl = baseUrl;
     this.username = username;
     this.password = password;
+    this.passthroughHeaders = passthroughHeaders;
   }
 
-  async getStreams(): Promise<EventStream[]> {
+  private requestOptions(ctx: Context): AxiosRequestConfig {
+    const headers = {};
+    for (const key of this.passthroughHeaders) {
+      const value = ctx.headers[key];
+      if (value) {
+        headers[key] = value;
+      }
+    }
+    headers[FFRequestIDHeader] = ctx.requestId;
+    const config = basicAuth(this.username, this.password);
+    config.headers = headers;
+    return config;
+  }
+
+  async getStreams(ctx: Context): Promise<EventStream[]> {
     const response = await lastValueFrom(
-      this.http.get<EventStream[]>(new URL('/eventstreams', this.baseUrl).href, {
-        ...basicAuth(this.username, this.password),
-      }),
+      this.http.get<EventStream[]>(
+        new URL('/eventstreams', this.baseUrl).href,
+        this.requestOptions(ctx),
+      ),
     );
     return response.data;
   }
 
-  async createOrUpdateStream(name: string, topic: string): Promise<EventStream> {
+  async createOrUpdateStream(ctx: Context, name: string, topic: string): Promise<EventStream> {
     const streamDetails = {
       name,
       errorHandling: 'block',
@@ -177,7 +201,7 @@ export class EventStreamService {
       timestamps: true,
     };
 
-    const existingStreams = await this.getStreams();
+    const existingStreams = await this.getStreams(ctx);
     const stream = existingStreams.find(s => s.name === streamDetails.name);
     if (stream) {
       const patchedStreamRes = await lastValueFrom(
@@ -186,9 +210,7 @@ export class EventStreamService {
           {
             ...streamDetails,
           },
-          {
-            ...basicAuth(this.username, this.password),
-          },
+          this.requestOptions(ctx),
         ),
       );
       this.logger.log(`Event stream for ${topic}: ${stream.id}`);
@@ -200,39 +222,36 @@ export class EventStreamService {
         {
           ...streamDetails,
         },
-        {
-          ...basicAuth(this.username, this.password),
-        },
+        this.requestOptions(ctx),
       ),
     );
     this.logger.log(`Event stream for ${topic}: ${newStreamRes.data.id}`);
     return newStreamRes.data;
   }
 
-  async deleteStream(id: string) {
+  async deleteStream(ctx: Context, id: string) {
     await lastValueFrom(
-      this.http.delete(new URL(`/eventstreams/${id}`, this.baseUrl).href, {
-        ...basicAuth(this.username, this.password),
-      }),
+      this.http.delete(new URL(`/eventstreams/${id}`, this.baseUrl).href, this.requestOptions(ctx)),
     );
   }
 
-  async getSubscriptions(): Promise<EventStreamSubscription[]> {
+  async getSubscriptions(ctx: Context): Promise<EventStreamSubscription[]> {
     const response = await lastValueFrom(
-      this.http.get<EventStreamSubscription[]>(new URL('/subscriptions', this.baseUrl).href, {
-        ...basicAuth(this.username, this.password),
-      }),
+      this.http.get<EventStreamSubscription[]>(
+        new URL('/subscriptions', this.baseUrl).href,
+        this.requestOptions(ctx),
+      ),
     );
     return response.data;
   }
 
-  async getSubscription(subId: string): Promise<EventStreamSubscription | undefined> {
+  async getSubscription(ctx: Context, subId: string): Promise<EventStreamSubscription | undefined> {
     const response = await lastValueFrom(
       this.http.get<EventStreamSubscription>(
         new URL(`/subscriptions/${subId}`, this.baseUrl).href,
         {
           validateStatus: status => status < 300 || status === 404,
-          ...basicAuth(this.username, this.password),
+          ...this.requestOptions(ctx),
         },
       ),
     );
@@ -243,6 +262,7 @@ export class EventStreamService {
   }
 
   async createSubscription(
+    ctx: Context,
     instancePath: string,
     eventABI: IAbiMethod,
     streamId: string,
@@ -263,9 +283,7 @@ export class EventStreamService {
           address,
           methods,
         },
-        {
-          ...basicAuth(this.username, this.password),
-        },
+        this.requestOptions(ctx),
       ),
     );
     this.logger.log(`Created subscription ${event}: ${response.data.id}`);
@@ -273,6 +291,7 @@ export class EventStreamService {
   }
 
   async getOrCreateSubscription(
+    ctx: Context,
     instancePath: string,
     eventABI: IAbiMethod,
     streamId: string,
@@ -282,13 +301,14 @@ export class EventStreamService {
     possibleABIs: IAbiMethod[],
     fromBlock = '0', // subscribe from the start of the chain by default
   ): Promise<EventStreamSubscription> {
-    const existingSubscriptions = await this.getSubscriptions();
+    const existingSubscriptions = await this.getSubscriptions(ctx);
     const sub = existingSubscriptions.find(s => s.name === name && s.stream === streamId);
     if (sub) {
       this.logger.log(`Existing subscription for ${event}: ${sub.id}`);
       return sub;
     }
     return this.createSubscription(
+      ctx,
       instancePath,
       eventABI,
       streamId,
