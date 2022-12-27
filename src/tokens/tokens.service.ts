@@ -265,14 +265,7 @@ export class TokensService {
   }
 
   async createFromExisting(ctx: Context, address: string, dto: TokenPool) {
-    let supportsCustomUri = false;
-    if (dto.type === TokenType.NONFUNGIBLE) {
-      supportsCustomUri = await this.mapper.supportsNFTUri(ctx, address, false);
-    }
-
-    const withData = supportsCustomUri
-      ? true
-      : await this.mapper.supportsData(ctx, address, dto.type);
+    const withData = await this.mapper.supportsData(ctx, address, dto.type);
     const schema = this.mapper.getTokenSchema(dto.type, withData);
     const poolLocator: IPoolLocator = {
       address: address.toLowerCase(),
@@ -296,14 +289,6 @@ export class TokensService {
       schema,
     };
 
-    if (supportsCustomUri) {
-      const method = this.mapper.getMethodAbi(schema, 'BASEURI');
-      if (method !== undefined) {
-        const baseUriResponse = await this.blockchain.query(ctx, poolLocator.address, method, []);
-        eventInfo.uri = baseUriResponse.output;
-      }
-    }
-
     const tokenPoolEvent: TokenPoolEvent = {
       data: dto.data,
       poolLocator: packPoolLocator(poolLocator),
@@ -324,10 +309,10 @@ export class TokensService {
       throw new BadRequestException('Failed to parse factory contract ABI');
     }
     const params = [dto.name, dto.symbol, isFungible, encodedData];
-    const uri = await this.mapper.supportsNFTUri(ctx, this.factoryAddress, true);
+    const uri = await this.mapper.supportsFactoryWithUri(ctx, this.factoryAddress);
     if (uri === true) {
       // supply empty string if URI isn't provided
-      // the contract itself handles empty base URI's appropriately
+      // the contract itself handles empty base URIs appropriately
       params.push(dto.config?.uri !== undefined ? dto.config.uri : '');
     }
 
@@ -437,7 +422,7 @@ export class TokensService {
 
     let supportsUri = false;
     if (dto.uri !== undefined) {
-      supportsUri = await this.mapper.supportsNFTUri(ctx, poolLocator.address, false);
+      supportsUri = await this.mapper.supportsMintWithUri(ctx, poolLocator.address);
     }
 
     const abi = this.mapper.getAbi(poolLocator.schema, supportsUri);

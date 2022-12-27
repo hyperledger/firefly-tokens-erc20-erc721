@@ -533,7 +533,7 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC20_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        [...METHODS_WITH_DATA, ERC20_TRANSFER_FROM_NO_DATA]
+        [...METHODS_WITH_DATA, ERC20_TRANSFER_NO_DATA, ERC20_TRANSFER_FROM_NO_DATA]
           .map(name => {
             return abiMethodMap.ERC20WithData.find(abi => abi.name === name);
           })
@@ -883,7 +883,6 @@ describe('TokensService', () => {
             name: NAME,
             address: CONTRACT_ADDRESS,
             schema: ERC721_WITH_DATA_SCHEMA,
-            uri: 'test',
           },
         } as TokenPoolEvent);
       });

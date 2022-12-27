@@ -32,7 +32,6 @@ import {
 import { FakeObservable, TestContext } from '../app.e2e-context';
 
 const BASE_URL = 'http://eth';
-const BASE_URI = 'http://test-uri/';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
 const OPTIONS = {
@@ -84,11 +83,6 @@ export default (context: TestContext) => {
         new FakeObservable(<EthConnectReturn>{
           output: SYMBOL,
         }),
-      )
-      .mockReturnValueOnce(
-        new FakeObservable(<EthConnectReturn>{
-          output: BASE_URI,
-        }),
       );
   };
 
@@ -122,7 +116,6 @@ export default (context: TestContext) => {
           name: NAME,
           address: CONTRACT_ADDRESS,
           schema: ERC721_WITH_DATA_SCHEMA,
-          uri: BASE_URI,
         },
       });
 
@@ -140,7 +133,7 @@ export default (context: TestContext) => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS, uri: BASE_URI },
+        config: { address: CONTRACT_ADDRESS, uri: 'http://test-uri/' },
         name: NAME,
         symbol: SYMBOL,
       };
@@ -155,7 +148,6 @@ export default (context: TestContext) => {
           name: NAME,
           address: CONTRACT_ADDRESS,
           schema: ERC721_WITH_DATA_SCHEMA,
-          uri: BASE_URI,
         },
       });
 

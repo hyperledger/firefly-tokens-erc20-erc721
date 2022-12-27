@@ -339,10 +339,6 @@ export class TokenPoolEventInfo {
 
   @ApiProperty()
   schema: string;
-
-  @ApiProperty()
-  @IsOptional()
-  uri?: string;
 }
 
 export class TokenPoolEvent extends tokenEventBase {

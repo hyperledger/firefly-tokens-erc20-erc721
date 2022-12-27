@@ -90,7 +90,7 @@ export class TokenListener implements EventListener {
       const response = await this.blockchain.query(ctx, contractAddress, ERC721URI, [tokenIdx]);
       return response.output as string;
     } catch (e) {
-      this.logger.log(`Burned tokens do not have a URI: ${e}`);
+      this.logger.log(`Could not query token URI: ${e}`);
       return '';
     }
   }

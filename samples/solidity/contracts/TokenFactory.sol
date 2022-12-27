@@ -33,7 +33,13 @@ import './ITokenFactory.sol';
  * when crafting your token logic, rather than relying on the FireFly community alone. Happy minting!
  */
 contract TokenFactory is Context, ITokenFactory {
-    event TokenPoolCreation(address indexed contract_address, string name, string symbol, bool is_fungible, bytes data);
+    event TokenPoolCreation(
+        address indexed contract_address,
+        string name,
+        string symbol,
+        bool is_fungible,
+        bytes data
+    );
 
     function create(
         string memory name,
@@ -41,7 +47,7 @@ contract TokenFactory is Context, ITokenFactory {
         bool is_fungible,
         bytes calldata data,
         string memory uri
-    ) external override virtual {
+    ) external virtual override {
         if (is_fungible) {
             ERC20WithData erc20 = new ERC20WithData(name, symbol);
             erc20.transferOwnership(_msgSender());
