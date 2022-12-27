@@ -154,11 +154,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   approve: [
     {
       name: 'approveWithData',
-      inputs: [
-        { name: 'to', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenApproval) => {
         if (dto.config?.tokenIndex !== undefined) {
           // Token index must be set
@@ -173,11 +169,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
     },
     {
       name: 'setApprovalForAllWithData',
-      inputs: [
-        { name: 'operator', type: 'address' },
-        { name: 'approved', type: 'bool' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'bool' }, { type: 'bytes' }],
       map: (dto: TokenApproval) => {
         if (dto.config?.tokenIndex === undefined) {
           // Token index must not be set
@@ -188,10 +180,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
     },
     {
       name: 'approve',
-      inputs: [
-        { name: 'to', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenApproval) => {
         if (dto.config?.tokenIndex !== undefined) {
           // Token index must be set
@@ -202,10 +191,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
     },
     {
       name: 'setApprovalForAll',
-      inputs: [
-        { name: 'operator', type: 'address' },
-        { name: 'approved', type: 'bool' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'bool' }],
       map: (dto: TokenApproval) => {
         if (dto.config?.tokenIndex === undefined) {
           // Token index must not be set
@@ -219,21 +205,14 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   burn: [
     {
       name: 'burnWithData',
-      inputs: [
-        { name: 'from', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenBurn) => {
         return [dto.from, getTokenID(dto), encodeHex(dto.data ?? '')];
       },
     },
     {
       name: 'burn',
-      inputs: [
-        { name: 'from', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenBurn) => {
         return [dto.from, getTokenID(dto)];
       },
@@ -243,33 +222,21 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   mint: [
     {
       name: 'mintWithURI',
-      inputs: [
-        { name: 'to', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-        { name: 'tokenURI_', type: 'string' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }, { type: 'string' }],
       map: (dto: TokenMint) => {
         return [dto.to, getTokenID(dto), encodeHex(dto.data ?? ''), dto.uri];
       },
     },
     {
       name: 'mintWithData',
-      inputs: [
-        { name: 'to', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenMint) => {
         return [dto.to, getTokenID(dto), encodeHex(dto.data ?? '')];
       },
     },
     {
       name: 'mint',
-      inputs: [
-        { name: 'to', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenMint) => {
         return [dto.to, getTokenID(dto)];
       },
@@ -279,23 +246,14 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   transfer: [
     {
       name: 'transferWithData',
-      inputs: [
-        { name: 'from', type: 'address' },
-        { name: 'to', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenTransfer) => {
         return [dto.from, dto.to, getTokenID(dto), encodeHex(dto.data ?? '')];
       },
     },
     {
       name: 'safeTransferFrom',
-      inputs: [
-        { name: 'from', type: 'address' },
-        { name: 'to', type: 'address' },
-        { name: 'tokenId', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenTransfer) => {
         return [dto.from, dto.to, getTokenID(dto)];
       },

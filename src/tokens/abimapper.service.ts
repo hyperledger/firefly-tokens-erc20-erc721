@@ -121,10 +121,7 @@ export class AbiMapperService {
       return false;
     }
     for (let i = 0; i < signature.inputs.length; i++) {
-      if (
-        signature.inputs[i].name !== method.inputs[i].name ||
-        signature.inputs[i].type !== method.inputs[i].type
-      ) {
+      if (signature.inputs[i].type !== method.inputs[i].type) {
         return false;
       }
     }

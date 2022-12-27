@@ -438,7 +438,7 @@ export interface EthConnectMsgRequest {
 
 export interface MethodSignature {
   name: string;
-  inputs: { name: string; type: string }[];
+  inputs: { type: string }[];
   map: (dto: any) => any[] | undefined;
 }
 

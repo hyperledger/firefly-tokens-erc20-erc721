@@ -120,11 +120,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   approve: [
     {
       name: 'approveWithData',
-      inputs: [
-        { name: 'spender', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenApproval) => {
         // Not approved means 0 allowance; approved with no allowance means unlimited allowance
         const allowance = !dto.approved ? '0' : dto.config?.allowance ?? UINT256_MAX.toString();
@@ -133,10 +129,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
     },
     {
       name: 'approve',
-      inputs: [
-        { name: 'spender', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenApproval) => {
         // Not approved means 0 allowance; approved with no allowance means unlimited allowance
         const allowance = !dto.approved ? '0' : dto.config?.allowance ?? UINT256_MAX.toString();
@@ -148,21 +141,14 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   burn: [
     {
       name: 'burnWithData',
-      inputs: [
-        { name: 'from', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenBurn) => {
         return [dto.from, dto.amount, encodeHex(dto.data ?? '')];
       },
     },
     {
       name: 'burn',
-      inputs: [
-        { name: 'from', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenBurn) => {
         return [dto.from, dto.amount];
       },
@@ -172,21 +158,14 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   mint: [
     {
       name: 'mintWithData',
-      inputs: [
-        { name: 'to', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenMint) => {
         return [dto.to, dto.amount, encodeHex(dto.data ?? '')];
       },
     },
     {
       name: 'mint',
-      inputs: [
-        { name: 'to', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenMint) => {
         return [dto.to, dto.amount];
       },
@@ -196,22 +175,14 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
   transfer: [
     {
       name: 'transferWithData',
-      inputs: [
-        { name: 'from', type: 'address' },
-        { name: 'to', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenTransfer) => {
         return [dto.from, dto.to, dto.amount, encodeHex(dto.data ?? '')];
       },
     },
     {
       name: 'transfer',
-      inputs: [
-        { name: 'recipient', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenTransfer) => {
         if (dto.from === dto.signer) {
           // Can only be used to transfer from the signer's address
@@ -222,11 +193,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
     },
     {
       name: 'transferFrom',
-      inputs: [
-        { name: 'from', type: 'address' },
-        { name: 'to', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-      ],
+      inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenTransfer) => {
         return [dto.from, dto.to, dto.amount];
       },
