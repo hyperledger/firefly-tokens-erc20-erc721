@@ -80,8 +80,8 @@ export class AbiMapperService {
     return withData ? 'ERC721WithData' : 'ERC721NoData';
   }
 
-  allInvokeMethods(schema: ContractSchemaStrings) {
-    const allSignatures = schema.startsWith('ERC20')
+  allInvokeMethods(abi: IAbiMethod[], isFungible: boolean) {
+    const allSignatures = isFungible
       ? [
           ...ERC20Methods.approve,
           ...ERC20Methods.burn,
@@ -94,11 +94,11 @@ export class AbiMapperService {
           ...ERC721Methods.mint,
           ...ERC721Methods.transfer,
         ];
-    return this.findAllMatches(this.getAbi(schema), allSignatures);
+    return this.getAllMethods(abi, allSignatures);
   }
 
-  allEvents(schema: ContractSchemaStrings) {
-    const events = schema.startsWith('ERC20') ? ERC20Events : ERC721Events;
+  allEvents(isFungible: boolean) {
+    const events = isFungible ? ERC20Events : ERC721Events;
     return events.map(event => event.name);
   }
 
@@ -116,65 +116,46 @@ export class AbiMapperService {
     return abi;
   }
 
-  private findAllMatches(abi: IAbiMethod[], signatures: MethodSignature[]) {
+  private signatureMatch(method: IAbiMethod, signature: MethodSignature) {
+    if (signature.name !== method.name || signature.inputs.length !== method.inputs?.length) {
+      return false;
+    }
+    for (let i = 0; i < signature.inputs.length; i++) {
+      if (
+        signature.inputs[i].name !== method.inputs[i].name ||
+        signature.inputs[i].type !== method.inputs[i].type
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private getAllMethods(abi: IAbiMethod[], signatures: MethodSignature[]) {
     const methods: IAbiMethod[] = [];
     for (const signature of signatures) {
       for (const method of abi) {
-        if (signature.name === method.name && signature.inputs.length === method.inputs?.length) {
-          let matched = true;
-          for (let i = 0; i < signature.inputs.length; i++) {
-            if (
-              signature.inputs[i].name !== method.inputs[i].name ||
-              signature.inputs[i].type !== method.inputs[i].type
-            ) {
-              matched = false;
-              break;
-            }
-          }
-          if (matched) {
-            methods.push(method);
-          }
+        if (this.signatureMatch(method, signature)) {
+          methods.push(method);
         }
       }
     }
     return methods;
   }
 
-  private findFirstMatch(abi: IAbiMethod[], signatures: MethodSignature[], dto?: any) {
+  getMethodAndParams(abi: IAbiMethod[], isFungible: boolean, operation: TokenOperation, dto: any) {
+    const signatures = isFungible ? ERC20Methods[operation] : ERC721Methods[operation];
     for (const signature of signatures) {
       for (const method of abi) {
-        if (signature.name === method.name && signature.inputs.length === method.inputs?.length) {
-          let matched = true;
-          for (let i = 0; i < signature.inputs.length; i++) {
-            if (
-              signature.inputs[i].name !== method.inputs[i].name ||
-              signature.inputs[i].type !== method.inputs[i].type
-            ) {
-              matched = false;
-              break;
-            }
-          }
-          if (matched) {
-            const params = signature.map(dto);
-            if (params !== undefined) {
-              return { method, params };
-            }
+        if (this.signatureMatch(method, signature)) {
+          const params = signature.map(dto);
+          if (params !== undefined) {
+            return { method, params };
           }
         }
       }
     }
     return {};
-  }
-
-  getMethodAndParams(
-    schema: ContractSchemaStrings,
-    operation: TokenOperation,
-    dto: any,
-    uriSupport?: boolean,
-  ) {
-    const abi = this.getAbi(schema, uriSupport);
-    const methods = schema.startsWith('ERC20') ? ERC20Methods[operation] : ERC721Methods[operation];
-    return this.findFirstMatch(abi, methods, dto);
   }
 
   getMethodAbi(schema: ContractSchemaStrings, operation: keyof AbiMethods): IAbiMethod | undefined {

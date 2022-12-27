@@ -196,7 +196,7 @@ export class TokensService {
         );
         return true;
       }
-      const allEvents = this.mapper.allEvents(unpackedLocator.schema);
+      const allEvents = this.mapper.allEvents(unpackedLocator.type === TokenType.FUNGIBLE);
       if (allEvents.length === 0) {
         this.logger.warn(
           `Could not determine schema from pool locator: '${parts.poolLocator}'. ` +
@@ -356,10 +356,11 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const possibleMethods = this.mapper.allInvokeMethods(poolLocator.schema);
-    if (possibleMethods.length === 0) {
-      throw new BadRequestException(`Unknown schema: ${poolLocator.schema}`);
-    }
+    const abi = this.mapper.getAbi(poolLocator.schema);
+    const possibleMethods = this.mapper.allInvokeMethods(
+      abi,
+      poolLocator.type === TokenType.FUNGIBLE,
+    );
 
     const stream = await this.getStream(ctx);
     const transferAbi = poolLocator.type === TokenType.FUNGIBLE ? ERC20Transfer : ERC721Transfer;
@@ -439,11 +440,12 @@ export class TokensService {
       supportsUri = await this.mapper.supportsNFTUri(ctx, poolLocator.address, false);
     }
 
+    const abi = this.mapper.getAbi(poolLocator.schema, supportsUri);
     const { method, params } = this.mapper.getMethodAndParams(
-      poolLocator.schema,
+      abi,
+      poolLocator.type === TokenType.FUNGIBLE,
       'mint',
       dto,
-      supportsUri,
     );
     const response = await this.blockchain.sendTransaction(
       ctx,
@@ -462,7 +464,13 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const { method, params } = this.mapper.getMethodAndParams(poolLocator.schema, 'transfer', dto);
+    const abi = this.mapper.getAbi(poolLocator.schema);
+    const { method, params } = this.mapper.getMethodAndParams(
+      abi,
+      poolLocator.type === TokenType.FUNGIBLE,
+      'transfer',
+      dto,
+    );
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
@@ -480,7 +488,13 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const { method, params } = this.mapper.getMethodAndParams(poolLocator.schema, 'burn', dto);
+    const abi = this.mapper.getAbi(poolLocator.schema);
+    const { method, params } = this.mapper.getMethodAndParams(
+      abi,
+      poolLocator.type === TokenType.FUNGIBLE,
+      'burn',
+      dto,
+    );
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
@@ -498,7 +512,13 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const { method, params } = this.mapper.getMethodAndParams(poolLocator.schema, 'approve', dto);
+    const abi = this.mapper.getAbi(poolLocator.schema);
+    const { method, params } = this.mapper.getMethodAndParams(
+      abi,
+      poolLocator.type === TokenType.FUNGIBLE,
+      'approve',
+      dto,
+    );
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
