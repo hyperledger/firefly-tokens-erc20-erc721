@@ -37,12 +37,6 @@ import {
 } from './tokens.interfaces';
 import { encodeHex } from './tokens.util';
 
-const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
-abiSchemaMap.set('ERC20NoData', ERC20NoDataABI.abi);
-abiSchemaMap.set('ERC20WithData', ERC20WithDataABI.abi);
-abiSchemaMap.set('ERC721NoData', ERC721NoDataABI.abi);
-abiSchemaMap.set('ERC721WithData', ERC721WithDataABI.abi);
-
 // The current version of IERC20WithData
 const ERC20WithDataIID = '0xaefdad0f';
 
@@ -97,18 +91,24 @@ export class AbiMapperService {
   }
 
   getAbi(schema: ContractSchemaStrings, uriSupport = true) {
-    if (schema === 'ERC721WithData' && uriSupport === false) {
-      // Special case outside the schema map
-      // The newer ERC721WithData schema is a strict superset of the old, with a few new
-      // methods around URIs. Assume the URI methods exist, unless uriSupport is
-      // explicitly set to false.
-      return ERC721WithDataOldABI.abi;
+    switch (schema) {
+      case 'ERC721WithData':
+        if (uriSupport === false) {
+          // The newer ERC721WithData schema is a strict superset of the old, with a
+          // few new methods around URIs. Assume the URI methods exist, unless
+          // uriSupport is explicitly set to false.
+          return ERC721WithDataOldABI.abi;
+        }
+        return ERC721WithDataABI.abi;
+      case 'ERC721NoData':
+        return ERC721NoDataABI.abi;
+      case 'ERC20WithData':
+        return ERC20WithDataABI.abi;
+      case 'ERC20NoData':
+        return ERC20NoDataABI.abi;
+      default:
+        throw new BadRequestException(`Unknown schema: ${schema}`);
     }
-    const abi = abiSchemaMap.get(schema);
-    if (abi === undefined) {
-      throw new BadRequestException(`Unknown schema: ${schema}`);
-    }
-    return abi;
   }
 
   private signatureMatch(method: IAbiMethod, signature: MethodSignature) {
