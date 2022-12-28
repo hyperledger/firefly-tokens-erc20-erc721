@@ -57,7 +57,6 @@ export const abiTypeMap = {
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
-const OPTIONS = {};
 const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const REQUEST = 'request123';

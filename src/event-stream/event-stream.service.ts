@@ -18,9 +18,9 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
+import WebSocket from 'ws';
 import { FFRequestIDHeader } from '../request-context/constants';
 import { Context } from '../request-context/request-context.decorator';
-import WebSocket from 'ws';
 import { IAbiMethod } from '../tokens/tokens.interfaces';
 import { basicAuth } from '../utils';
 import {
@@ -168,7 +168,7 @@ export class EventStreamService {
     const headers = {};
     for (const key of this.passthroughHeaders) {
       const value = ctx.headers[key];
-      if (value) {
+      if (value !== undefined) {
         headers[key] = value;
       }
     }

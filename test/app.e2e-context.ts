@@ -7,7 +7,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
-import { EventStreamReply, Event, EventBatch } from '../src/event-stream/event-stream.interfaces';
+import { EventStreamReply, EventBatch } from '../src/event-stream/event-stream.interfaces';
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import { TokensService } from '../src/tokens/tokens.service';

@@ -38,6 +38,8 @@ import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.
 import { EventListener, EventProcessor } from '../eventstream-proxy/eventstream-proxy.interfaces';
 import { basicAuth } from '../utils';
 import { WebSocketMessage } from '../websocket-events/websocket-events.base';
+import { FFRequestIDHeader } from '../request-context/constants';
+import { Context, newContext } from '../request-context/request-context.decorator';
 import {
   ERC20ApprovalEvent,
   ERC721ApprovalEvent,
@@ -76,8 +78,6 @@ import {
   unpackSubscriptionName,
   validatePoolLocator,
 } from './tokens.util';
-import { FFRequestIDHeader } from '../request-context/constants';
-import { Context, newContext } from '../request-context/request-context.decorator';
 
 const ERC20WithDataIID = '0xaefdad0f';
 const ERC721WithDataIID = '0xb2429c12';
@@ -411,7 +411,7 @@ export class TokensService {
     const headers = {};
     for (const key of this.passthroughHeaders) {
       const value = ctx.headers[key];
-      if (value) {
+      if (value !== undefined) {
         headers[key] = value;
       }
     }
