@@ -65,7 +65,7 @@ export class TokenListener implements EventListener {
     const signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
-        process(await this.transformTokenPoolCreationEvent(subName, event));
+        process(await this.transformTokenPoolCreationEvent(event));
         break;
       case transferEventSignature:
         process(await this.transformTransferEvent(subName, event));
@@ -123,7 +123,6 @@ export class TokenListener implements EventListener {
   }
 
   private async transformTokenPoolCreationEvent(
-    subName: string,
     event: TokenPoolCreationEvent,
   ): Promise<WebSocketMessage | undefined> {
     const { data: output } = event;

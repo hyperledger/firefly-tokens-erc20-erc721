@@ -32,7 +32,6 @@ import {
   TokenPoolEvent,
   TokenTransfer,
   TokenType,
-  TokenPoolEventInfo,
 } from './tokens.interfaces';
 import {
   packPoolLocator,
@@ -244,7 +243,11 @@ export class TokensService {
     return this.createFromFactory(ctx, dto);
   }
 
-  async createFromExisting(ctx: Context, address: string, dto: TokenPool) {
+  private async createFromExisting(
+    ctx: Context,
+    address: string,
+    dto: TokenPool,
+  ): Promise<TokenPoolEvent> {
     const withData = await this.mapper.supportsData(ctx, address, dto.type);
     const schema = this.mapper.getTokenSchema(dto.type, withData);
     const poolLocator: IPoolLocator = {
@@ -263,25 +266,22 @@ export class TokensService {
       );
     }
 
-    const eventInfo: TokenPoolEventInfo = {
-      name: poolInfo.name,
-      address,
-      schema,
-    };
-
-    const tokenPoolEvent: TokenPoolEvent = {
+    return {
       data: dto.data,
       poolLocator: packPoolLocator(poolLocator),
       standard: dto.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
       type: dto.type,
       symbol: poolInfo.symbol,
       decimals: poolInfo.decimals,
-      info: eventInfo,
+      info: {
+        name: poolInfo.name,
+        address,
+        schema,
+      },
     };
-    return tokenPoolEvent;
   }
 
-  async createFromFactory(ctx: Context, dto: TokenPool): Promise<AsyncResponse> {
+  private async createFromFactory(ctx: Context, dto: TokenPool): Promise<AsyncResponse> {
     const supportsUri = await this.mapper.supportsFactoryWithUri(ctx, this.factoryAddress);
     const { method, params } = this.mapper.getCreateMethodAndParams(dto, supportsUri);
 
@@ -296,7 +296,7 @@ export class TokensService {
     return { id: response.id };
   }
 
-  getSubscriptionBlockNumber(config?: TokenPoolConfig): string {
+  private getSubscriptionBlockNumber(config?: TokenPoolConfig): string {
     if (config?.blockNumber !== undefined && config.blockNumber !== '') {
       return config.blockNumber;
     } else {
@@ -383,18 +383,19 @@ export class TokensService {
     return tokenPoolEvent;
   }
 
+  private async getAbiForMint(ctx: Context, poolLocator: IValidPoolLocator, dto: TokenMint) {
+    const supportsUri =
+      dto.uri !== undefined && (await this.mapper.supportsMintWithUri(ctx, poolLocator.address));
+    return this.mapper.getAbi(poolLocator.schema, supportsUri);
+  }
+
   async mint(ctx: Context, dto: TokenMint): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    let supportsUri = false;
-    if (dto.uri !== undefined) {
-      supportsUri = await this.mapper.supportsMintWithUri(ctx, poolLocator.address);
-    }
-
-    const abi = dto.interface?.abi ?? this.mapper.getAbi(poolLocator.schema, supportsUri);
+    const abi = dto.interface?.abi ?? (await this.getAbiForMint(ctx, poolLocator, dto));
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
