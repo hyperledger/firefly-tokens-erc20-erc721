@@ -11,6 +11,7 @@ import { EventStreamReply, Event, EventBatch } from '../src/event-stream/event-s
 import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import { TokensService } from '../src/tokens/tokens.service';
+import { requestIDMiddleware } from '../src/request-context/request-id.middleware';
 
 export const BASE_URL = 'http://eth';
 export const INSTANCE_PATH = '/tokens';
@@ -65,10 +66,11 @@ export class TestContext {
     this.app = moduleFixture.createNestApplication();
     this.app.useWebSocketAdapter(new WsAdapter(this.app));
     this.app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+    this.app.use(requestIDMiddleware);
     await this.app.init();
 
     this.app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    this.app.get(TokensService).configure(BASE_URL, '', TOPIC, PREFIX, '', '', '');
+    this.app.get(TokensService).configure(BASE_URL, '', TOPIC, PREFIX, '', '', '', []);
 
     (this.app.getHttpServer() as Server).listen();
     this.server = request(this.app.getHttpServer());

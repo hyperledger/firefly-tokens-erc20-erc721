@@ -25,6 +25,7 @@ import {
 import { Request, Response } from 'express';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
+import { FFRequestIDHeader } from './request-context/constants';
 
 @Injectable()
 export class RequestLoggingInterceptor implements NestInterceptor {
@@ -52,7 +53,9 @@ export class RequestLoggingInterceptor implements NestInterceptor {
   }
 
   private logRequest(request: Request) {
-    this.logger.log(`${request.method} ${request.originalUrl}`);
+    this.logger.log(
+      `${request.method} ${request.originalUrl} ${request.headers[FFRequestIDHeader]}`,
+    );
   }
 
   private logResponse(request: Request, statusCode: number, statusMessage: string) {

@@ -236,7 +236,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC20MintTransferEvent], batchNumber: 12345});
+        context.eventHandler({ events: [mockERC20MintTransferEvent], batchNumber: 12345 });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -292,7 +292,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC20MintTransferEvent]});
+        context.eventHandler({ events: [mockERC20MintTransferEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -377,7 +377,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC721MintTransferEvent]});
+        context.eventHandler({ events: [mockERC721MintTransferEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -431,7 +431,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC20TransferEvent]});
+        context.eventHandler({ events: [mockERC20TransferEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -518,7 +518,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC721TransferEvent]});
+        context.eventHandler({ events: [mockERC721TransferEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -571,7 +571,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC20BurnEvent]});
+        context.eventHandler({ events: [mockERC20BurnEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -656,7 +656,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC721BurnEvent]});
+        context.eventHandler({ events: [mockERC721BurnEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -715,7 +715,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC20ApprovalEvent]});
+        context.eventHandler({ events: [mockERC20ApprovalEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -774,7 +774,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC721ApprovalEvent]});
+        context.eventHandler({ events: [mockERC721ApprovalEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -833,7 +833,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockApprovalForAllEvent]});
+        context.eventHandler({ events: [mockApprovalForAllEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -907,7 +907,7 @@ export default (context: TestContext) => {
       .ws('/api/ws')
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC20MintTransferEvent]});
+        context.eventHandler({ events: [mockERC20MintTransferEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -938,7 +938,7 @@ export default (context: TestContext) => {
     await ws1
       .exec(() => {
         expect(context.eventHandler).toBeDefined();
-        context.eventHandler({events: [mockERC20MintTransferEvent]});
+        context.eventHandler({ events: [mockERC20MintTransferEvent] });
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();

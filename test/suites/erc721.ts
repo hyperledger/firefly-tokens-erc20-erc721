@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { newContext } from '../../src/request-context/request-context.decorator';
 import ERC721NoDataABI from '../../src/abi/ERC721NoData.json';
 import ERC721WithDataABI from '../../src/abi/ERC721WithData.json';
 import {
@@ -35,7 +36,11 @@ const BASE_URL = 'http://eth';
 const BASE_URI = 'http://test-uri/';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
-const OPTIONS = {};
+const OPTIONS = {
+  headers: {
+    'x-fireflyrequestid': expect.any(String),
+  },
+};
 const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';

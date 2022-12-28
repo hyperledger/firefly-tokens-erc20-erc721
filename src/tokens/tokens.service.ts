@@ -76,6 +76,8 @@ import {
   unpackSubscriptionName,
   validatePoolLocator,
 } from './tokens.util';
+import { FFRequestIDHeader } from '../request-context/constants';
+import { Context, newContext } from '../request-context/request-context.decorator';
 
 const ERC20WithDataIID = '0xaefdad0f';
 const ERC721WithDataIID = '0xb2429c12';
@@ -209,6 +211,7 @@ export class TokensService {
   username: string;
   password: string;
   factoryAddress = '';
+  passthroughHeaders: string[];
 
   constructor(
     public http: HttpService,
@@ -226,6 +229,7 @@ export class TokensService {
     username: string,
     password: string,
     factoryAddress: string,
+    passthroughHeaders: string[],
   ) {
     this.baseUrl = baseUrl;
     this.fftmUrl = fftmUrl;
@@ -234,13 +238,14 @@ export class TokensService {
     this.username = username;
     this.password = password;
     this.factoryAddress = factoryAddress.toLowerCase();
+    this.passthroughHeaders = passthroughHeaders;
     this.proxy.addConnectionListener(this);
     this.proxy.addEventListener(new TokenListener(this));
   }
 
   async onConnect() {
     const wsUrl = new URL('/ws', this.baseUrl.replace('http', 'ws')).href;
-    const stream = await this.getStream();
+    const stream = await this.getStream(newContext());
     this.proxy.configure(wsUrl, stream.name);
   }
 
@@ -290,13 +295,14 @@ export class TokensService {
   /**
    * One-time initialization of event stream and base subscription.
    */
-  async init() {
-    this.stream = await this.getStream();
+  async init(ctx: Context) {
+    this.stream = await this.getStream(ctx);
     if (this.factoryAddress !== '') {
       const eventABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateEvent);
       const methodABI = TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
       if (eventABI !== undefined && methodABI !== undefined) {
         await this.eventstream.getOrCreateSubscription(
+          ctx,
           this.baseUrl,
           eventABI,
           this.stream.id,
@@ -310,14 +316,14 @@ export class TokensService {
     }
   }
 
-  private async getStream() {
+  private async getStream(ctx: Context) {
     const stream = this.stream;
     if (stream !== undefined) {
       return stream;
     }
-    await this.migrationCheck();
+    await this.migrationCheck(ctx);
     this.logger.log('Creating stream with name ' + this.topic);
-    this.stream = await this.eventstream.createOrUpdateStream(this.topic, this.topic);
+    this.stream = await this.eventstream.createOrUpdateStream(ctx, this.topic, this.topic);
     return this.stream;
   }
 
@@ -328,14 +334,14 @@ export class TokensService {
    * Log a warning if any potential issues are flagged. User may need to delete
    * subscriptions manually and reactivate the pool directly.
    */
-  async migrationCheck(): Promise<boolean> {
-    const streams = await this.eventstream.getStreams();
+  async migrationCheck(ctx: Context): Promise<boolean> {
+    const streams = await this.eventstream.getStreams(ctx);
     const existingStream = streams.find(s => s.name === this.topic);
     if (existingStream === undefined) {
       return false;
     }
 
-    const allSubscriptions = await this.eventstream.getSubscriptions();
+    const allSubscriptions = await this.eventstream.getSubscriptions(ctx);
     const subscriptions = allSubscriptions.filter(s => s.stream === existingStream.id);
     if (subscriptions.length === 0) {
       return false;
@@ -401,8 +407,18 @@ export class TokensService {
     return false;
   }
 
-  private requestOptions(): AxiosRequestConfig {
-    return basicAuth(this.username, this.password);
+  private requestOptions(ctx: Context): AxiosRequestConfig {
+    const headers = {};
+    for (const key of this.passthroughHeaders) {
+      const value = ctx.headers[key];
+      if (value) {
+        headers[key] = value;
+      }
+    }
+    headers[FFRequestIDHeader] = ctx.requestId;
+    const config = basicAuth(this.username, this.password);
+    config.headers = headers;
+    return config;
   }
 
   private async wrapError<T>(response: Promise<AxiosResponse<T>>) {
@@ -420,13 +436,13 @@ export class TokensService {
     });
   }
 
-  async query(to: string, method?: IAbiMethod, params?: any[]) {
+  async query(ctx: Context, to: string, method?: IAbiMethod, params?: any[]) {
     const response = await this.wrapError(
       lastValueFrom(
         this.http.post<EthConnectReturn>(
           this.baseUrl,
           { headers: { type: queryHeader }, to, method, params },
-          this.requestOptions(),
+          this.requestOptions(ctx),
         ),
       ),
     );
@@ -434,6 +450,7 @@ export class TokensService {
   }
 
   async sendTransaction(
+    ctx: Context,
     from: string,
     to: string,
     id?: string,
@@ -446,16 +463,16 @@ export class TokensService {
         this.http.post<EthConnectAsyncResponse>(
           url,
           { headers: { id, type: sendTransactionHeader }, from, to, method, params },
-          this.requestOptions(),
+          this.requestOptions(ctx),
         ),
       ),
     );
     return response.data;
   }
 
-  async supportsData(address: string, type: TokenType) {
+  async supportsData(ctx: Context, address: string, type: TokenType) {
     if (type === TokenType.NONFUNGIBLE) {
-      if (await this.supportsNFTUri(address, false)) {
+      if (await this.supportsNFTUri(ctx, address, false)) {
         return true;
       }
     }
@@ -472,7 +489,7 @@ export class TokensService {
     }
 
     try {
-      const result = await this.query(address, supportsInterfaceABI, [iid]);
+      const result = await this.query(ctx, address, supportsInterfaceABI, [iid]);
       this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
       return result.output === true;
     } catch (err) {
@@ -483,7 +500,7 @@ export class TokensService {
     }
   }
 
-  async supportsNFTUri(address: string, factory: boolean): Promise<boolean> {
+  async supportsNFTUri(ctx: Context, address: string, factory: boolean): Promise<boolean> {
     const support = this.uriSupportCache.get(address);
     if (support !== undefined) {
       return support;
@@ -491,6 +508,7 @@ export class TokensService {
 
     try {
       const result = await this.query(
+        ctx,
         address,
         supportsInterfaceABI,
         factory ? [TokenFactoryIID] : [ERC721WithDataUriIID],
@@ -504,15 +522,17 @@ export class TokensService {
     }
   }
 
-  private async queryPool(poolLocator: IValidPoolLocator) {
+  private async queryPool(ctx: Context, poolLocator: IValidPoolLocator) {
     const schema = poolLocator.schema as ContractSchemaStrings;
 
     const nameResponse = await this.query(
+      ctx,
       poolLocator.address,
       this.getMethodAbi(schema, 'NAME'),
       [],
     );
     const symbolResponse = await this.query(
+      ctx,
       poolLocator.address,
       this.getMethodAbi(schema, 'SYMBOL'),
       [],
@@ -525,7 +545,7 @@ export class TokensService {
     let decimals = 0;
     const decimalsMethod = this.getMethodAbi(schema, 'DECIMALS');
     if (decimalsMethod !== undefined) {
-      const decimalsResponse = await this.query(poolLocator.address, decimalsMethod, []);
+      const decimalsResponse = await this.query(ctx, poolLocator.address, decimalsMethod, []);
       decimals = parseInt(decimalsResponse.output);
       if (isNaN(decimals)) {
         decimals = 0;
@@ -539,10 +559,10 @@ export class TokensService {
     };
   }
 
-  async createPool(dto: TokenPool): Promise<TokenPoolEvent | AsyncResponse> {
+  async createPool(ctx: Context, dto: TokenPool): Promise<TokenPoolEvent | AsyncResponse> {
     if (dto.config?.address !== undefined && dto.config.address !== '') {
       this.logger.log(`Create token pool from existing: '${dto.config.address}'`);
-      return this.createFromExisting(dto.config.address, dto);
+      return this.createFromExisting(ctx, dto.config.address, dto);
     }
     if (this.factoryAddress === '') {
       throw new BadRequestException(
@@ -550,16 +570,16 @@ export class TokensService {
       );
     }
     this.logger.log(`Create token pool from factory: '${this.factoryAddress}'`);
-    return this.createFromFactory(dto);
+    return this.createFromFactory(ctx, dto);
   }
 
-  async createFromExisting(address: string, dto: TokenPool) {
+  async createFromExisting(ctx: Context, address: string, dto: TokenPool) {
     let supportsCustomUri = false;
     if (dto.type === TokenType.NONFUNGIBLE) {
-      supportsCustomUri = await this.supportsNFTUri(address, false);
+      supportsCustomUri = await this.supportsNFTUri(ctx, address, false);
     }
 
-    const withData = supportsCustomUri ? true : await this.supportsData(address, dto.type);
+    const withData = supportsCustomUri ? true : await this.supportsData(ctx, address, dto.type);
     const schema = getTokenSchema(dto.type, withData);
     const poolLocator: IPoolLocator = {
       address: address.toLowerCase(),
@@ -570,7 +590,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const poolInfo = await this.queryPool(poolLocator);
+    const poolInfo = await this.queryPool(ctx, poolLocator);
     if (dto.symbol !== undefined && dto.symbol !== '' && dto.symbol !== poolInfo.symbol) {
       throw new BadRequestException(
         `Supplied symbol '${dto.symbol}' does not match expected '${poolInfo.symbol}'`,
@@ -586,7 +606,7 @@ export class TokensService {
     if (supportsCustomUri) {
       const method = this.getMethodAbi(schema as ContractSchemaStrings, 'BASEURI');
       if (method !== undefined) {
-        const baseUriResponse = await this.query(poolLocator.address, method, []);
+        const baseUriResponse = await this.query(ctx, poolLocator.address, method, []);
         eventInfo.uri = baseUriResponse.output;
       }
     }
@@ -603,7 +623,7 @@ export class TokensService {
     return tokenPoolEvent;
   }
 
-  async createFromFactory(dto: TokenPool): Promise<AsyncResponse> {
+  async createFromFactory(ctx: Context, dto: TokenPool): Promise<AsyncResponse> {
     const isFungible = dto.type === TokenType.FUNGIBLE;
     const encodedData = encodeHex(dto.data ?? '');
     const method = TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
@@ -611,7 +631,7 @@ export class TokensService {
       throw new BadRequestException('Failed to parse factory contract ABI');
     }
     const params = [dto.name, dto.symbol, isFungible, encodedData];
-    const uri = await this.supportsNFTUri(this.factoryAddress, true);
+    const uri = await this.supportsNFTUri(ctx, this.factoryAddress, true);
     if (uri === true) {
       // supply empty string if URI isn't provided
       // the contract itself handles empty base URI's appropriately
@@ -619,6 +639,7 @@ export class TokensService {
     }
 
     const response = await this.sendTransaction(
+      ctx,
       dto.signer,
       this.factoryAddress,
       dto.requestId,
@@ -636,14 +657,14 @@ export class TokensService {
     }
   }
 
-  async activatePool(dto: TokenPoolActivate) {
+  async activatePool(ctx: Context, dto: TokenPoolActivate) {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
 
     const schema = poolLocator.schema as ContractSchemaStrings;
-    const stream = await this.getStream();
+    const stream = await this.getStream(ctx);
     const transferAbi = this.getEventAbi(schema, 'TRANSFER');
     if (!transferAbi) {
       throw new NotFoundException('Transfer event ABI not found');
@@ -669,6 +690,7 @@ export class TokensService {
 
     const promises = [
       this.eventstream.getOrCreateSubscription(
+        ctx,
         this.baseUrl,
         transferAbi,
         stream.id,
@@ -679,6 +701,7 @@ export class TokensService {
         this.getSubscriptionBlockNumber(dto.config),
       ),
       this.eventstream.getOrCreateSubscription(
+        ctx,
         this.baseUrl,
         approvalAbi,
         stream.id,
@@ -696,6 +719,7 @@ export class TokensService {
       }
       promises.push(
         this.eventstream.getOrCreateSubscription(
+          ctx,
           this.baseUrl,
           approvalForAllAbi,
           stream.id,
@@ -709,7 +733,7 @@ export class TokensService {
     }
     await Promise.all(promises);
 
-    const poolInfo = await this.queryPool(poolLocator);
+    const poolInfo = await this.queryPool(ctx, poolLocator);
     const tokenPoolEvent: TokenPoolEvent = {
       poolLocator: dto.poolLocator,
       standard: poolLocator.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
@@ -726,7 +750,7 @@ export class TokensService {
     return tokenPoolEvent;
   }
 
-  async mint(dto: TokenMint): Promise<AsyncResponse> {
+  async mint(ctx: Context, dto: TokenMint): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
@@ -734,7 +758,7 @@ export class TokensService {
 
     let supportsUri = false;
     if (dto.uri !== undefined) {
-      supportsUri = await this.supportsNFTUri(poolLocator.address, false);
+      supportsUri = await this.supportsNFTUri(ctx, poolLocator.address, false);
     }
 
     const schema = poolLocator.schema as ContractSchemaStrings;
@@ -744,6 +768,7 @@ export class TokensService {
     supportsUri && params.push(dto.uri);
 
     const response = await this.sendTransaction(
+      ctx,
       dto.signer,
       poolLocator.address,
       dto.requestId,
@@ -753,7 +778,7 @@ export class TokensService {
     return { id: response.id };
   }
 
-  async transfer(dto: TokenTransfer): Promise<AsyncResponse> {
+  async transfer(ctx: Context, dto: TokenTransfer): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
@@ -765,6 +790,7 @@ export class TokensService {
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
     const response = await this.sendTransaction(
+      ctx,
       dto.signer,
       poolLocator.address,
       dto.requestId,
@@ -774,7 +800,7 @@ export class TokensService {
     return { id: response.id };
   }
 
-  async burn(dto: TokenBurn): Promise<AsyncResponse> {
+  async burn(ctx: Context, dto: TokenBurn): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
@@ -786,6 +812,7 @@ export class TokensService {
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
 
     const response = await this.sendTransaction(
+      ctx,
       dto.signer,
       poolLocator.address,
       dto.requestId,
@@ -795,7 +822,7 @@ export class TokensService {
     return { id: response.id };
   }
 
-  async approval(dto: TokenApproval): Promise<AsyncResponse> {
+  async approval(ctx: Context, dto: TokenApproval): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
@@ -828,6 +855,7 @@ export class TokensService {
 
     poolLocator.schema.includes('WithData') && params.push(encodeHex(dto.data ?? ''));
     const response = await this.sendTransaction(
+      ctx,
       dto.signer,
       poolLocator.address,
       dto.requestId,
@@ -837,7 +865,7 @@ export class TokensService {
     return { id: response.id };
   }
 
-  async getReceipt(id: string): Promise<EventStreamReply> {
+  async getReceipt(ctx: Context, id: string): Promise<EventStreamReply> {
     const response = await this.wrapError(
       lastValueFrom(
         this.http.get<EventStreamReply>(new URL(`/reply/${id}`, this.baseUrl).href, {
@@ -878,7 +906,11 @@ class TokenListener implements EventListener {
     }
   }
 
-  private async getTokenUri(tokenIdx: string, contractAddress: string): Promise<string> {
+  private async getTokenUri(
+    ctx: Context,
+    tokenIdx: string,
+    contractAddress: string,
+  ): Promise<string> {
     const abiMethods = abiSchemaMap.get('ERC721WithData');
     if (abiMethods === undefined) {
       // should not happen
@@ -887,7 +919,7 @@ class TokenListener implements EventListener {
 
     const methodABI = abiMethods.find(method => method.name === 'tokenURI');
     try {
-      const response = await this.service.query(contractAddress, methodABI, [tokenIdx]);
+      const response = await this.service.query(ctx, contractAddress, methodABI, [tokenIdx]);
       return response.output as string;
     } catch (e) {
       this.logger.log(`Burned tokens do not have a URI: ${e}`);
@@ -935,7 +967,7 @@ class TokenListener implements EventListener {
     }
 
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
-    const withData = await this.service.supportsData(output.contract_address, type);
+    const withData = await this.service.supportsData(newContext(), output.contract_address, type);
     const schema = getTokenSchema(type, withData);
     const poolLocator: IValidPoolLocator = {
       address: output.contract_address.toLowerCase(),
@@ -1023,7 +1055,11 @@ class TokenListener implements EventListener {
 
     if (poolLocator.type === TokenType.NONFUNGIBLE && output.tokenId !== undefined) {
       commonData.tokenIndex = output.tokenId;
-      commonData.uri = await this.getTokenUri(output.tokenId, poolLocator.address ?? '');
+      commonData.uri = await this.getTokenUri(
+        newContext(),
+        output.tokenId,
+        poolLocator.address ?? '',
+      );
     }
 
     if (output.from === ZERO_ADDRESS) {

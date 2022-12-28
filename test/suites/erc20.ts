@@ -34,7 +34,11 @@ import { FakeObservable, TestContext } from '../app.e2e-context';
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
-const OPTIONS = {};
+const OPTIONS = {
+  headers: {
+    'x-fireflyrequestid': expect.any(String),
+  },
+};
 const REQUEST = 'request123';
 const TX = 'tx123';
 const NAME = 'abcTest';

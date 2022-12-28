@@ -14,9 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Req, Res } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
+import { RequestContext } from '../request-context/request-context.decorator';
 import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import {
   AsyncResponse,
@@ -37,8 +38,8 @@ export class TokensController {
   @Post('init')
   @HttpCode(204)
   @ApiOperation({ summary: 'Perform one-time initialization (if not auto-initialized)' })
-  init() {
-    return this.service.init();
+  init(@RequestContext() ctx) {
+    return this.service.init(ctx);
   }
 
   @Post('createpool')
@@ -50,8 +51,12 @@ export class TokensController {
   @ApiBody({ type: TokenPool })
   @ApiResponse({ status: 200, type: TokenPoolEvent })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  async createPool(@Body() dto: TokenPool, @Res({ passthrough: true }) res: Response) {
-    const pool = await this.service.createPool(dto);
+  async createPool(
+    @RequestContext() ctx,
+    @Body() dto: TokenPool,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const pool = await this.service.createPool(ctx, dto);
     if ('poolLocator' in pool) {
       res.status(HttpStatus.OK);
     } else {
@@ -66,8 +71,8 @@ export class TokensController {
     summary: 'Activate a token pool to begin receiving transfer events',
   })
   @ApiBody({ type: TokenPoolActivate })
-  activatePool(@Body() dto: TokenPoolActivate) {
-    return this.service.activatePool(dto);
+  activatePool(@RequestContext() ctx, @Body() dto: TokenPoolActivate) {
+    return this.service.activatePool(ctx, dto);
   }
 
   @Post('mint')
@@ -79,8 +84,8 @@ export class TokensController {
   })
   @ApiBody({ type: TokenMint })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  mint(@Body() dto: TokenMint) {
-    return this.service.mint(dto);
+  mint(@RequestContext() ctx, @Body() dto: TokenMint) {
+    return this.service.mint(ctx, dto);
   }
 
   @Post('transfer')
@@ -92,8 +97,8 @@ export class TokensController {
   })
   @ApiBody({ type: TokenTransfer })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  transfer(@Body() dto: TokenTransfer) {
-    return this.service.transfer(dto);
+  transfer(@RequestContext() ctx, @Body() dto: TokenTransfer) {
+    return this.service.transfer(ctx, dto);
   }
 
   @Post('approval')
@@ -104,8 +109,8 @@ export class TokensController {
   })
   @ApiBody({ type: TokenApproval })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  approve(@Body() dto: TokenApproval) {
-    return this.service.approval(dto);
+  approve(@RequestContext() ctx, @Body() dto: TokenApproval) {
+    return this.service.approval(ctx, dto);
   }
 
   @Post('burn')
@@ -117,14 +122,14 @@ export class TokensController {
   })
   @ApiBody({ type: TokenBurn })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  burn(@Body() dto: TokenBurn) {
-    return this.service.burn(dto);
+  burn(@RequestContext() ctx, @Body() dto: TokenBurn) {
+    return this.service.burn(ctx, dto);
   }
 
   @Get('receipt/:id')
   @ApiOperation({ summary: 'Retrieve the result of an async operation' })
   @ApiResponse({ status: 200, type: EventStreamReply })
-  getReceipt(@Param('id') id: string) {
-    return this.service.getReceipt(id);
+  getReceipt(@RequestContext() ctx, @Param('id') id: string) {
+    return this.service.getReceipt(ctx, id);
   }
 }

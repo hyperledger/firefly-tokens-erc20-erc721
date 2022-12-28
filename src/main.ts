@@ -23,6 +23,7 @@ import { version as API_VERSION } from '../package.json';
 import { AppModule } from './app.module';
 import { EventStreamReply } from './event-stream/event-stream.interfaces';
 import { EventStreamService } from './event-stream/event-stream.service';
+import { requestIDMiddleware } from './request-context/request-id.middleware';
 import { RequestLoggingInterceptor } from './request-logging.interceptor';
 import {
   TokenApprovalEvent,
@@ -32,6 +33,7 @@ import {
   TokenTransferEvent,
 } from './tokens/tokens.interfaces';
 import { TokensService } from './tokens/tokens.service';
+import { newContext } from './request-context/request-context.decorator';
 
 const API_DESCRIPTION = `
 <p>All POST APIs are asynchronous. Listen for websocket notifications on <code>/api/ws</code>.
@@ -52,6 +54,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.enableShutdownHooks([ShutdownSignal.SIGTERM, ShutdownSignal.SIGQUIT, ShutdownSignal.SIGINT]);
   app.useGlobalInterceptors(new RequestLoggingInterceptor());
+  app.use(requestIDMiddleware);
 
   const apiConfig = getApiConfig();
   const api = SwaggerModule.createDocument(app, apiConfig, {
@@ -76,14 +79,29 @@ async function bootstrap() {
   const username = config.get<string>('ETHCONNECT_USERNAME', '');
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
   const factoryAddress = config.get<string>('FACTORY_CONTRACT_ADDRESS', '');
+  const passthroughHeaderString = config.get<string>('PASSTHROUGH_HEADERS', '');
 
-  app.get(EventStreamService).configure(ethConnectUrl, username, password);
+  const passthroughHeaders: string[] = [];
+  for (const h of passthroughHeaderString.split(',')) {
+    passthroughHeaders.push(h.toLowerCase());
+  }
+
+  app.get(EventStreamService).configure(ethConnectUrl, username, password, passthroughHeaders);
   app
     .get(TokensService)
-    .configure(ethConnectUrl, fftmUrl, topic, shortPrefix, username, password, factoryAddress);
+    .configure(
+      ethConnectUrl,
+      fftmUrl,
+      topic,
+      shortPrefix,
+      username,
+      password,
+      factoryAddress,
+      passthroughHeaders,
+    );
 
   if (autoInit.toLowerCase() !== 'false') {
-    await app.get(TokensService).init();
+    await app.get(TokensService).init(newContext());
   }
 
   const port = config.get<number>('PORT', 3000);
