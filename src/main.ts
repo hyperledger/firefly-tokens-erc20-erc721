@@ -23,7 +23,7 @@ import { version as API_VERSION } from '../package.json';
 import { AppModule } from './app.module';
 import { EventStreamReply } from './event-stream/event-stream.interfaces';
 import { EventStreamService } from './event-stream/event-stream.service';
-import { requestIDMiddleware } from './request-id.middleware';
+import { requestIDMiddleware } from './request-context/request-id.middleware';
 import { RequestLoggingInterceptor } from './request-logging.interceptor';
 import {
   TokenApprovalEvent,

@@ -25,7 +25,7 @@ import {
 import { Request, Response } from 'express';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
-import { FFRequestIDHeader } from './constants';
+import { FFRequestIDHeader } from './request-context/constants';
 
 @Injectable()
 export class RequestLoggingInterceptor implements NestInterceptor {

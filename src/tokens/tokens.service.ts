@@ -76,7 +76,7 @@ import {
   unpackSubscriptionName,
   validatePoolLocator,
 } from './tokens.util';
-import { FFRequestIDHeader } from '../constants';
+import { FFRequestIDHeader } from '../request-context/constants';
 import { Context, newContext } from '../request-context/request-context.decorator';
 
 const ERC20WithDataIID = '0xaefdad0f';

@@ -1,7 +1,7 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { IncomingHttpHeaders } from 'http';
-import { FFRequestIDHeader } from '../constants';
-import { newReqId } from '../request-id.middleware';
+import { FFRequestIDHeader } from './constants';
+import { newReqId } from './request-id.middleware';
 
 export interface Context {
   requestId: string;
