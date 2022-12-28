@@ -59,7 +59,6 @@ export const abiTypeMap = {
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
-const PREFIX = 'fly';
 const TOPIC = 'tokentest';
 const REQUEST = 'request123';
 const TX = 'tx123';
@@ -226,7 +225,7 @@ describe('TokensService', () => {
       .compile();
 
     service = module.get(TokensService);
-    service.configure(BASE_URL, TOPIC, PREFIX, '');
+    service.configure(BASE_URL, TOPIC, '');
     blockchain = module.get(BlockchainConnectorService);
     blockchain.configure(BASE_URL, '', '', '', []);
   });

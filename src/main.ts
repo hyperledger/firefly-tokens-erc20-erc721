@@ -75,7 +75,6 @@ async function bootstrap() {
   const ethConnectUrl = config.get<string>('ETHCONNECT_URL', '');
   const fftmUrl = config.get<string>('FFTM_URL', ''); // Optional. Currently used only for SendTransaction API calls when set
   const topic = config.get<string>('ETHCONNECT_TOPIC', 'tokenERC20ERC721');
-  const shortPrefix = config.get<string>('ETHCONNECT_PREFIX', 'fly');
   const autoInit = config.get<string>('AUTO_INIT', 'true');
   const username = config.get<string>('ETHCONNECT_USERNAME', '');
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
@@ -88,7 +87,7 @@ async function bootstrap() {
   }
 
   app.get(EventStreamService).configure(ethConnectUrl, username, password, passthroughHeaders);
-  app.get(TokensService).configure(ethConnectUrl, topic, shortPrefix, factoryAddress);
+  app.get(TokensService).configure(ethConnectUrl, topic, factoryAddress);
   app
     .get(BlockchainConnectorService)
     .configure(ethConnectUrl, fftmUrl, username, password, passthroughHeaders);

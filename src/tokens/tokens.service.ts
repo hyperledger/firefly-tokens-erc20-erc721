@@ -60,7 +60,6 @@ export class TokensService {
 
   baseUrl: string;
   topic: string;
-  shortPrefix: string;
   stream: EventStream;
   factoryAddress = '';
 
@@ -71,10 +70,9 @@ export class TokensService {
     private blockchain: BlockchainConnectorService,
   ) {}
 
-  configure(baseUrl: string, topic: string, shortPrefix: string, factoryAddress: string) {
+  configure(baseUrl: string, topic: string, factoryAddress: string) {
     this.baseUrl = baseUrl;
     this.topic = topic;
-    this.shortPrefix = shortPrefix;
     this.factoryAddress = factoryAddress.toLowerCase();
     this.proxy.addConnectionListener(this);
     this.proxy.addEventListener(new TokenListener(this, this.mapper, this.blockchain));

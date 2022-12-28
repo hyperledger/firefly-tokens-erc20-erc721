@@ -16,7 +16,6 @@ import { BlockchainConnectorService } from '../src/tokens/blockchain.service';
 
 export const BASE_URL = 'http://eth';
 export const INSTANCE_PATH = '/tokens';
-export const PREFIX = 'fly';
 export const TOPIC = 'tokentest';
 
 export class TestContext {
@@ -71,7 +70,7 @@ export class TestContext {
     await this.app.init();
 
     this.app.get(EventStreamProxyGateway).configure('url', TOPIC);
-    this.app.get(TokensService).configure(BASE_URL, TOPIC, PREFIX, '');
+    this.app.get(TokensService).configure(BASE_URL, TOPIC, '');
     this.app.get(BlockchainConnectorService).configure(BASE_URL, '', '', '', []);
 
     (this.app.getHttpServer() as Server).listen();
