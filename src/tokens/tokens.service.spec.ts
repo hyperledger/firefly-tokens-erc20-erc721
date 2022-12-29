@@ -716,6 +716,11 @@ describe('TokensService', () => {
 
       await expect(service.activatePool(ctx, request)).resolves.toEqual(response);
 
+      const methods: IAbiMethod[] = [];
+      [...METHODS_NO_DATA, ERC721_TRANSFER_NO_DATA].forEach(name => {
+        methods.push(...abiTypeMap.ERC721NoData.filter(abi => abi.name === name).reverse());
+      });
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         ctx,
         BASE_URL,
@@ -723,9 +728,7 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC721_NO_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        [...METHODS_NO_DATA, ERC721_TRANSFER_NO_DATA].map(name => {
-          return abiMethodMap.ERC721NoData.find(abi => abi.name === name);
-        }),
+        methods,
         '0',
       );
     });
@@ -801,9 +804,9 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiTypeMap.ERC721NoData.find(
-          abi => abi.name === ERC721_TRANSFER_NO_DATA,
+          abi => abi.name === ERC721_TRANSFER_NO_DATA && abi.inputs.length === 4,
         ) as IAbiMethod,
-        params: [IDENTITY, '0x123', '721'],
+        params: [IDENTITY, '0x123', '721', '0x00'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -954,6 +957,11 @@ describe('TokensService', () => {
 
       await expect(service.activatePool(ctx, request)).resolves.toEqual(response);
 
+      const methods: IAbiMethod[] = [];
+      [...METHODS_WITH_DATA, ERC721_TRANSFER_NO_DATA].forEach(name => {
+        methods.push(...abiTypeMap.ERC721WithData.filter(abi => abi.name === name).reverse());
+      });
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         ctx,
         BASE_URL,
@@ -961,9 +969,7 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC721_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        [...METHODS_WITH_DATA, ERC721_TRANSFER_NO_DATA].map(name => {
-          return abiTypeMap.ERC721WithData.find(abi => abi.name === name);
-        }),
+        methods,
         '0',
       );
     });

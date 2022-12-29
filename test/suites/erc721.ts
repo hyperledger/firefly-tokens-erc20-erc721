@@ -403,8 +403,10 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721NoData.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '0x123', '721'],
+        method: abiMethodMap.ERC721NoData.find(
+          abi => abi.name === TRANSFER_NO_DATA && abi.inputs?.length === 4,
+        ) as IAbiMethod,
+        params: [IDENTITY, '0x123', '721', '0x00'],
       };
 
       const response: EthConnectAsyncResponse = {

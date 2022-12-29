@@ -288,6 +288,14 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
     {
       // Source: base standard
       name: 'safeTransferFrom',
+      inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
+      map: (dto: TokenTransfer) => {
+        return [dto.from, dto.to, getTokenID(dto), encodeHex(dto.data ?? '')];
+      },
+    },
+    {
+      // Source: base standard
+      name: 'safeTransferFrom',
       inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenTransfer) => {
         return [dto.from, dto.to, getTokenID(dto)];
