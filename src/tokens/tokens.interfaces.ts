@@ -443,4 +443,4 @@ export interface MethodSignature {
   map: (dto: any) => any[] | undefined;
 }
 
-export type TokenOperation = 'approve' | 'burn' | 'mint' | 'transfer';
+export type TokenOperation = 'approval' | 'burn' | 'mint' | 'transfer';

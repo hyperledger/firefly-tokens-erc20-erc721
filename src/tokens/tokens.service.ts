@@ -471,7 +471,7 @@ export class TokensService {
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
-      'approve',
+      'approval',
       dto,
     );
     const response = await this.blockchain.sendTransaction(

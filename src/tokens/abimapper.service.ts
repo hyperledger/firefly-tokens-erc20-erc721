@@ -71,13 +71,13 @@ export class AbiMapperService {
   allInvokeMethods(abi: IAbiMethod[], isFungible: boolean) {
     const allSignatures = isFungible
       ? [
-          ...ERC20Methods.approve,
+          ...ERC20Methods.approval,
           ...ERC20Methods.burn,
           ...ERC20Methods.mint,
           ...ERC20Methods.transfer,
         ]
       : [
-          ...ERC721Methods.approve,
+          ...ERC721Methods.approval,
           ...ERC721Methods.burn,
           ...ERC721Methods.mint,
           ...ERC721Methods.transfer,

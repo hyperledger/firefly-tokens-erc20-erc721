@@ -167,7 +167,7 @@ export const AllEvents = [Transfer, Approval, ApprovalForAll];
 // Each operation type is a prioritized list of methods to be used if defined.
 
 export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
-  approve: [
+  approval: [
     {
       // Source: FireFly extension
       name: 'approveWithData',
