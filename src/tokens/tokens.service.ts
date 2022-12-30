@@ -48,7 +48,6 @@ import {
   Transfer as ERC20Transfer,
   Name as ERC20Name,
   Symbol as ERC20Symbol,
-  Decimals as ERC20Decimals,
 } from './erc20';
 import {
   Approval as ERC721Approval,
@@ -211,16 +210,10 @@ export class TokensService {
       throw new NotFoundException('Unable to query token symbol');
     }
 
-    let decimals = 0;
-    if (poolLocator.type === TokenType.FUNGIBLE) {
-      const decimalsResponse = await this.blockchain.query(
-        ctx,
-        poolLocator.address,
-        ERC20Decimals,
-        [],
-      );
-      decimals = parseInt(decimalsResponse.output) || 0;
-    }
+    const decimals =
+      poolLocator.type === TokenType.FUNGIBLE
+        ? await this.mapper.getDecimals(ctx, poolLocator.address)
+        : 0;
 
     return {
       name: nameResponse.output,

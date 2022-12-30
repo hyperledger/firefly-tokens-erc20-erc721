@@ -125,6 +125,7 @@ export class TokenListener implements EventListener {
   private async transformTokenPoolCreationEvent(
     event: TokenPoolCreationEvent,
   ): Promise<WebSocketMessage | undefined> {
+    const ctx = newContext();
     const { data: output } = event;
     const decodedData = decodeHex(output.data ?? '');
 
@@ -134,7 +135,10 @@ export class TokenListener implements EventListener {
     }
 
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
-    const withData = await this.mapper.supportsData(newContext(), output.contract_address, type);
+    const decimals = output.is_fungible
+      ? await this.mapper.getDecimals(ctx, output.contract_address)
+      : 0;
+    const withData = await this.mapper.supportsData(ctx, output.contract_address, type);
     const schema = this.mapper.getTokenSchema(type, withData);
     const poolLocator: IValidPoolLocator = {
       address: output.contract_address.toLowerCase(),
@@ -151,6 +155,7 @@ export class TokenListener implements EventListener {
         signer: event.inputSigner,
         data: decodedData,
         symbol: output.symbol,
+        decimals,
         info: {
           name: output.name,
           address: output.contract_address,

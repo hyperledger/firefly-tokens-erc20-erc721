@@ -25,7 +25,7 @@ import ERC721WithDataOldABI from '../abi/ERC721WithDataOld.json';
 import TokenFactoryABI from '../abi/TokenFactory.json';
 import { BlockchainConnectorService } from './blockchain.service';
 import { SupportsInterface } from './erc165';
-import { AllEvents as ERC20Events, DynamicMethods as ERC20Methods } from './erc20';
+import { AllEvents as ERC20Events, Decimals, DynamicMethods as ERC20Methods } from './erc20';
 import { AllEvents as ERC721Events, DynamicMethods as ERC721Methods } from './erc721';
 import {
   ContractSchemaStrings,
@@ -221,5 +221,10 @@ export class AbiMapperService {
     const result = await this.supportsInterface(ctx, address, TokenFactoryIID);
     this.logger.log(`Querying URI support on contract '${address}': ${result}`);
     return result;
+  }
+
+  async getDecimals(ctx: Context, address: string) {
+    const response = await this.blockchain.query(ctx, address, Decimals, []);
+    return parseInt(response.output) || 0;
   }
 }
