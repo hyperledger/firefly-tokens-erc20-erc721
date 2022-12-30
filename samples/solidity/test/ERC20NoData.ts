@@ -139,13 +139,13 @@ describe('ERC20NoData - Unit Tests', function () {
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(20);
 
     // Signer A burns 5 of their tokens
-    await expect(deployedERC20NoData.connect(deployerSignerA).burn(deployerSignerA.address, 5))
+    await expect(deployedERC20NoData.connect(deployerSignerA).burn(5))
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(deployerSignerA.address, ZERO_ADDRESS, 5);
 
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(15);
     // Signer A burns 15 of their tokens
-    await expect(deployedERC20NoData.connect(deployerSignerA).burn(deployerSignerA.address, 15))
+    await expect(deployedERC20NoData.connect(deployerSignerA).burn(15))
       .to.emit(deployedERC20NoData, 'Transfer')
       .withArgs(deployerSignerA.address, ZERO_ADDRESS, 15);
 
@@ -170,12 +170,12 @@ describe('ERC20NoData - Unit Tests', function () {
       .withArgs(ZERO_ADDRESS, signerC.address, 20);
     // Signer B attempts to burn tokens from Signer A wallet (not allowed)
     await expect(
-      deployedERC20NoData.connect(signerB).burn(deployerSignerA.address, 10),
-    ).to.be.revertedWith('ERC20NoData: caller is not owner');
+      deployedERC20NoData.connect(signerB).burnFrom(deployerSignerA.address, 10),
+    ).to.be.revertedWith('ERC20: insufficient allowance');
     // Signer A attempts to burn tokens from Signer B wallet (not allowed)
     await expect(
-      deployedERC20NoData.connect(deployerSignerA).burn(signerB.address, 10),
-    ).to.be.revertedWith('ERC20NoData: caller is not owner');
+      deployedERC20NoData.connect(deployerSignerA).burnFrom(signerB.address, 10),
+    ).to.be.revertedWith('ERC20: insufficient allowance');
 
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(20);
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(20);

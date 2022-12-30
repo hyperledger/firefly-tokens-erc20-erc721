@@ -48,7 +48,7 @@ const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_D
 const ERC721_WITH_DATA_SCHEMA = 'ERC721WithData';
 const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
-const MINT_NO_DATA = 'mint';
+const MINT_NO_DATA = 'safeMint';
 const TRANSFER_NO_DATA = 'safeTransferFrom';
 const BURN_NO_DATA = 'burn';
 const APPROVE_NO_DATA = 'approve';
@@ -437,7 +437,7 @@ export default (context: TestContext) => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiMethodMap.ERC721NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '721'],
+        params: ['721'],
       };
 
       const response: EthConnectAsyncResponse = {

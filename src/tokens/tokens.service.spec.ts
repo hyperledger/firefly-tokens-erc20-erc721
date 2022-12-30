@@ -74,11 +74,13 @@ const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_D
 const ERC721_WITH_DATA_SCHEMA = 'ERC721WithData';
 const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
-const MINT_NO_DATA = 'mint';
+const ERC20_MINT_NO_DATA = 'mint';
 const ERC20_TRANSFER_NO_DATA = 'transfer';
 const ERC20_TRANSFER_FROM_NO_DATA = 'transferFrom';
+const ERC721_MINT_NO_DATA = 'safeMint';
 const ERC721_TRANSFER_NO_DATA = 'safeTransferFrom';
 const BURN_NO_DATA = 'burn';
+const BURN_FROM_NO_DATA = 'burnFrom';
 const APPROVE_NO_DATA = 'approve';
 const APPROVE_ALL_NO_DATA = 'setApprovalForAll';
 
@@ -90,7 +92,14 @@ const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 const APPROVE_ALL_WITH_DATA = 'setApprovalForAllWithData';
 
-const METHODS_NO_DATA = [APPROVE_NO_DATA, APPROVE_ALL_NO_DATA, BURN_NO_DATA, MINT_NO_DATA];
+const METHODS_NO_DATA = [
+  APPROVE_NO_DATA,
+  APPROVE_ALL_NO_DATA,
+  BURN_NO_DATA,
+  BURN_FROM_NO_DATA,
+  ERC20_MINT_NO_DATA,
+  ERC721_MINT_NO_DATA,
+];
 
 const METHODS_WITH_DATA = [
   APPROVE_WITH_DATA,
@@ -338,7 +347,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiTypeMap.ERC20NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC20NoData.find(abi => abi.name === ERC20_MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '20'],
       };
 
@@ -412,7 +421,7 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiTypeMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '20'],
+        params: ['20'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -767,7 +776,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiTypeMap.ERC721NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC721NoData.find(abi => abi.name === ERC721_MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '721'],
       };
 
@@ -841,7 +850,7 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiTypeMap.ERC721NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '721'],
+        params: ['721'],
       };
 
       const response: EthConnectAsyncResponse = {

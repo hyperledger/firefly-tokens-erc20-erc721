@@ -166,14 +166,6 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
-      // Source: ??
-      name: 'burn',
-      inputs: [{ type: 'address' }, { type: 'uint256' }],
-      map: (dto: TokenBurn) => {
-        return [dto.from, dto.amount];
-      },
-    },
-    {
       // Source: OpenZeppelin extension
       name: 'burn',
       inputs: [{ type: 'uint256' }],

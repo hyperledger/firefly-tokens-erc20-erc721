@@ -470,7 +470,7 @@ export default (context: TestContext) => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiMethodMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '20'],
+        params: ['20'],
       };
 
       const response: EthConnectAsyncResponse = {
