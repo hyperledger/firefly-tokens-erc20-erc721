@@ -32,6 +32,7 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
+  InterfaceFormat,
 } from './tokens.interfaces';
 import {
   decodeHex,
@@ -150,6 +151,7 @@ export class TokenListener implements EventListener {
       event: 'token-pool',
       data: <TokenPoolEvent>{
         standard: type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
+        interfaceFormat: InterfaceFormat.ABI,
         poolLocator: packPoolLocator(poolLocator),
         type,
         signer: event.inputSigner,

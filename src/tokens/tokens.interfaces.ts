@@ -95,6 +95,11 @@ export enum TokenType {
   NONFUNGIBLE = 'nonfungible',
 }
 
+export enum InterfaceFormat {
+  ABI = 'abi',
+  FFI = 'ffi',
+}
+
 export interface IPoolLocator {
   address: string | null;
   schema: string | null;
@@ -352,6 +357,9 @@ export class TokenPoolEvent extends tokenEventBase {
 
   @ApiProperty()
   standard: string;
+
+  @ApiProperty()
+  interfaceFormat: InterfaceFormat;
 
   @ApiProperty()
   symbol: string;

@@ -21,6 +21,7 @@ import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.
 import { Context, newContext } from '../request-context/request-context.decorator';
 import {
   AsyncResponse,
+  InterfaceFormat,
   IPoolLocator,
   IValidPoolLocator,
   TokenApproval,
@@ -263,6 +264,7 @@ export class TokensService {
       data: dto.data,
       poolLocator: packPoolLocator(poolLocator),
       standard: dto.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
+      interfaceFormat: InterfaceFormat.ABI,
       type: dto.type,
       symbol: poolInfo.symbol,
       decimals: poolInfo.decimals,
@@ -363,6 +365,7 @@ export class TokensService {
     const tokenPoolEvent: TokenPoolEvent = {
       poolLocator: dto.poolLocator,
       standard: poolLocator.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
+      interfaceFormat: InterfaceFormat.ABI,
       type: poolLocator.type,
       symbol: poolInfo.symbol,
       decimals: poolInfo.decimals,
