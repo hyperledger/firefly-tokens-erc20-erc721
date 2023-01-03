@@ -17,10 +17,13 @@
 import ERC20WithDataABI from '../../src/abi/ERC20WithData.json';
 import ERC20NoDataABI from '../../src/abi/ERC20NoData.json';
 import {
+  CheckInterfaceRequest,
+  CheckInterfaceResponse,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
   EthConnectReturn,
   IAbiMethod,
+  InterfaceFormat,
   TokenApproval,
   TokenBurn,
   TokenMint,
@@ -50,7 +53,9 @@ const ERC20_WITH_DATA_SCHEMA = 'ERC20WithData';
 const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
 
 const MINT_NO_DATA = 'mint';
+const TRANSFER_FROM_NO_DATA = 'transferFrom';
 const TRANSFER_NO_DATA = 'transfer';
+const BURN_FROM_NO_DATA = 'burnFrom';
 const BURN_NO_DATA = 'burn';
 const APPROVE_NO_DATA = 'approve';
 const MINT_WITH_DATA = 'mintWithData';
@@ -559,6 +564,7 @@ export default (context: TestContext) => {
         poolLocator: ERC20_NO_DATA_POOL_ID,
         from: IDENTITY,
         interface: {
+          format: InterfaceFormat.ABI,
           abi: burnMethods,
         },
       };
@@ -627,6 +633,7 @@ export default (context: TestContext) => {
         poolLocator: ERC20_NO_DATA_POOL_ID,
         from: '0x2',
         interface: {
+          format: InterfaceFormat.ABI,
           abi: burnMethods,
         },
       };
@@ -652,6 +659,40 @@ export default (context: TestContext) => {
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('Check interface', async () => {
+      const request: CheckInterfaceRequest = {
+        poolLocator: ERC20_NO_DATA_POOL_ID,
+        format: InterfaceFormat.ABI,
+        abi: ERC20NoDataABI.abi,
+      };
+
+      const response: CheckInterfaceResponse = {
+        approval: {
+          format: InterfaceFormat.ABI,
+          abi: ERC20NoDataABI.abi.filter(m => m.name === APPROVE_NO_DATA),
+        },
+        burn: {
+          format: InterfaceFormat.ABI,
+          abi: ERC20NoDataABI.abi.filter(
+            m => m.name === BURN_NO_DATA || m.name === BURN_FROM_NO_DATA,
+          ),
+        },
+        mint: {
+          format: InterfaceFormat.ABI,
+          abi: ERC20NoDataABI.abi.filter(m => m.name === MINT_NO_DATA),
+        },
+        transfer: {
+          format: InterfaceFormat.ABI,
+          abi: [
+            ...ERC20NoDataABI.abi.filter(m => m.name === TRANSFER_NO_DATA),
+            ...ERC20NoDataABI.abi.filter(m => m.name === TRANSFER_FROM_NO_DATA),
+          ],
+        },
+      };
+
+      await context.server.post('/checkinterface').send(request).expect(200).expect(response);
     });
   });
 };

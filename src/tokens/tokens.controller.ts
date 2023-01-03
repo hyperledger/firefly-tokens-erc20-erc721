@@ -22,6 +22,7 @@ import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { BlockchainConnectorService } from './blockchain.service';
 import {
   AsyncResponse,
+  CheckInterfaceRequest,
   TokenApproval,
   TokenBurn,
   TokenMint,
@@ -74,6 +75,16 @@ export class TokensController {
   @ApiBody({ type: TokenPoolActivate })
   activatePool(@RequestContext() ctx: Context, @Body() dto: TokenPoolActivate) {
     return this.service.activatePool(ctx, dto);
+  }
+
+  @Post('checkinterface')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Check which interface methods are supported by this connector',
+  })
+  @ApiBody({ type: CheckInterfaceRequest })
+  checkInterface(@Body() dto: CheckInterfaceRequest) {
+    return this.service.checkInterface(dto);
   }
 
   @Post('mint')

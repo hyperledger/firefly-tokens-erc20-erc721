@@ -132,7 +132,7 @@ export class AbiMapperService {
     return true;
   }
 
-  private getAllMethods(abi: IAbiMethod[], signatures: MethodSignature[]) {
+  getAllMethods(abi: IAbiMethod[], signatures: MethodSignature[]) {
     const methods: IAbiMethod[] = [];
     for (const signature of signatures) {
       for (const method of abi) {

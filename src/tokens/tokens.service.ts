@@ -21,11 +21,15 @@ import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.
 import { Context, newContext } from '../request-context/request-context.decorator';
 import {
   AsyncResponse,
+  CheckInterfaceRequest,
+  CheckInterfaceResponse,
+  IAbiMethod,
   InterfaceFormat,
   IPoolLocator,
   IValidPoolLocator,
   TokenApproval,
   TokenBurn,
+  TokenInterface,
   TokenMint,
   TokenPool,
   TokenPoolActivate,
@@ -49,6 +53,7 @@ import {
   Transfer as ERC20Transfer,
   Name as ERC20Name,
   Symbol as ERC20Symbol,
+  DynamicMethods as ERC20Methods,
 } from './erc20';
 import {
   Approval as ERC721Approval,
@@ -56,6 +61,7 @@ import {
   Transfer as ERC721Transfer,
   Name as ERC721Name,
   Symbol as ERC721Symbol,
+  DynamicMethods as ERC721Methods,
 } from './erc721';
 
 @Injectable()
@@ -377,6 +383,25 @@ export class TokensService {
     };
 
     return tokenPoolEvent;
+  }
+
+  checkInterface(dto: CheckInterfaceRequest): CheckInterfaceResponse {
+    const poolLocator = unpackPoolLocator(dto.poolLocator);
+    if (!validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
+    }
+
+    const wrapMethods = (methods: IAbiMethod[]): TokenInterface => {
+      return { format: InterfaceFormat.ABI, abi: methods };
+    };
+
+    const methods = poolLocator.type === TokenType.FUNGIBLE ? ERC20Methods : ERC721Methods;
+    return {
+      approval: wrapMethods(this.mapper.getAllMethods(dto.abi, methods.approval)),
+      burn: wrapMethods(this.mapper.getAllMethods(dto.abi, methods.burn)),
+      mint: wrapMethods(this.mapper.getAllMethods(dto.abi, methods.mint)),
+      transfer: wrapMethods(this.mapper.getAllMethods(dto.abi, methods.transfer)),
+    };
   }
 
   private async getAbiForMint(ctx: Context, poolLocator: IValidPoolLocator, dto: TokenMint) {

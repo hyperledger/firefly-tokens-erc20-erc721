@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { Equals, IsDefined, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { Event } from '../event-stream/event-stream.interfaces';
 
 // Ethconnect interfaces
@@ -226,9 +226,37 @@ export class TokenPoolActivate {
 }
 
 export class TokenInterface {
+  @ApiProperty({ enum: InterfaceFormat })
+  @Equals(InterfaceFormat.ABI)
+  format: InterfaceFormat;
+
   @ApiProperty({ isArray: true })
-  @IsOptional()
-  abi?: IAbiMethod[];
+  @IsDefined()
+  abi: IAbiMethod[];
+}
+
+export class CheckInterfaceRequest extends TokenInterface {
+  @ApiProperty()
+  @IsNotEmpty()
+  poolLocator: string;
+}
+
+type TokenAbi = {
+  [op in TokenOperation]: TokenInterface;
+};
+
+export class CheckInterfaceResponse implements TokenAbi {
+  @ApiProperty()
+  approval: TokenInterface;
+
+  @ApiProperty()
+  burn: TokenInterface;
+
+  @ApiProperty()
+  mint: TokenInterface;
+
+  @ApiProperty()
+  transfer: TokenInterface;
 }
 
 export class TokenTransfer {
