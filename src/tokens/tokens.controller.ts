@@ -17,7 +17,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Res } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
-import { RequestContext } from '../request-context/request-context.decorator';
+import { Context, RequestContext } from '../request-context/request-context.decorator';
 import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { BlockchainConnectorService } from './blockchain.service';
 import {
@@ -39,7 +39,7 @@ export class TokensController {
   @Post('init')
   @HttpCode(204)
   @ApiOperation({ summary: 'Perform one-time initialization (if not auto-initialized)' })
-  init(@RequestContext() ctx) {
+  init(@RequestContext() ctx: Context) {
     return this.service.init(ctx);
   }
 
@@ -53,7 +53,7 @@ export class TokensController {
   @ApiResponse({ status: 200, type: TokenPoolEvent })
   @ApiResponse({ status: 202, type: AsyncResponse })
   async createPool(
-    @RequestContext() ctx,
+    @RequestContext() ctx: Context,
     @Body() dto: TokenPool,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -72,7 +72,7 @@ export class TokensController {
     summary: 'Activate a token pool to begin receiving transfer events',
   })
   @ApiBody({ type: TokenPoolActivate })
-  activatePool(@RequestContext() ctx, @Body() dto: TokenPoolActivate) {
+  activatePool(@RequestContext() ctx: Context, @Body() dto: TokenPoolActivate) {
     return this.service.activatePool(ctx, dto);
   }
 
@@ -85,7 +85,7 @@ export class TokensController {
   })
   @ApiBody({ type: TokenMint })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  mint(@RequestContext() ctx, @Body() dto: TokenMint) {
+  mint(@RequestContext() ctx: Context, @Body() dto: TokenMint) {
     return this.service.mint(ctx, dto);
   }
 
@@ -98,7 +98,7 @@ export class TokensController {
   })
   @ApiBody({ type: TokenTransfer })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  transfer(@RequestContext() ctx, @Body() dto: TokenTransfer) {
+  transfer(@RequestContext() ctx: Context, @Body() dto: TokenTransfer) {
     return this.service.transfer(ctx, dto);
   }
 
@@ -110,7 +110,7 @@ export class TokensController {
   })
   @ApiBody({ type: TokenApproval })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  approve(@RequestContext() ctx, @Body() dto: TokenApproval) {
+  approve(@RequestContext() ctx: Context, @Body() dto: TokenApproval) {
     return this.service.approval(ctx, dto);
   }
 
@@ -123,14 +123,14 @@ export class TokensController {
   })
   @ApiBody({ type: TokenBurn })
   @ApiResponse({ status: 202, type: AsyncResponse })
-  burn(@RequestContext() ctx, @Body() dto: TokenBurn) {
+  burn(@RequestContext() ctx: Context, @Body() dto: TokenBurn) {
     return this.service.burn(ctx, dto);
   }
 
   @Get('receipt/:id')
   @ApiOperation({ summary: 'Retrieve the result of an async operation' })
   @ApiResponse({ status: 200, type: EventStreamReply })
-  getReceipt(@RequestContext() ctx, @Param('id') id: string) {
+  getReceipt(@RequestContext() ctx: Context, @Param('id') id: string) {
     return this.blockchain.getReceipt(ctx, id);
   }
 }
