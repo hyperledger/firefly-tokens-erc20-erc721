@@ -15,14 +15,14 @@
 // limitations under the License.
 
 import { Request, Response, NextFunction } from 'express';
-import nanoid from 'nanoid';
+import { customAlphabet } from 'nanoid';
 import { FFRequestIDHeader } from './constants';
 
 const ShortIDalphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
-export const newReqId = nanoid.customAlphabet(ShortIDalphabet, 8);
+export const newReqId = customAlphabet(ShortIDalphabet, 8);
 
 export function requestIDMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (!req.headers[FFRequestIDHeader]) {
+  if (req.headers[FFRequestIDHeader] === undefined) {
     req.headers[FFRequestIDHeader] = newReqId();
   }
   next();

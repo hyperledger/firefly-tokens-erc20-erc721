@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthCheckService, HttpHealthIndicator } from '@nestjs/terminus';
-import { TokensService } from '../tokens/tokens.service';
+import { BlockchainConnectorService } from '../tokens/blockchain.service';
 import { HealthController } from './health.controller';
 
 describe('HealthController', () => {
@@ -19,7 +19,7 @@ describe('HealthController', () => {
           useValue: jest.fn(),
         },
         {
-          provide: TokensService,
+          provide: BlockchainConnectorService,
           useValue: jest.fn(),
         },
       ],

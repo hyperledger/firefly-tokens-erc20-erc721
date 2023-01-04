@@ -14,7 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { newContext } from '../../src/request-context/request-context.decorator';
 import ERC721NoDataABI from '../../src/abi/ERC721NoData.json';
 import ERC721WithDataABI from '../../src/abi/ERC721WithData.json';
 import {
