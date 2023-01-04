@@ -18,8 +18,10 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import LRUCache from 'lru-cache';
 import { Context } from '../request-context/request-context.decorator';
 import ERC20NoDataABI from '../abi/ERC20NoData.json';
+import ERC20NoDataOldABI from '../abi/ERC20NoDataOld.json';
 import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
+import ERC721NoDataOldABI from '../abi/ERC721NoDataOld.json';
 import ERC721WithDataABI from '../abi/ERC721WithData.json';
 import ERC721WithDataOldABI from '../abi/ERC721WithDataOld.json';
 import TokenFactoryABI from '../abi/TokenFactory.json';
@@ -56,9 +58,16 @@ const tokenCreateEvent = 'TokenPoolCreation';
 export class AbiMapperService {
   private readonly logger = new Logger(AbiMapperService.name);
   private supportCache: LRUCache<string, boolean>;
+  private legacyERC20 = false;
+  private legacyERC721 = false;
 
   constructor(private blockchain: BlockchainConnectorService) {
     this.supportCache = new LRUCache<string, boolean>({ max: 500 });
+  }
+
+  configure(legacyERC20: boolean, legacyERC721: boolean) {
+    this.legacyERC20 = legacyERC20;
+    this.legacyERC721 = legacyERC721;
   }
 
   getTokenSchema(type: TokenType, withData = true): ContractSchemaStrings {
@@ -101,11 +110,11 @@ export class AbiMapperService {
         }
         return ERC721WithDataABI.abi;
       case 'ERC721NoData':
-        return ERC721NoDataABI.abi;
+        return this.legacyERC721 ? ERC721NoDataOldABI.abi : ERC721NoDataABI.abi;
       case 'ERC20WithData':
         return ERC20WithDataABI.abi;
       case 'ERC20NoData':
-        return ERC20NoDataABI.abi;
+        return this.legacyERC20 ? ERC20NoDataOldABI.abi : ERC20NoDataABI.abi;
       default:
         throw new BadRequestException(`Unknown schema: ${schema}`);
     }

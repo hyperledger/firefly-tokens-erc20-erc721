@@ -239,6 +239,14 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
         return [getTokenID(dto)];
       },
     },
+    {
+      // Source: Legacy sample contract
+      name: 'burn',
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
+      map: (dto: TokenBurn) => {
+        return [dto.from, getTokenID(dto)];
+      },
+    },
   ],
 
   mint: [
@@ -272,6 +280,14 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       inputs: [{ type: 'address' }],
       map: (dto: TokenMint) => {
         return [dto.to];
+      },
+    },
+    {
+      // Source: Legacy sample contract
+      name: 'mint',
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
+      map: (dto: TokenMint) => {
+        return [dto.to, getTokenID(dto)];
       },
     },
   ],
