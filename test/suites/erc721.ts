@@ -17,10 +17,13 @@
 import ERC721NoDataABI from '../../src/abi/ERC721NoData.json';
 import ERC721WithDataABI from '../../src/abi/ERC721WithData.json';
 import {
+  CheckInterfaceRequest,
+  CheckInterfaceResponse,
   EthConnectAsyncResponse,
   EthConnectMsgRequest,
   EthConnectReturn,
   IAbiMethod,
+  InterfaceFormat,
   TokenApproval,
   TokenBurn,
   TokenMint,
@@ -540,7 +543,8 @@ export default (context: TestContext) => {
         poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
         interface: {
-          abi: [safeMintAutoIndex],
+          format: InterfaceFormat.ABI,
+          methods: [safeMintAutoIndex],
         },
       };
 
@@ -565,6 +569,45 @@ export default (context: TestContext) => {
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('Check interface', async () => {
+      const request: CheckInterfaceRequest = {
+        poolLocator: ERC721_NO_DATA_POOL_ID,
+        format: InterfaceFormat.ABI,
+        methods: ERC721NoDataABI.abi,
+      };
+
+      const response: CheckInterfaceResponse = {
+        approval: {
+          format: InterfaceFormat.ABI,
+          methods: [
+            ...ERC721NoDataABI.abi.filter(m => m.name === APPROVE_NO_DATA),
+            ...ERC721NoDataABI.abi.filter(m => m.name === APPROVE_FOR_ALL_NO_DATA),
+          ],
+        },
+        burn: {
+          format: InterfaceFormat.ABI,
+          methods: ERC721NoDataABI.abi.filter(m => m.name === BURN_NO_DATA),
+        },
+        mint: {
+          format: InterfaceFormat.ABI,
+          methods: ERC721NoDataABI.abi.filter(m => m.name === MINT_NO_DATA),
+        },
+        transfer: {
+          format: InterfaceFormat.ABI,
+          methods: [
+            ...ERC721NoDataABI.abi.filter(
+              m => m.name === TRANSFER_NO_DATA && m.inputs.length === 4,
+            ),
+            ...ERC721NoDataABI.abi.filter(
+              m => m.name === TRANSFER_NO_DATA && m.inputs.length === 3,
+            ),
+          ],
+        },
+      };
+
+      await context.server.post('/checkinterface').send(request).expect(200).expect(response);
     });
   });
 };

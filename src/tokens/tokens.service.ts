@@ -21,10 +21,15 @@ import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.
 import { Context, newContext } from '../request-context/request-context.decorator';
 import {
   AsyncResponse,
+  CheckInterfaceRequest,
+  CheckInterfaceResponse,
+  IAbiMethod,
+  InterfaceFormat,
   IPoolLocator,
   IValidPoolLocator,
   TokenApproval,
   TokenBurn,
+  TokenInterface,
   TokenMint,
   TokenPool,
   TokenPoolActivate,
@@ -48,6 +53,7 @@ import {
   Transfer as ERC20Transfer,
   Name as ERC20Name,
   Symbol as ERC20Symbol,
+  DynamicMethods as ERC20Methods,
 } from './erc20';
 import {
   Approval as ERC721Approval,
@@ -55,6 +61,7 @@ import {
   Transfer as ERC721Transfer,
   Name as ERC721Name,
   Symbol as ERC721Symbol,
+  DynamicMethods as ERC721Methods,
 } from './erc721';
 
 @Injectable()
@@ -263,6 +270,7 @@ export class TokensService {
       data: dto.data,
       poolLocator: packPoolLocator(poolLocator),
       standard: dto.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
+      interfaceFormat: InterfaceFormat.ABI,
       type: dto.type,
       symbol: poolInfo.symbol,
       decimals: poolInfo.decimals,
@@ -363,6 +371,7 @@ export class TokensService {
     const tokenPoolEvent: TokenPoolEvent = {
       poolLocator: dto.poolLocator,
       standard: poolLocator.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
+      interfaceFormat: InterfaceFormat.ABI,
       type: poolLocator.type,
       symbol: poolInfo.symbol,
       decimals: poolInfo.decimals,
@@ -374,6 +383,25 @@ export class TokensService {
     };
 
     return tokenPoolEvent;
+  }
+
+  checkInterface(dto: CheckInterfaceRequest): CheckInterfaceResponse {
+    const poolLocator = unpackPoolLocator(dto.poolLocator);
+    if (!validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
+    }
+
+    const wrapMethods = (methods: IAbiMethod[]): TokenInterface => {
+      return { format: InterfaceFormat.ABI, methods };
+    };
+
+    const methods = poolLocator.type === TokenType.FUNGIBLE ? ERC20Methods : ERC721Methods;
+    return {
+      approval: wrapMethods(this.mapper.getAllMethods(dto.methods, methods.approval)),
+      burn: wrapMethods(this.mapper.getAllMethods(dto.methods, methods.burn)),
+      mint: wrapMethods(this.mapper.getAllMethods(dto.methods, methods.mint)),
+      transfer: wrapMethods(this.mapper.getAllMethods(dto.methods, methods.transfer)),
+    };
   }
 
   private async getAbiForMint(ctx: Context, poolLocator: IValidPoolLocator, dto: TokenMint) {
@@ -388,7 +416,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.abi || (await this.getAbiForMint(ctx, poolLocator, dto));
+    const abi = dto.interface?.methods || (await this.getAbiForMint(ctx, poolLocator, dto));
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -412,7 +440,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.abi || this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -436,7 +464,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.abi || this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -460,7 +488,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.abi || this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
