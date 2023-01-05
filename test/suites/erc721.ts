@@ -544,7 +544,7 @@ export default (context: TestContext) => {
         to: '0x123',
         interface: {
           format: InterfaceFormat.ABI,
-          abi: [safeMintAutoIndex],
+          methods: [safeMintAutoIndex],
         },
       };
 
@@ -575,28 +575,28 @@ export default (context: TestContext) => {
       const request: CheckInterfaceRequest = {
         poolLocator: ERC721_NO_DATA_POOL_ID,
         format: InterfaceFormat.ABI,
-        abi: ERC721NoDataABI.abi,
+        methods: ERC721NoDataABI.abi,
       };
 
       const response: CheckInterfaceResponse = {
         approval: {
           format: InterfaceFormat.ABI,
-          abi: [
+          methods: [
             ...ERC721NoDataABI.abi.filter(m => m.name === APPROVE_NO_DATA),
             ...ERC721NoDataABI.abi.filter(m => m.name === APPROVE_FOR_ALL_NO_DATA),
           ],
         },
         burn: {
           format: InterfaceFormat.ABI,
-          abi: ERC721NoDataABI.abi.filter(m => m.name === BURN_NO_DATA),
+          methods: ERC721NoDataABI.abi.filter(m => m.name === BURN_NO_DATA),
         },
         mint: {
           format: InterfaceFormat.ABI,
-          abi: ERC721NoDataABI.abi.filter(m => m.name === MINT_NO_DATA),
+          methods: ERC721NoDataABI.abi.filter(m => m.name === MINT_NO_DATA),
         },
         transfer: {
           format: InterfaceFormat.ABI,
-          abi: [
+          methods: [
             ...ERC721NoDataABI.abi.filter(
               m => m.name === TRANSFER_NO_DATA && m.inputs.length === 4,
             ),

@@ -565,7 +565,7 @@ export default (context: TestContext) => {
         from: IDENTITY,
         interface: {
           format: InterfaceFormat.ABI,
-          abi: burnMethods,
+          methods: burnMethods,
         },
       };
 
@@ -634,7 +634,7 @@ export default (context: TestContext) => {
         from: '0x2',
         interface: {
           format: InterfaceFormat.ABI,
-          abi: burnMethods,
+          methods: burnMethods,
         },
       };
 
@@ -665,27 +665,27 @@ export default (context: TestContext) => {
       const request: CheckInterfaceRequest = {
         poolLocator: ERC20_NO_DATA_POOL_ID,
         format: InterfaceFormat.ABI,
-        abi: ERC20NoDataABI.abi,
+        methods: ERC20NoDataABI.abi,
       };
 
       const response: CheckInterfaceResponse = {
         approval: {
           format: InterfaceFormat.ABI,
-          abi: ERC20NoDataABI.abi.filter(m => m.name === APPROVE_NO_DATA),
+          methods: ERC20NoDataABI.abi.filter(m => m.name === APPROVE_NO_DATA),
         },
         burn: {
           format: InterfaceFormat.ABI,
-          abi: ERC20NoDataABI.abi.filter(
+          methods: ERC20NoDataABI.abi.filter(
             m => m.name === BURN_NO_DATA || m.name === BURN_FROM_NO_DATA,
           ),
         },
         mint: {
           format: InterfaceFormat.ABI,
-          abi: ERC20NoDataABI.abi.filter(m => m.name === MINT_NO_DATA),
+          methods: ERC20NoDataABI.abi.filter(m => m.name === MINT_NO_DATA),
         },
         transfer: {
           format: InterfaceFormat.ABI,
-          abi: [
+          methods: [
             ...ERC20NoDataABI.abi.filter(m => m.name === TRANSFER_NO_DATA),
             ...ERC20NoDataABI.abi.filter(m => m.name === TRANSFER_FROM_NO_DATA),
           ],

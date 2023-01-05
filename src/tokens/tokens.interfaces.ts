@@ -232,7 +232,7 @@ export class TokenInterface {
 
   @ApiProperty({ isArray: true })
   @IsDefined()
-  abi: IAbiMethod[];
+  methods: IAbiMethod[];
 }
 
 export class CheckInterfaceRequest extends TokenInterface {

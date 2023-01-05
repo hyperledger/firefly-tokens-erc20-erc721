@@ -392,15 +392,15 @@ export class TokensService {
     }
 
     const wrapMethods = (methods: IAbiMethod[]): TokenInterface => {
-      return { format: InterfaceFormat.ABI, abi: methods };
+      return { format: InterfaceFormat.ABI, methods };
     };
 
     const methods = poolLocator.type === TokenType.FUNGIBLE ? ERC20Methods : ERC721Methods;
     return {
-      approval: wrapMethods(this.mapper.getAllMethods(dto.abi, methods.approval)),
-      burn: wrapMethods(this.mapper.getAllMethods(dto.abi, methods.burn)),
-      mint: wrapMethods(this.mapper.getAllMethods(dto.abi, methods.mint)),
-      transfer: wrapMethods(this.mapper.getAllMethods(dto.abi, methods.transfer)),
+      approval: wrapMethods(this.mapper.getAllMethods(dto.methods, methods.approval)),
+      burn: wrapMethods(this.mapper.getAllMethods(dto.methods, methods.burn)),
+      mint: wrapMethods(this.mapper.getAllMethods(dto.methods, methods.mint)),
+      transfer: wrapMethods(this.mapper.getAllMethods(dto.methods, methods.transfer)),
     };
   }
 
@@ -416,7 +416,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.abi || (await this.getAbiForMint(ctx, poolLocator, dto));
+    const abi = dto.interface?.methods || (await this.getAbiForMint(ctx, poolLocator, dto));
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -440,7 +440,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.abi || this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -464,7 +464,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.abi || this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -488,7 +488,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.abi || this.mapper.getAbi(poolLocator.schema);
+    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
