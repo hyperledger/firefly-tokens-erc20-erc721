@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Context.sol';
-import "@openzeppelin/contracts/utils/Strings.sol"; 
+import '@openzeppelin/contracts/utils/Strings.sol';
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import './IERC721WithData.sol';
 
@@ -26,7 +26,7 @@ import './IERC721WithData.sol';
 contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
     string private _baseTokenURI;
     // Optional mapping for token URIs
-    mapping (uint256 => string) private _tokenURIs;
+    mapping(uint256 => string) private _tokenURIs;
 
     constructor(
         string memory name,
@@ -79,20 +79,12 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         safeTransferFrom(from, to, tokenId, data);
     }
 
-    function burnWithData(
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override {
+    function burnWithData(address from, uint256 tokenId, bytes calldata data) external override {
         require(from == _msgSender(), 'ERC721WithData: caller is not owner');
         _burn(tokenId);
     }
 
-    function approveWithData(
-        address to,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override {
+    function approveWithData(address to, uint256 tokenId, bytes calldata data) external override {
         approve(to, tokenId);
     }
 
@@ -114,14 +106,14 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "ERC721WithData: Token does not exist");
+        require(_exists(tokenId), 'ERC721WithData: Token does not exist');
 
         string memory uri = _tokenURIs[tokenId];
         return uri;
     }
 
     function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal onlyOwner {
-        require(_exists(tokenId), "ERC721WithData: Token does not exist");
+        require(_exists(tokenId), 'ERC721WithData: Token does not exist');
         _tokenURIs[tokenId] = _tokenURI;
     }
 

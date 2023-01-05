@@ -74,10 +74,13 @@ const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_D
 const ERC721_WITH_DATA_SCHEMA = 'ERC721WithData';
 const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
-const MINT_NO_DATA = 'mint';
-const ERC20_TRANSFER_NO_DATA = 'transferFrom';
+const ERC20_MINT_NO_DATA = 'mint';
+const ERC20_TRANSFER_NO_DATA = 'transfer';
+const ERC20_TRANSFER_FROM_NO_DATA = 'transferFrom';
+const ERC721_MINT_NO_DATA = 'safeMint';
 const ERC721_TRANSFER_NO_DATA = 'safeTransferFrom';
 const BURN_NO_DATA = 'burn';
+const BURN_FROM_NO_DATA = 'burnFrom';
 const APPROVE_NO_DATA = 'approve';
 const APPROVE_ALL_NO_DATA = 'setApprovalForAll';
 
@@ -89,15 +92,24 @@ const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 const APPROVE_ALL_WITH_DATA = 'setApprovalForAllWithData';
 
-const METHODS_NO_DATA = [MINT_NO_DATA, BURN_NO_DATA, APPROVE_NO_DATA, APPROVE_ALL_NO_DATA];
+const METHODS_NO_DATA = [
+  APPROVE_NO_DATA,
+  APPROVE_ALL_NO_DATA,
+  BURN_NO_DATA,
+  BURN_FROM_NO_DATA,
+  ERC20_MINT_NO_DATA,
+  ERC721_MINT_NO_DATA,
+];
 
 const METHODS_WITH_DATA = [
-  MINT_WITH_DATA,
-  MINT_WITH_URI,
-  BURN_WITH_DATA,
-  TRANSFER_WITH_DATA,
   APPROVE_WITH_DATA,
   APPROVE_ALL_WITH_DATA,
+  APPROVE_NO_DATA,
+  APPROVE_ALL_NO_DATA,
+  BURN_WITH_DATA,
+  MINT_WITH_URI,
+  MINT_WITH_DATA,
+  TRANSFER_WITH_DATA,
 ];
 
 const TRANSFER_EVENT = 'Transfer';
@@ -307,11 +319,11 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC20_NO_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        abiTypeMap.ERC20NoData.filter(
-          abi =>
-            abi.name !== undefined &&
-            [...METHODS_NO_DATA, ERC20_TRANSFER_NO_DATA].includes(abi.name),
-        ) as IAbiMethod[],
+        [...METHODS_NO_DATA, ERC20_TRANSFER_NO_DATA, ERC20_TRANSFER_FROM_NO_DATA]
+          .map(name => {
+            return abiTypeMap.ERC20NoData.find(abi => abi.name === name);
+          })
+          .filter(abi => abi !== undefined),
         '0',
       );
     });
@@ -335,7 +347,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiTypeMap.ERC20NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC20NoData.find(abi => abi.name === ERC20_MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '20'],
       };
 
@@ -374,7 +386,7 @@ describe('TokensService', () => {
         method: abiTypeMap.ERC20NoData.find(
           abi => abi.name === ERC20_TRANSFER_NO_DATA,
         ) as IAbiMethod,
-        params: [IDENTITY, '0x123', '20'],
+        params: ['0x123', '20'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -409,7 +421,7 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiTypeMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '20'],
+        params: ['20'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -530,9 +542,11 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC20_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        abiMethodMap.ERC20WithData.filter(
-          abi => abi.name !== undefined && METHODS_WITH_DATA.includes(abi.name),
-        ) as IAbiMethod[],
+        [...METHODS_WITH_DATA, ERC20_TRANSFER_NO_DATA, ERC20_TRANSFER_FROM_NO_DATA]
+          .map(name => {
+            return abiMethodMap.ERC20WithData.find(abi => abi.name === name);
+          })
+          .filter(abi => abi !== undefined),
         '0',
       );
     });
@@ -711,6 +725,11 @@ describe('TokensService', () => {
 
       await expect(service.activatePool(ctx, request)).resolves.toEqual(response);
 
+      const methods: IAbiMethod[] = [];
+      [...METHODS_NO_DATA, ERC721_TRANSFER_NO_DATA].forEach(name => {
+        methods.push(...abiTypeMap.ERC721NoData.filter(abi => abi.name === name).reverse());
+      });
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         ctx,
         BASE_URL,
@@ -718,11 +737,7 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC721_NO_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        abiMethodMap.ERC721NoData.filter(
-          abi =>
-            abi.name !== undefined &&
-            [...METHODS_NO_DATA, ERC721_TRANSFER_NO_DATA].includes(abi.name),
-        ) as IAbiMethod[],
+        methods,
         '0',
       );
     });
@@ -761,7 +776,7 @@ describe('TokensService', () => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiTypeMap.ERC721NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        method: abiTypeMap.ERC721NoData.find(abi => abi.name === ERC721_MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '721'],
       };
 
@@ -798,9 +813,9 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiTypeMap.ERC721NoData.find(
-          abi => abi.name === ERC721_TRANSFER_NO_DATA,
+          abi => abi.name === ERC721_TRANSFER_NO_DATA && abi.inputs.length === 4,
         ) as IAbiMethod,
-        params: [IDENTITY, '0x123', '721'],
+        params: [IDENTITY, '0x123', '721', '0x00'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -835,7 +850,7 @@ describe('TokensService', () => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiTypeMap.ERC721NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '721'],
+        params: ['721'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -880,7 +895,6 @@ describe('TokensService', () => {
             name: NAME,
             address: CONTRACT_ADDRESS,
             schema: ERC721_WITH_DATA_SCHEMA,
-            uri: 'test',
           },
         } as TokenPoolEvent);
       });
@@ -952,6 +966,11 @@ describe('TokensService', () => {
 
       await expect(service.activatePool(ctx, request)).resolves.toEqual(response);
 
+      const methods: IAbiMethod[] = [];
+      [...METHODS_WITH_DATA, ERC721_TRANSFER_NO_DATA].forEach(name => {
+        methods.push(...abiTypeMap.ERC721WithData.filter(abi => abi.name === name).reverse());
+      });
+
       expect(eventstream.getOrCreateSubscription).toHaveBeenCalledWith(
         ctx,
         BASE_URL,
@@ -959,9 +978,7 @@ describe('TokensService', () => {
         'es-4297d77c-0c33-49dc-4e5b-617e0b68fbab',
         `fft:${ERC721_WITH_DATA_POOL_ID}:${TRANSFER_EVENT}:ns1`,
         CONTRACT_ADDRESS,
-        abiTypeMap.ERC721WithData.filter(
-          abi => abi.name !== undefined && METHODS_WITH_DATA.includes(abi.name),
-        ) as IAbiMethod[],
+        methods,
         '0',
       );
     });
@@ -1149,7 +1166,7 @@ describe('TokensService', () => {
         poolData: 'ns1',
       };
       await expect(service.activatePool(ctx, request)).rejects.toThrowError(
-        new HttpException('Transfer event ABI not found', HttpStatus.NOT_FOUND),
+        new HttpException('Unknown schema: notAStandard', HttpStatus.BAD_REQUEST),
       );
     });
 

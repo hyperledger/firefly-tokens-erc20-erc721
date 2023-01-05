@@ -32,7 +32,6 @@ import {
 import { FakeObservable, TestContext } from '../app.e2e-context';
 
 const BASE_URL = 'http://eth';
-const BASE_URI = 'http://test-uri/';
 const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
 const OPTIONS = {
@@ -49,7 +48,7 @@ const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_D
 const ERC721_WITH_DATA_SCHEMA = 'ERC721WithData';
 const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
-const MINT_NO_DATA = 'mint';
+const MINT_NO_DATA = 'safeMint';
 const TRANSFER_NO_DATA = 'safeTransferFrom';
 const BURN_NO_DATA = 'burn';
 const APPROVE_NO_DATA = 'approve';
@@ -84,11 +83,6 @@ export default (context: TestContext) => {
         new FakeObservable(<EthConnectReturn>{
           output: SYMBOL,
         }),
-      )
-      .mockReturnValueOnce(
-        new FakeObservable(<EthConnectReturn>{
-          output: BASE_URI,
-        }),
       );
   };
 
@@ -122,7 +116,6 @@ export default (context: TestContext) => {
           name: NAME,
           address: CONTRACT_ADDRESS,
           schema: ERC721_WITH_DATA_SCHEMA,
-          uri: BASE_URI,
         },
       });
 
@@ -140,7 +133,7 @@ export default (context: TestContext) => {
         requestId: REQUEST,
         signer: IDENTITY,
         data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS, uri: BASE_URI },
+        config: { address: CONTRACT_ADDRESS, uri: 'http://test-uri/' },
         name: NAME,
         symbol: SYMBOL,
       };
@@ -155,44 +148,11 @@ export default (context: TestContext) => {
           name: NAME,
           address: CONTRACT_ADDRESS,
           schema: ERC721_WITH_DATA_SCHEMA,
-          uri: BASE_URI,
         },
       });
 
       mockURIQuery(true);
       mockPoolQuery(undefined);
-      context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
-      const response = await context.server.post('/createpool').send(request).expect(200);
-      expect(response.body).toEqual(expectedResponse);
-    });
-
-    it('Create pool - correct fields - explicit standard', async () => {
-      const request: TokenPool = {
-        type: TokenType.NONFUNGIBLE,
-        requestId: REQUEST,
-        signer: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: NAME,
-        symbol: SYMBOL,
-      };
-
-      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
-        data: `{"tx":${TX}}`,
-        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
-        standard: 'ERC721',
-        type: TokenType.NONFUNGIBLE,
-        symbol: SYMBOL,
-        info: {
-          name: NAME,
-          address: CONTRACT_ADDRESS,
-          schema: ERC721_WITH_DATA_SCHEMA,
-        },
-      });
-
-      mockURIQuery(false);
-      mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
       const response = await context.server.post('/createpool').send(request).expect(200);
@@ -443,8 +403,10 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721NoData.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '0x123', '721'],
+        method: abiMethodMap.ERC721NoData.find(
+          abi => abi.name === TRANSFER_NO_DATA && abi.inputs?.length === 4,
+        ) as IAbiMethod,
+        params: [IDENTITY, '0x123', '721', '0x00'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -475,7 +437,7 @@ export default (context: TestContext) => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiMethodMap.ERC721NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '721'],
+        params: ['721'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -552,6 +514,54 @@ export default (context: TestContext) => {
       context.http.post = jest.fn(() => new FakeObservable(response));
 
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
+
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('Mint token - custom ABI', async () => {
+      const safeMintAutoIndex = {
+        name: 'safeMint',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [
+          {
+            internalType: 'address',
+            name: 'to',
+            type: 'address',
+          },
+        ],
+        outputs: [],
+      };
+
+      const request: TokenMint = {
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolLocator: ERC721_NO_DATA_POOL_ID,
+        to: '0x123',
+        interface: {
+          abi: [safeMintAutoIndex],
+        },
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: safeMintAutoIndex,
+        params: ['0x123'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      context.http.post = jest.fn(() => new FakeObservable(response));
+
+      await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);

@@ -77,20 +77,11 @@ export class AsyncResponse {
   id: string;
 }
 
-export enum ContractSchema {
-  ERC20WithData = 'ERC20WithData',
-  ERC20NoData = 'ERC20NoData',
-  ERC721WithData = 'ERC721WithData',
-  ERC721NoData = 'ERC721NoData',
-}
-
-export type ContractSchemaStrings = keyof typeof ContractSchema;
-
-export enum ContractMethod {
-  ERC20WithDataMintWithData = 'mintWithData',
-  ERC20WithDataTransferWithData = 'transferWithData',
-  ERC20WithDataBurnWithData = 'burnWithData',
-}
+export type ContractSchemaStrings =
+  | 'ERC20WithData'
+  | 'ERC20NoData'
+  | 'ERC721WithData'
+  | 'ERC721NoData';
 
 export enum EncodedPoolLocatorEnum {
   Address = 'address',
@@ -167,46 +158,6 @@ export class TokenPool {
   config?: TokenPoolConfig;
 }
 
-export class TokenApprovalConfig {
-  @ApiProperty()
-  @IsOptional()
-  allowance?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  tokenIndex?: string;
-}
-
-export class TokenApproval {
-  @ApiProperty()
-  @IsNotEmpty()
-  poolLocator: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  signer: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  operator: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  approved: boolean;
-
-  @ApiProperty({ description: requestIdDescription })
-  @IsOptional()
-  requestId?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  data?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  config?: TokenApprovalConfig;
-}
-
 export class BlockchainInfo {
   @ApiProperty()
   @IsNotEmpty()
@@ -269,6 +220,12 @@ export class TokenPoolActivate {
   poolData?: string;
 }
 
+export class TokenInterface {
+  @ApiProperty({ isArray: true })
+  @IsOptional()
+  abi?: IAbiMethod[];
+}
+
 export class TokenTransfer {
   @ApiProperty()
   @IsNotEmpty()
@@ -305,6 +262,10 @@ export class TokenTransfer {
   @ApiProperty({ description: transferConfigDescription })
   @IsOptional()
   config?: any;
+
+  @ApiProperty()
+  @IsOptional()
+  interface?: TokenInterface;
 }
 
 export class TokenMint extends OmitType(TokenTransfer, ['from']) {
@@ -313,6 +274,50 @@ export class TokenMint extends OmitType(TokenTransfer, ['from']) {
   uri?: string;
 }
 export class TokenBurn extends OmitType(TokenTransfer, ['to']) {}
+
+export class TokenApprovalConfig {
+  @ApiProperty()
+  @IsOptional()
+  allowance?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  tokenIndex?: string;
+}
+
+export class TokenApproval {
+  @ApiProperty()
+  @IsNotEmpty()
+  poolLocator: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  signer: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  operator: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  approved: boolean;
+
+  @ApiProperty({ description: requestIdDescription })
+  @IsOptional()
+  requestId?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  data?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  config?: TokenApprovalConfig;
+
+  @ApiProperty()
+  @IsOptional()
+  interface?: TokenInterface;
+}
 
 // Websocket notifications
 
@@ -339,10 +344,6 @@ export class TokenPoolEventInfo {
 
   @ApiProperty()
   schema: string;
-
-  @ApiProperty()
-  @IsOptional()
-  uri?: string;
 }
 
 export class TokenPoolEvent extends tokenEventBase {
@@ -435,3 +436,11 @@ export interface EthConnectMsgRequest {
   method: IAbiMethod;
   params: any[];
 }
+
+export interface MethodSignature {
+  name: string;
+  inputs: { type: string }[];
+  map: (dto: any) => any[] | undefined;
+}
+
+export type TokenOperation = 'approval' | 'burn' | 'mint' | 'transfer';

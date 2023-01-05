@@ -14,132 +14,60 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import LRUCache from 'lru-cache';
 import { Context } from '../request-context/request-context.decorator';
 import ERC20NoDataABI from '../abi/ERC20NoData.json';
+import ERC20NoDataOldABI from '../abi/ERC20NoDataOld.json';
 import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
+import ERC721NoDataOldABI from '../abi/ERC721NoDataOld.json';
 import ERC721WithDataABI from '../abi/ERC721WithData.json';
-import IERC165ABI from '../abi/IERC165.json';
+import ERC721WithDataOldABI from '../abi/ERC721WithDataOld.json';
+import TokenFactoryABI from '../abi/TokenFactory.json';
 import { BlockchainConnectorService } from './blockchain.service';
-import { ContractSchemaStrings, IAbiMethod, TokenType } from './tokens.interfaces';
+import { SupportsInterface } from './erc165';
+import { AllEvents as ERC20Events, Decimals, DynamicMethods as ERC20Methods } from './erc20';
+import { AllEvents as ERC721Events, DynamicMethods as ERC721Methods } from './erc721';
+import {
+  ContractSchemaStrings,
+  IAbiMethod,
+  MethodSignature,
+  TokenOperation,
+  TokenPool,
+  TokenType,
+} from './tokens.interfaces';
+import { encodeHex } from './tokens.util';
 
-const abiSchemaMap = new Map<ContractSchemaStrings, IAbiMethod[]>();
-abiSchemaMap.set('ERC20NoData', ERC20NoDataABI.abi);
-abiSchemaMap.set('ERC20WithData', ERC20WithDataABI.abi);
-abiSchemaMap.set('ERC721NoData', ERC721NoDataABI.abi);
-abiSchemaMap.set('ERC721WithData', ERC721WithDataABI.abi);
-
+// The current version of IERC20WithData
 const ERC20WithDataIID = '0xaefdad0f';
-const ERC721WithDataIID = '0xb2429c12';
-const ERC721WithDataUriIID = '0x8706707d';
+
+// The current version of IERC721WithData
+const ERC721WithDataIID = '0x8706707d';
+
+// The previous version of IERC721WithData (no mintWithURI or baseTokenUri)
+const ERC721WithDataOldIID = '0xb2429c12';
+
+// The current version of ITokenFactory
 const TokenFactoryIID = '0x83a74a0c';
-const supportsInterfaceABI = IERC165ABI.abi.find(m => m.name === 'supportsInterface');
 
-export interface AbiMethods {
-  MINT: string;
-  MINTURI: string | null;
-  TRANSFER: string;
-  BURN: string;
-  NAME: string;
-  SYMBOL: string;
-  APPROVE: string;
-  APPROVEFORALL: string | null;
-  DECIMALS: string | null;
-  BASEURI: string | null;
-  URI: string | null;
-}
-
-export interface AbiEvents {
-  TRANSFER: string;
-  APPROVAL: string;
-  APPROVALFORALL: string | null;
-}
-
-const abiMethodMap = new Map<ContractSchemaStrings, AbiMethods & Record<string, string | null>>();
-abiMethodMap.set('ERC20NoData', {
-  MINT: 'mint',
-  MINTURI: null,
-  TRANSFER: 'transferFrom',
-  BURN: 'burn',
-  APPROVE: 'approve',
-  APPROVEFORALL: null,
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: 'decimals',
-  BASEURI: null,
-  URI: null,
-});
-abiMethodMap.set('ERC20WithData', {
-  MINT: 'mintWithData',
-  MINTURI: null,
-  TRANSFER: 'transferWithData',
-  BURN: 'burnWithData',
-  APPROVE: 'approveWithData',
-  APPROVEFORALL: null,
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: 'decimals',
-  BASEURI: null,
-  URI: null,
-});
-abiMethodMap.set('ERC721WithData', {
-  MINT: 'mintWithData',
-  MINTURI: 'mintWithURI',
-  TRANSFER: 'transferWithData',
-  BURN: 'burnWithData',
-  APPROVE: 'approveWithData',
-  APPROVEFORALL: 'setApprovalForAllWithData',
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: null,
-  BASEURI: 'baseTokenUri',
-  URI: 'tokenURI',
-});
-abiMethodMap.set('ERC721NoData', {
-  MINT: 'mint',
-  MINTURI: null,
-  TRANSFER: 'safeTransferFrom',
-  BURN: 'burn',
-  APPROVE: 'approve',
-  APPROVEFORALL: 'setApprovalForAll',
-  NAME: 'name',
-  SYMBOL: 'symbol',
-  DECIMALS: null,
-  BASEURI: null,
-  URI: null,
-});
-
-const abiEventMap = new Map<ContractSchemaStrings, AbiEvents & Record<string, string | null>>();
-abiEventMap.set('ERC20NoData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: null,
-});
-abiEventMap.set('ERC20WithData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: null,
-});
-abiEventMap.set('ERC721NoData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: 'ApprovalForAll',
-});
-abiEventMap.set('ERC721WithData', {
-  TRANSFER: 'Transfer',
-  APPROVAL: 'Approval',
-  APPROVALFORALL: 'ApprovalForAll',
-});
+const tokenCreateMethod = 'create';
+const tokenCreateEvent = 'TokenPoolCreation';
 
 @Injectable()
 export class AbiMapperService {
   private readonly logger = new Logger(AbiMapperService.name);
-  private uriSupportCache: LRUCache<string, boolean>;
+  private supportCache: LRUCache<string, boolean>;
+  private legacyERC20 = false;
+  private legacyERC721 = false;
 
   constructor(private blockchain: BlockchainConnectorService) {
-    this.uriSupportCache = new LRUCache<string, boolean>({ max: 500 });
+    this.supportCache = new LRUCache<string, boolean>({ max: 500 });
+  }
+
+  configure(legacyERC20: boolean, legacyERC721: boolean) {
+    this.legacyERC20 = legacyERC20;
+    this.legacyERC721 = legacyERC721;
   }
 
   getTokenSchema(type: TokenType, withData = true): ContractSchemaStrings {
@@ -149,115 +77,163 @@ export class AbiMapperService {
     return withData ? 'ERC721WithData' : 'ERC721NoData';
   }
 
-  allMethods(schema: ContractSchemaStrings) {
-    const names: string[] = [];
-    const methods = abiMethodMap.get(schema);
-    for (const method of Object.values(methods ?? {})) {
-      if (method !== null) {
-        names.push(method);
+  allInvokeMethods(abi: IAbiMethod[], isFungible: boolean) {
+    const allSignatures = isFungible
+      ? [
+          ...ERC20Methods.approval,
+          ...ERC20Methods.burn,
+          ...ERC20Methods.mint,
+          ...ERC20Methods.transfer,
+        ]
+      : [
+          ...ERC721Methods.approval,
+          ...ERC721Methods.burn,
+          ...ERC721Methods.mint,
+          ...ERC721Methods.transfer,
+        ];
+    return this.getAllMethods(abi, allSignatures);
+  }
+
+  allEvents(isFungible: boolean) {
+    const events = isFungible ? ERC20Events : ERC721Events;
+    return events.map(event => event.name);
+  }
+
+  getAbi(schema: ContractSchemaStrings, uriSupport = true) {
+    switch (schema) {
+      case 'ERC721WithData':
+        if (uriSupport === false) {
+          // The newer ERC721WithData schema is a strict superset of the old, with a
+          // few new methods around URIs. Assume the URI methods exist, unless
+          // uriSupport is explicitly set to false.
+          return ERC721WithDataOldABI.abi;
+        }
+        return ERC721WithDataABI.abi;
+      case 'ERC721NoData':
+        return this.legacyERC721 ? ERC721NoDataOldABI.abi : ERC721NoDataABI.abi;
+      case 'ERC20WithData':
+        return ERC20WithDataABI.abi;
+      case 'ERC20NoData':
+        return this.legacyERC20 ? ERC20NoDataOldABI.abi : ERC20NoDataABI.abi;
+      default:
+        throw new BadRequestException(`Unknown schema: ${schema}`);
+    }
+  }
+
+  private signatureMatch(method: IAbiMethod, signature: MethodSignature) {
+    if (signature.name !== method.name || signature.inputs.length !== method.inputs?.length) {
+      return false;
+    }
+    for (let i = 0; i < signature.inputs.length; i++) {
+      if (signature.inputs[i].type !== method.inputs[i].type) {
+        return false;
       }
     }
-    return names;
+    return true;
   }
 
-  allInvokeMethods(schema: ContractSchemaStrings) {
-    const excluded = ['NAME', 'SYMBOL', 'DECIMALS', 'URI', 'BASEURI'];
-    const names: string[] = [];
-    const methods = abiMethodMap.get(schema);
-    for (const [key, method] of Object.entries(methods ?? {})) {
-      if (!excluded.includes(key) && method !== null) {
-        names.push(method);
+  private getAllMethods(abi: IAbiMethod[], signatures: MethodSignature[]) {
+    const methods: IAbiMethod[] = [];
+    for (const signature of signatures) {
+      for (const method of abi) {
+        if (this.signatureMatch(method, signature)) {
+          methods.push(method);
+        }
       }
     }
-    return names;
+    return methods;
   }
 
-  allEvents(schema: ContractSchemaStrings) {
-    const names: string[] = [];
-    const events = abiEventMap.get(schema);
-    for (const method of Object.values(events ?? {})) {
-      if (method !== null) {
-        names.push(method);
+  getMethodAndParams(abi: IAbiMethod[], isFungible: boolean, operation: TokenOperation, dto: any) {
+    const signatures = isFungible ? ERC20Methods[operation] : ERC721Methods[operation];
+    for (const signature of signatures) {
+      for (const method of abi) {
+        if (this.signatureMatch(method, signature)) {
+          const params = signature.map(dto);
+          if (params !== undefined) {
+            return { method, params };
+          }
+        }
       }
     }
-    return names;
+    return {};
   }
 
-  getAbi(schema: ContractSchemaStrings) {
-    return abiSchemaMap.get(schema);
+  getCreateMethod() {
+    return TokenFactoryABI.abi.find(m => m.name === tokenCreateMethod);
   }
 
-  getMethodAbi(schema: ContractSchemaStrings, operation: keyof AbiMethods): IAbiMethod | undefined {
-    const contractAbi = abiSchemaMap.get(schema);
-    const abiMethods = abiMethodMap.get(schema);
-    if (contractAbi === undefined || abiMethods === undefined) {
-      return undefined;
-    }
-    const name = abiMethods[operation] ?? undefined;
-    if (name === undefined) {
-      return undefined;
-    }
-    return contractAbi.find(abi => abi.name === name);
+  getCreateEvent() {
+    return TokenFactoryABI.abi.find(m => m.name === tokenCreateEvent);
   }
 
-  getEventAbi(schema: ContractSchemaStrings, operation: keyof AbiEvents): IAbiMethod | undefined {
-    const contractAbi = abiSchemaMap.get(schema);
-    const abiEvents = abiEventMap.get(schema);
-    if (contractAbi === undefined || abiEvents === undefined) {
-      return undefined;
+  getCreateMethodAndParams(dto: TokenPool, uriSupport = true) {
+    const isFungible = dto.type === TokenType.FUNGIBLE;
+    const encodedData = encodeHex(dto.data ?? '');
+    const method = this.getCreateMethod();
+    if (method === undefined) {
+      throw new BadRequestException('Failed to parse factory contract ABI');
     }
-    return contractAbi.find(abi => abi.name === abiEvents[operation]);
+    const params = [dto.name, dto.symbol, isFungible, encodedData];
+    if (uriSupport) {
+      // supply empty string if URI isn't provided
+      // the contract itself handles empty base URIs appropriately
+      params.push(dto.config?.uri !== undefined ? dto.config.uri : '');
+    }
+    return { method, params };
+  }
+
+  private async supportsInterface(ctx: Context, address: string, iid: string) {
+    const cacheKey = `${address}:${iid}`;
+    const cached = this.supportCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    let support = false;
+    try {
+      const result = await this.blockchain.query(ctx, address, SupportsInterface, [iid]);
+      support = result.output === true;
+    } catch (err) {
+      // do nothing
+    }
+
+    this.supportCache.set(cacheKey, support);
+    return support;
   }
 
   async supportsData(ctx: Context, address: string, type: TokenType) {
-    if (type === TokenType.NONFUNGIBLE) {
-      if (await this.supportsNFTUri(ctx, address, false)) {
-        return true;
-      }
-    }
-
-    let iid: string;
+    let result = false;
     switch (type) {
       case TokenType.NONFUNGIBLE:
-        iid = ERC721WithDataIID;
+        result =
+          (await this.supportsInterface(ctx, address, ERC721WithDataIID)) ||
+          (await this.supportsInterface(ctx, address, ERC721WithDataOldIID));
         break;
       case TokenType.FUNGIBLE:
       default:
-        iid = ERC20WithDataIID;
+        result = await this.supportsInterface(ctx, address, ERC20WithDataIID);
         break;
     }
 
-    try {
-      const result = await this.blockchain.query(ctx, address, supportsInterfaceABI, [iid]);
-      this.logger.log(`Querying extra data support on contract '${address}': ${result.output}`);
-      return result.output === true;
-    } catch (err) {
-      this.logger.log(
-        `Failed to query extra data support on contract '${address}': assuming false`,
-      );
-      return false;
-    }
+    this.logger.log(`Querying extra data support on contract '${address}': ${result}`);
+    return result;
   }
 
-  async supportsNFTUri(ctx: Context, address: string, factory: boolean): Promise<boolean> {
-    const support = this.uriSupportCache.get(address);
-    if (support !== undefined) {
-      return support;
-    }
+  async supportsMintWithUri(ctx: Context, address: string): Promise<boolean> {
+    const result = await this.supportsInterface(ctx, address, ERC721WithDataIID);
+    this.logger.log(`Querying URI support on contract '${address}': ${result}`);
+    return result;
+  }
 
-    try {
-      const result = await this.blockchain.query(
-        ctx,
-        address,
-        supportsInterfaceABI,
-        factory ? [TokenFactoryIID] : [ERC721WithDataUriIID],
-      );
-      this.logger.log(`Querying URI support on contract '${address}': ${result.output}`);
-      this.uriSupportCache.set(address, result.output);
-      return result.output === true;
-    } catch (err) {
-      this.logger.log(`Failed to query URI support on contract '${address}': assuming false`);
-      return false;
-    }
+  async supportsFactoryWithUri(ctx: Context, address: string): Promise<boolean> {
+    const result = await this.supportsInterface(ctx, address, TokenFactoryIID);
+    this.logger.log(`Querying URI support on contract '${address}': ${result}`);
+    return result;
+  }
+
+  async getDecimals(ctx: Context, address: string) {
+    const response = await this.blockchain.query(ctx, address, Decimals, []);
+    return parseInt(response.output) || 0;
   }
 }

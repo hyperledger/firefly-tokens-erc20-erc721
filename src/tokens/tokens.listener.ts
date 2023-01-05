@@ -32,7 +32,6 @@ import {
   TokenTransferEvent,
   TokenType,
   TransferEvent,
-  ContractSchemaStrings,
 } from './tokens.interfaces';
 import {
   decodeHex,
@@ -44,6 +43,7 @@ import {
 import { TokensService } from './tokens.service';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService } from './blockchain.service';
+import { TokenURI as ERC721URI } from './erc721';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -65,7 +65,7 @@ export class TokenListener implements EventListener {
     const signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
-        process(await this.transformTokenPoolCreationEvent(subName, event));
+        process(await this.transformTokenPoolCreationEvent(event));
         break;
       case transferEventSignature:
         process(await this.transformTransferEvent(subName, event));
@@ -83,19 +83,14 @@ export class TokenListener implements EventListener {
 
   private async getTokenUri(
     ctx: Context,
-    schema: ContractSchemaStrings,
     tokenIdx: string,
     contractAddress: string,
   ): Promise<string> {
-    const methodABI = this.mapper.getMethodAbi(schema, 'URI');
-    if (methodABI === undefined) {
-      return '';
-    }
     try {
-      const response = await this.blockchain.query(ctx, contractAddress, methodABI, [tokenIdx]);
+      const response = await this.blockchain.query(ctx, contractAddress, ERC721URI, [tokenIdx]);
       return response.output as string;
     } catch (e) {
-      this.logger.log(`Burned tokens do not have a URI: ${e}`);
+      this.logger.log(`Could not query token URI: ${e}`);
       return '';
     }
   }
@@ -128,9 +123,9 @@ export class TokenListener implements EventListener {
   }
 
   private async transformTokenPoolCreationEvent(
-    subName: string,
     event: TokenPoolCreationEvent,
   ): Promise<WebSocketMessage | undefined> {
+    const ctx = newContext();
     const { data: output } = event;
     const decodedData = decodeHex(output.data ?? '');
 
@@ -140,7 +135,10 @@ export class TokenListener implements EventListener {
     }
 
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
-    const withData = await this.mapper.supportsData(newContext(), output.contract_address, type);
+    const decimals = output.is_fungible
+      ? await this.mapper.getDecimals(ctx, output.contract_address)
+      : 0;
+    const withData = await this.mapper.supportsData(ctx, output.contract_address, type);
     const schema = this.mapper.getTokenSchema(type, withData);
     const poolLocator: IValidPoolLocator = {
       address: output.contract_address.toLowerCase(),
@@ -157,6 +155,7 @@ export class TokenListener implements EventListener {
         signer: event.inputSigner,
         data: decodedData,
         symbol: output.symbol,
+        decimals,
         info: {
           name: output.name,
           address: output.contract_address,
@@ -232,7 +231,6 @@ export class TokenListener implements EventListener {
       if (validatePoolLocator(poolLocator)) {
         commonData.uri = await this.getTokenUri(
           newContext(),
-          poolLocator.schema,
           output.tokenId,
           poolLocator.address ?? '',
         );

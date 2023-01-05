@@ -50,7 +50,7 @@ const ERC20_WITH_DATA_SCHEMA = 'ERC20WithData';
 const ERC20_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`;
 
 const MINT_NO_DATA = 'mint';
-const TRANSFER_NO_DATA = 'transferFrom';
+const TRANSFER_NO_DATA = 'transfer';
 const BURN_NO_DATA = 'burn';
 const APPROVE_NO_DATA = 'approve';
 const MINT_WITH_DATA = 'mintWithData';
@@ -163,37 +163,6 @@ export default (context: TestContext) => {
         type: TokenType.FUNGIBLE,
         symbol: SYMBOL,
         decimals: 18,
-        info: {
-          name: NAME,
-          address: CONTRACT_ADDRESS,
-          schema: ERC20_WITH_DATA_SCHEMA,
-        },
-      });
-
-      mockPoolQuery(true);
-      context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
-      const response = await context.server.post('/createpool').send(request).expect(200);
-      expect(response.body).toEqual(expectedResponse);
-    });
-
-    it('Create pool - correct fields - explicit standard', async () => {
-      const request: TokenPool = {
-        type: TokenType.FUNGIBLE,
-        requestId: REQUEST,
-        signer: IDENTITY,
-        data: `{"tx":${TX}}`,
-        config: { address: CONTRACT_ADDRESS },
-        name: NAME,
-        symbol: SYMBOL,
-      };
-
-      const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
-        data: `{"tx":${TX}}`,
-        poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
-        standard: 'ERC20',
-        type: TokenType.FUNGIBLE,
-        symbol: SYMBOL,
         info: {
           name: NAME,
           address: CONTRACT_ADDRESS,
@@ -470,7 +439,7 @@ export default (context: TestContext) => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiMethodMap.ERC20NoData.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '0x123', '20'],
+        params: ['0x123', '20'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -501,7 +470,7 @@ export default (context: TestContext) => {
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
         method: abiMethodMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
-        params: [IDENTITY, '20'],
+        params: ['20'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -544,6 +513,142 @@ export default (context: TestContext) => {
       context.http.post = jest.fn(() => new FakeObservable(response));
 
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
+
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('Burn token - custom ABI', async () => {
+      const burnMethods = [
+        {
+          name: 'burn',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              internalType: 'uint256',
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [],
+        },
+        {
+          name: 'burnFrom',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              internalType: 'address',
+              name: 'account',
+              type: 'address',
+            },
+            {
+              internalType: 'uint256',
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [],
+        },
+      ];
+
+      const request: TokenBurn = {
+        amount: '20',
+        signer: IDENTITY,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
+        from: IDENTITY,
+        interface: {
+          abi: burnMethods,
+        },
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: burnMethods[0],
+        params: ['20'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      context.http.post = jest.fn(() => new FakeObservable(response));
+
+      await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
+
+      expect(context.http.post).toHaveBeenCalledTimes(1);
+      expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
+    });
+
+    it('Burn token - custom ABI, burn from other', async () => {
+      const burnMethods = [
+        {
+          name: 'burn',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              internalType: 'uint256',
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [],
+        },
+        {
+          name: 'burnFrom',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              internalType: 'address',
+              name: 'account',
+              type: 'address',
+            },
+            {
+              internalType: 'uint256',
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [],
+        },
+      ];
+
+      const request: TokenBurn = {
+        amount: '20',
+        signer: IDENTITY,
+        poolLocator: ERC20_NO_DATA_POOL_ID,
+        from: '0x2',
+        interface: {
+          abi: burnMethods,
+        },
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: burnMethods[1],
+        params: ['0x2', '20'],
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      context.http.post = jest.fn(() => new FakeObservable(response));
+
+      await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
 
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);

@@ -35,6 +35,7 @@ import {
 } from './tokens/tokens.interfaces';
 import { TokensService } from './tokens/tokens.service';
 import { newContext } from './request-context/request-context.decorator';
+import { AbiMapperService } from './tokens/abimapper.service';
 
 const API_DESCRIPTION = `
 <p>All POST APIs are asynchronous. Listen for websocket notifications on <code>/api/ws</code>.
@@ -80,6 +81,8 @@ async function bootstrap() {
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
   const factoryAddress = config.get<string>('FACTORY_CONTRACT_ADDRESS', '');
   const passthroughHeaderString = config.get<string>('PASSTHROUGH_HEADERS', '');
+  const legacyERC20 = config.get<string>('USE_LEGACY_ERC20_SAMPLE', '').toLowerCase() === 'true';
+  const legacyERC721 = config.get<string>('USE_LEGACY_ERC721_SAMPLE', '').toLowerCase() === 'true';
 
   const passthroughHeaders: string[] = [];
   for (const h of passthroughHeaderString.split(',')) {
@@ -91,6 +94,7 @@ async function bootstrap() {
   app
     .get(BlockchainConnectorService)
     .configure(ethConnectUrl, fftmUrl, username, password, passthroughHeaders);
+  app.get(AbiMapperService).configure(legacyERC20, legacyERC721);
 
   if (autoInit.toLowerCase() !== 'false') {
     await app.get(TokensService).init(newContext());
