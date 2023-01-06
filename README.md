@@ -1,85 +1,123 @@
 # FireFly Tokens Microservice for ERC20 & ERC721
 
 This project provides a thin shim between [FireFly](https://github.com/hyperledger/firefly)
-and ERC20/ERC721 contracts exposed via [ethconnect](https://github.com/hyperledger/firefly-ethconnect).
+and ERC20/ERC721 contracts exposed via [ethconnect](https://github.com/hyperledger/firefly-ethconnect)
+or [evmconnect](https://github.com/hyperledger/firefly-evmconnect).
 
 Based on [Node.js](http://nodejs.org) and [Nest](http://nestjs.com).
 
-This service is entirely stateless - it maps incoming REST operations directly to ethconnect
-calls, and maps ethconnect events to outgoing websocket events.
+This service is entirely stateless - it maps incoming REST operations directly to blockchain
+calls, and maps blockchain events to outgoing websocket events.
 
-This repository also includes sample [Solidity contracts](samples/solidity/) that conform to the ABIs
-expected by this connector. These contracts may be used to get up and running with simple token
-support, and may provide a starting point for developing production contracts that can be used
-with this connector.
+## Smart Contracts
 
-## POST APIs
+This connector is designed to interact with ERC20 and ERC721 smart contracts on an Ethereum
+blockchain which conform to a few different patterns. The repository includes sample
+[Solidity contracts](samples/solidity/) that conform to some of the ABIs expected.
 
-The following POST APIs are exposed under `/api/v1`:
+At the very minimum, _all_ contracts must implement the events and methods defined in the ERC20 or
+ERC721 standards, including all optional methods such as `name()` and `symbol()`, `decimals()` (for ERC20),
+and `tokenURI()` (for ERC721).
 
-* `POST /createpool` - Create a new instance of an ERC20 contract (inputs: name, symbol, data, config)
-* `POST /activatepool` - Activate a token contract to begin receiving transfers (inputs: poolLocator, poolData)
-* `POST /mint` - Mint new tokens (inputs: poolLocator, to, amount, data)
-* `POST /burn` - Burn tokens (inputs: poolLocator, tokenIndex, from, amount, data)
-* `POST /transfer` - Transfer tokens (inputs: poolLocator, tokenIndex, from, to, amount, data)
-* `POST /approval` - Approve/unapprove another party to manage tokens (inputs: poolLocator, operator, approved, data, config)
+Beyond this, there are a few methods for creating a contract that the connector can utilize.
 
-All requests may be optionally accompanied by a `requestId`, which must be unique for every
-request and will be returned in the "receipt" websocket event.
+### FireFly Interface Parsing
 
-All APIs are async and return 202 immediately with a response of the form `{id: string}`.
-If no `requestId` was provided, this will be a randomly assigned ID. Clients should
-subscribe to the websocket (see below) in order to receive feedback when the async
-operation completes.
+The most flexible and robust token functionality is achieved by teaching FireFly about your token
+contract, then allowing it to teach the token connector. This is optional in the sense that there
+are additional methods used by the token connector to guess at the contract ABI (detailed later),
+but is the preferred method for most use cases.
 
-## Extra config
+To leverage this capability in a running FireFly environment, you must:
+1. [Upload the token contract ABI to FireFly](https://hyperledger.github.io/firefly/tutorials/custom_contracts/ethereum.html)
+as a contract interface.
+2. Include the `interface` parameter when [creating the pool on FireFly](https://hyperledger.github.io/firefly/tutorials/tokens).
 
-Some APIs accept a `config` object which includes options specific to the underlying contract, outside
-of the general `fftokens` API specification.
+This will cause FireFly to parse the interface and provide ABI details
+to this connector, so it can determine the best methods from the ABI to be used for each operation.
+When this procedure is followed, the connector can find and call any variant of mint/burn/transfer/approval
+that is listed in the source code for [erc20.ts](src/tokens/erc20.ts) and [erc721.ts](src/tokens/erc721.ts).
+This list includes methods in the base standards, methods in the `IERC20WithData` and `IERC721WithData`
+interfaces defined in this repository, and common method variants from the
+[OpenZeppelin Wizard](https://wizard.openzeppelin.com). Additional variants can be added to the list
+by building a custom version of this connector or by proposing them via pull request.
 
-**POST /createpool**
+If implementing a new contract, the signatures in [IERC20WithData](samples/solidity/contracts/IERC20WithData.sol)
+and [IERC721WithData](samples/solidity/contracts/IERC721WithData.sol) will provide the most complete
+FireFly functionality by allowing FireFly transactions and messages to be pinned to the blockchain
+alongside token operations. The sample [ERC20WithData](samples/solidity/contracts/ERC20WithData.sol)
+and [ERC721WithData](samples/solidity/contracts/ERC721WithData.sol) contracts may be used to
+get up and running with simple token support, and may provide a starting point for developing
+production contracts that can be used with this connector.
 
-```
-config: {
-  address?: string, // Address of a pre-deployed contract to index
-  blockNumber?: string, // Starting block to begin indexing (only valid with "address")
-}
-```
+### Solidity Interface Support
 
-**POST /approval**
+In the absence of being provided with ABI details, the token connector will attempt to guess the contract
+ABI in use. It does this by using ERC165 `supportsInterface()` to query the contract's support for `IERC20WithData`
+or `IERC721WithData`, as defined in this repository. If the query succeeds, the connector will leverage
+the methods on that interface to perform token operations. Therefore it is possible to use these
+contracts without the extra step of teaching FireFly about the contract interface first.
 
-```
-config: {
-  allowance?: string, // Number of tokens operator is allowed to manage (only valid with ERC20)
-  tokenIndex?: string, // A specific NFT operator is allowed to manage (only valid with ERC721)
-}
-```
+### Fallback Functionality (not recommended)
 
-## Websocket events
+If neither of the above procedures is followed for a given contract, the connector will fall back to assuming
+that the ABI looks like [ERC20NoData.json](src/abi/ERC20NoData.json) or
+[ERC721NoData.json](src/abi/ERC721NoData.json), which are based on common OpenZeppelin patterns. This
+behavior can also be tweaked to assume [ERC20NoDataOld.json](src/abi/ERC20NoDataOld.json) or
+[ERC721NoDataOld.json](src/abi/ERC721NoDataOld.json) by setting `USE_LEGACY_ERC20_SAMPLE=true` or
+`USE_LEGACY_ERC721_SAMPLE=true` in the connector environment (these sample ABIs were provided in an older version
+of this repository but are now deprecated). However, relying on this fallback functionality may be unreliable
+and is not recommended.
 
-Websocket notifications can be received by connecting to `/api/ws`.
-All events have the form `{event: string, id: string, data: any}`.
+## API Extensions
 
-When any POST operation completes, it will trigger a websocket event of the form:
-`{event: "receipt", data: {id: string, success: bool, message?: string}}`.
-This event is sent to all connected websocket clients and is informative only (does
-not require any acknowledgment).
+The APIs of this connector conform to the FireFly fftokens standard, and are designed to be called by
+FireFly. They should generally not be called directly by anything other than FireFly.
 
-Successful POST operations will also result in a detailed event corresponding to the type of
-transaction that was performed. The events and corresponding data items are:
+Below are some of the specific considerations and extra requirements enforced by this connector on
+top of the fftokens standard.
 
-* `token-pool` - Token pool created (outputs: poolLocator, signer, data)
-* `token-mint` - Tokens minted (outputs: id, poolLocator, tokenIndex, signer, to, amount, data)
-* `token-burn` - Tokens burned (outputs: id, poolLocator, tokenIndex, signer, from, amount, data)
-* `token-transfer` - Tokens transferred (outputs: id, poolLocator, signer, from, to, amount, data)
-* `token-approval` - Tokens approved (outputs: id, subject, poolLocator, signer, operator, approved, data)
+### `/createpool`
 
-If multiple websocket clients are connected, only one will receive these events.
-Each one of these _must_ be acknowledged by replying on the websocket with `{event: "ack", data: {id}}`.
+If `config.address` is specified, the connector will index the token contract at the specified address
+(must be an ERC20 contract if `type` is `fungible`, or an ERC721 contract if `type` is `nonfungible`).
+`config.blockNumber` may also be supplied to begin indexing from a specific block. Any `name` provided
+from FireFly will be ignored by the connector. If a `symbol` is provided from FireFly, it _must_ match
+the `symbol()` defined on the underlying contract.
 
-## GET APIs
+If `config.address` is not specified, and `FACTORY_CONTRACT_ADDRESS` is set in the connector's
+environment, the factory contract will be invoked to deploy a new instance of ERC20 or ERC721.
+The factory contract must conform to [ITokenFactory](samples/solidity/contracts/ITokenFactory.sol) to
+be usable. Any `name` and `symbol` provided from FireFly will be passed into the factory `create()`
+method.
 
-The following GET APIs are exposed under `/api/v1`:
+### `/mint`
+
+For fungible (ERC20) token pools, `tokenIndex` and `uri` will be ignored.
+
+For non-fungible (ERC721) token pools, `amount` must be 1 (or unset). If the underlying contract
+expects an index to be provided, `tokenIndex` must be set (if it supports auto-indexing, `tokenIndex`
+will be ignored).
+
+### `/burn`
+
+For non-fungible (ERC721) token pools, `tokenIndex` is required, and `amount` must be 1 (or unset).
+
+### `/transfer`
+
+For non-fungible (ERC721) token pools, `tokenIndex` is required, and `amount` must be 1 (or unset).
+
+### `/approval`
+
+For fungible (ERC20) token pools, if `config.allowance` is set, the approval will be valid for
+the specified number of tokens. If omitted, the approval has unlimited allowance.
+
+For non-fungible (ERC721) token pools, if `config.tokenIndex` is set, the approval will be for
+that specific token. If omitted, the approval covers all tokens.
+
+## Extra APIs
+
+The following APIs are not part of the fftokens standard, but are exposed under `/api/v1`:
 
 * `GET /receipt/:id` - Get receipt for a previous request
 
