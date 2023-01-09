@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import ERC721NoDataABI from '../../src/abi/ERC721NoData.json';
-import ERC721WithDataABI from '../../src/abi/ERC721WithData.json';
+import ERC721WithDataV2ABI from '../../src/abi/ERC721WithDataV2.json';
 import {
   CheckInterfaceRequest,
   CheckInterfaceResponse,
@@ -48,7 +48,7 @@ const NAME = 'abcTest';
 const SYMBOL = 'abc';
 const ERC721_NO_DATA_SCHEMA = 'ERC721NoData';
 const ERC721_NO_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
-const ERC721_WITH_DATA_SCHEMA = 'ERC721WithData';
+const ERC721_WITH_DATA_SCHEMA = 'ERC721WithDataV2';
 const ERC721_WITH_DATA_POOL_ID = `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`;
 
 const MINT_NO_DATA = 'safeMint';
@@ -56,16 +56,11 @@ const TRANSFER_NO_DATA = 'safeTransferFrom';
 const BURN_NO_DATA = 'burn';
 const APPROVE_NO_DATA = 'approve';
 const APPROVE_FOR_ALL_NO_DATA = 'setApprovalForAll';
-const MINT_WITH_DATA = 'mintWithData';
+const MINT_WITH_URI = 'mintWithURI';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 const APPROVE_FOR_ALL_WITH_DATA = 'setApprovalForAllWithData';
-
-const abiMethodMap = {
-  ERC721NoData: ERC721NoDataABI.abi as IAbiMethod[],
-  ERC721WithData: ERC721WithDataABI.abi as IAbiMethod[],
-};
 
 export default (context: TestContext) => {
   const mockPoolQuery = (withData: boolean | undefined) => {
@@ -164,7 +159,6 @@ export default (context: TestContext) => {
 
     it('Mint token', async () => {
       const request: TokenMint = {
-        tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
@@ -176,8 +170,8 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
-        params: ['0x123', '721', '0x00'],
+        method: ERC721WithDataV2ABI.abi.find(abi => abi.name === MINT_WITH_URI) as IAbiMethod,
+        params: ['0x123', '0x00', ''],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -208,9 +202,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721WithData.find(
-          abi => abi.name === TRANSFER_WITH_DATA,
-        ) as IAbiMethod,
+        method: ERC721WithDataV2ABI.abi.find(abi => abi.name === TRANSFER_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '0x123', '721', '0x00'],
       };
 
@@ -241,7 +233,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
+        method: ERC721WithDataV2ABI.abi.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '721', '0x00'],
       };
 
@@ -273,7 +265,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721WithData.find(
+        method: ERC721WithDataV2ABI.abi.find(
           abi => abi.name === APPROVE_FOR_ALL_WITH_DATA,
         ) as IAbiMethod,
         params: ['2', true, '0x00'],
@@ -307,9 +299,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721WithData.find(
-          abi => abi.name === APPROVE_WITH_DATA,
-        ) as IAbiMethod,
+        method: ERC721WithDataV2ABI.abi.find(abi => abi.name === APPROVE_WITH_DATA) as IAbiMethod,
         params: ['2', '5', '0x00'],
       };
 
@@ -353,6 +343,7 @@ export default (context: TestContext) => {
       });
 
       mockURIQuery(false);
+      mockURIQuery(false);
       mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
 
@@ -374,8 +365,8 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
-        params: ['0x123', '721'],
+        method: ERC721NoDataABI.abi.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        params: ['0x123'],
       };
 
       const response: EthConnectAsyncResponse = {
@@ -406,7 +397,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721NoData.find(
+        method: ERC721NoDataABI.abi.find(
           abi => abi.name === TRANSFER_NO_DATA && abi.inputs?.length === 4,
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '721', '0x00'],
@@ -439,7 +430,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
+        method: ERC721NoDataABI.abi.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
         params: ['721'],
       };
 
@@ -471,9 +462,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721NoData.find(
-          abi => abi.name === APPROVE_FOR_ALL_NO_DATA,
-        ) as IAbiMethod,
+        method: ERC721NoDataABI.abi.find(abi => abi.name === APPROVE_FOR_ALL_NO_DATA) as IAbiMethod,
         params: ['2', true],
       };
 
@@ -505,7 +494,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC721NoData.find(abi => abi.name === APPROVE_NO_DATA) as IAbiMethod,
+        method: ERC721NoDataABI.abi.find(abi => abi.name === APPROVE_NO_DATA) as IAbiMethod,
         params: ['2', '5'],
       };
 

@@ -80,6 +80,7 @@ export class AsyncResponse {
 export type ContractSchemaStrings =
   | 'ERC20WithData'
   | 'ERC20NoData'
+  | 'ERC721WithDataV2'
   | 'ERC721WithData'
   | 'ERC721NoData';
 

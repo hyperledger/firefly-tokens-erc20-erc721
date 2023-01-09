@@ -139,8 +139,7 @@ export class TokenListener implements EventListener {
     const decimals = output.is_fungible
       ? await this.mapper.getDecimals(ctx, output.contract_address)
       : 0;
-    const withData = await this.mapper.supportsData(ctx, output.contract_address, type);
-    const schema = this.mapper.getTokenSchema(type, withData);
+    const schema = await this.mapper.getTokenSchema(ctx, type, output.contract_address);
     const poolLocator: IValidPoolLocator = {
       address: output.contract_address.toLowerCase(),
       type,

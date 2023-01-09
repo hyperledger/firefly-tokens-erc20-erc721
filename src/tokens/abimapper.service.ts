@@ -18,12 +18,13 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import LRUCache from 'lru-cache';
 import { Context } from '../request-context/request-context.decorator';
 import ERC20NoDataABI from '../abi/ERC20NoData.json';
-import ERC20NoDataOldABI from '../abi/ERC20NoDataOld.json';
+import ERC20NoDataLegacyABI from '../abi/ERC20NoDataLegacy.json';
 import ERC20WithDataABI from '../abi/ERC20WithData.json';
 import ERC721NoDataABI from '../abi/ERC721NoData.json';
-import ERC721NoDataOldABI from '../abi/ERC721NoDataOld.json';
-import ERC721WithDataABI from '../abi/ERC721WithData.json';
-import ERC721WithDataOldABI from '../abi/ERC721WithDataOld.json';
+import ERC721NoDataLegacyABI from '../abi/ERC721NoDataLegacy.json';
+import ERC721WithDataV2ABI from '../abi/ERC721WithDataV2.json';
+import ERC721WithDataV1bABI from '../abi/ERC721WithDataV1b.json';
+import ERC721WithDataV1aABI from '../abi/ERC721WithDataV1a.json';
 import TokenFactoryABI from '../abi/TokenFactory.json';
 import { BlockchainConnectorService } from './blockchain.service';
 import { SupportsInterface } from './erc165';
@@ -39,16 +40,15 @@ import {
 } from './tokens.interfaces';
 import { encodeHex } from './tokens.util';
 
-// The current version of IERC20WithData
+// Interface identifier for IERC20WithData
 const ERC20WithDataIID = '0xaefdad0f';
 
-// The current version of IERC721WithData
-const ERC721WithDataIID = '0x8706707d';
+// Interface identifier for IERC721WithData
+const ERC721WithDataV2IID = '0xaefe69bf'; // current version
+const ERC721WithDataV1bIID = '0x8706707d'; // no auto-indexing
+const ERC721WithDataV1aIID = '0xb2429c12'; // no mintWithURI or baseTokenUri
 
-// The previous version of IERC721WithData (no mintWithURI or baseTokenUri)
-const ERC721WithDataOldIID = '0xb2429c12';
-
-// The current version of ITokenFactory
+// Interface identifier for ITokenFactory
 const TokenFactoryIID = '0x83a74a0c';
 
 const tokenCreateMethod = 'create';
@@ -70,11 +70,31 @@ export class AbiMapperService {
     this.legacyERC721 = legacyERC721;
   }
 
-  getTokenSchema(type: TokenType, withData = true): ContractSchemaStrings {
-    if (type === TokenType.FUNGIBLE) {
-      return withData ? 'ERC20WithData' : 'ERC20NoData';
+  async getTokenSchema(
+    ctx: Context,
+    type: TokenType,
+    address: string,
+  ): Promise<ContractSchemaStrings> {
+    if (type === TokenType.NONFUNGIBLE) {
+      if (await this.supportsInterface(ctx, address, ERC721WithDataV2IID)) {
+        return 'ERC721WithDataV2';
+      } else if (
+        (await this.supportsInterface(ctx, address, ERC721WithDataV1bIID)) ||
+        (await this.supportsInterface(ctx, address, ERC721WithDataV1aIID))
+      ) {
+        // Note: no change was introduced in schema string for 1a vs. 1b
+        // This must be sorted out with a secondary check in getAbi()
+        return 'ERC721WithData';
+      } else {
+        return 'ERC721NoData';
+      }
+    } else {
+      if (await this.supportsInterface(ctx, address, ERC20WithDataIID)) {
+        return 'ERC20WithData';
+      } else {
+        return 'ERC20NoData';
+      }
     }
-    return withData ? 'ERC721WithData' : 'ERC721NoData';
   }
 
   allInvokeMethods(abi: IAbiMethod[], isFungible: boolean) {
@@ -99,22 +119,22 @@ export class AbiMapperService {
     return events.map(event => event.name);
   }
 
-  getAbi(schema: ContractSchemaStrings, uriSupport = true) {
+  async getAbi(ctx: Context, schema: ContractSchemaStrings, address: string) {
     switch (schema) {
+      case 'ERC721WithDataV2':
+        return ERC721WithDataV2ABI.abi;
       case 'ERC721WithData':
-        if (uriSupport === false) {
-          // The newer ERC721WithData schema is a strict superset of the old, with a
-          // few new methods around URIs. Assume the URI methods exist, unless
-          // uriSupport is explicitly set to false.
-          return ERC721WithDataOldABI.abi;
-        }
-        return ERC721WithDataABI.abi;
+        // This schema string was reused for two versions of the interface,
+        // so we have to check each time (but the results are cached for efficiency)
+        return (await this.supportsInterface(ctx, address, ERC721WithDataV1bIID))
+          ? ERC721WithDataV1bABI.abi
+          : ERC721WithDataV1aABI.abi;
       case 'ERC721NoData':
-        return this.legacyERC721 ? ERC721NoDataOldABI.abi : ERC721NoDataABI.abi;
+        return this.legacyERC721 ? ERC721NoDataLegacyABI.abi : ERC721NoDataABI.abi;
       case 'ERC20WithData':
         return ERC20WithDataABI.abi;
       case 'ERC20NoData':
-        return this.legacyERC20 ? ERC20NoDataOldABI.abi : ERC20NoDataABI.abi;
+        return this.legacyERC20 ? ERC20NoDataLegacyABI.abi : ERC20NoDataABI.abi;
       default:
         throw new BadRequestException(`Unknown schema: ${schema}`);
     }
@@ -167,7 +187,7 @@ export class AbiMapperService {
     return TokenFactoryABI.abi.find(m => m.name === tokenCreateEvent);
   }
 
-  getCreateMethodAndParams(dto: TokenPool, uriSupport = true) {
+  async getCreateMethodAndParams(ctx: Context, address: string, dto: TokenPool) {
     const isFungible = dto.type === TokenType.FUNGIBLE;
     const encodedData = encodeHex(dto.data ?? '');
     const method = this.getCreateMethod();
@@ -175,6 +195,7 @@ export class AbiMapperService {
       throw new BadRequestException('Failed to parse factory contract ABI');
     }
     const params = [dto.name, dto.symbol, isFungible, encodedData];
+    const uriSupport = await this.supportsInterface(ctx, address, TokenFactoryIID);
     if (uriSupport) {
       // supply empty string if URI isn't provided
       // the contract itself handles empty base URIs appropriately
@@ -194,42 +215,15 @@ export class AbiMapperService {
     try {
       const result = await this.blockchain.query(ctx, address, SupportsInterface, [iid]);
       support = result.output === true;
+      this.logger.log(`Querying interface '${iid}' support on contract '${address}': ${support}`);
     } catch (err) {
-      // do nothing
+      this.logger.log(
+        `Querying interface '${iid}' support on contract '${address}': failed (assuming false)`,
+      );
     }
 
     this.supportCache.set(cacheKey, support);
     return support;
-  }
-
-  async supportsData(ctx: Context, address: string, type: TokenType) {
-    let result = false;
-    switch (type) {
-      case TokenType.NONFUNGIBLE:
-        result =
-          (await this.supportsInterface(ctx, address, ERC721WithDataIID)) ||
-          (await this.supportsInterface(ctx, address, ERC721WithDataOldIID));
-        break;
-      case TokenType.FUNGIBLE:
-      default:
-        result = await this.supportsInterface(ctx, address, ERC20WithDataIID);
-        break;
-    }
-
-    this.logger.log(`Querying extra data support on contract '${address}': ${result}`);
-    return result;
-  }
-
-  async supportsMintWithUri(ctx: Context, address: string): Promise<boolean> {
-    const result = await this.supportsInterface(ctx, address, ERC721WithDataIID);
-    this.logger.log(`Querying URI support on contract '${address}': ${result}`);
-    return result;
-  }
-
-  async supportsFactoryWithUri(ctx: Context, address: string): Promise<boolean> {
-    const result = await this.supportsInterface(ctx, address, TokenFactoryIID);
-    this.logger.log(`Querying URI support on contract '${address}': ${result}`);
-    return result;
   }
 
   async getDecimals(ctx: Context, address: string) {
