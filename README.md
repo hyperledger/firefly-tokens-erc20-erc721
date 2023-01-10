@@ -63,8 +63,8 @@ contracts without the extra step of teaching FireFly about the contract interfac
 If neither of the above procedures is followed for a given contract, the connector will fall back to assuming
 that the ABI looks like [ERC20NoData.json](src/abi/ERC20NoData.json) or
 [ERC721NoData.json](src/abi/ERC721NoData.json), which are based on common OpenZeppelin patterns. This
-behavior can also be tweaked to assume [ERC20NoDataOld.json](src/abi/ERC20NoDataOld.json) or
-[ERC721NoDataOld.json](src/abi/ERC721NoDataOld.json) by setting `USE_LEGACY_ERC20_SAMPLE=true` or
+behavior can also be tweaked to assume [ERC20NoDataLegacy.json](src/abi/ERC20NoDataLegacy.json) or
+[ERC721NoDataLegacy.json](src/abi/ERC721NoDataLegacy.json) by setting `USE_LEGACY_ERC20_SAMPLE=true` or
 `USE_LEGACY_ERC721_SAMPLE=true` in the connector environment (these sample ABIs were provided in an older version
 of this repository but are now deprecated). However, relying on this fallback functionality may be unreliable
 and is not recommended.
