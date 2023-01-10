@@ -81,9 +81,9 @@ top of the fftokens standard.
 
 If `config.address` is specified, the connector will index the token contract at the specified address
 (must be an ERC20 contract if `type` is `fungible`, or an ERC721 contract if `type` is `nonfungible`).
-`config.blockNumber` may also be supplied to begin indexing from a specific block. Any `name` provided
-from FireFly will be ignored by the connector. If a `symbol` is provided from FireFly, it _must_ match
-the `symbol()` defined on the underlying contract.
+`config.blockNumber` may also be supplied to begin indexing from a specific block (if it is not specified,
+indexing will begin from block `0`). Any `name` provided from FireFly will be ignored by the connector.
+If a `symbol` is provided from FireFly, it _must_ match the `symbol()` defined on the underlying contract.
 
 If `config.address` is not specified, and `FACTORY_CONTRACT_ADDRESS` is set in the connector's
 environment, the factory contract will be invoked to deploy a new instance of ERC20 or ERC721.
