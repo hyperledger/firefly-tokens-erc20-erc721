@@ -290,6 +290,24 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
+      // Source: OpenZeppelin extension (with URI)
+      name: 'safeMint',
+      inputs: [{ type: 'address' }, { type: 'string' }],
+      map: (dto: TokenMint) => {
+        checkAmount(dto);
+        return [dto.to, dto.uri ?? ''];
+      },
+    },
+    {
+      // Source: OpenZeppelin extension (with URI, without auto-index)
+      name: 'safeMint',
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'string' }],
+      map: (dto: TokenMint) => {
+        checkAmount(dto);
+        return [dto.to, dto.tokenIndex, dto.uri ?? ''];
+      },
+    },
+    {
       // Source: OpenZeppelin extension
       name: 'safeMint',
       inputs: [{ type: 'address' }],
