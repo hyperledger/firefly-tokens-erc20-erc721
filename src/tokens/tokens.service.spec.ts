@@ -1046,7 +1046,7 @@ describe('TokensService', () => {
     it('should mint ERC721WithData token with correct abi, custom uri, auto-indexing, and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenMint = {
