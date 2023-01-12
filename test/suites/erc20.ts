@@ -39,7 +39,7 @@ const CONTRACT_ADDRESS = '0x123456';
 const IDENTITY = '0x1';
 const OPTIONS = {
   headers: {
-    'x-fireflyrequestid': expect.any(String),
+    'x-firefly-request-id': expect.any(String),
   },
 };
 const REQUEST = 'request123';

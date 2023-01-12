@@ -334,7 +334,7 @@ describe('TokensService', () => {
     it('should mint ERC20NoData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenMint = {
@@ -369,7 +369,7 @@ describe('TokensService', () => {
     it('should transfer ERC20NoData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenTransfer = {
@@ -407,7 +407,7 @@ describe('TokensService', () => {
     it('should burn ERC20NoData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenBurn = {
@@ -560,7 +560,7 @@ describe('TokensService', () => {
     it('should mint ERC20WithData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenMint = {
@@ -595,7 +595,7 @@ describe('TokensService', () => {
     it('should transfer ERC20WithData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenTransfer = {
@@ -631,7 +631,7 @@ describe('TokensService', () => {
     it('should burn ERC20WithData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenBurn = {
@@ -768,7 +768,7 @@ describe('TokensService', () => {
     it('should mint ERC721NoData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenMint = {
@@ -803,7 +803,7 @@ describe('TokensService', () => {
     it('should transfer ERC721NoData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenTransfer = {
@@ -841,7 +841,7 @@ describe('TokensService', () => {
     it('should burn ERC721NoData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenBurn = {
@@ -1011,7 +1011,7 @@ describe('TokensService', () => {
     it('should mint ERC721WithData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenMint = {
@@ -1046,7 +1046,7 @@ describe('TokensService', () => {
     it('should mint ERC721WithData token with correct abi, custom uri, and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenMint = {
@@ -1097,7 +1097,7 @@ describe('TokensService', () => {
     it('should transfer ERC721WithData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenTransfer = {
@@ -1135,7 +1135,7 @@ describe('TokensService', () => {
     it('should burn ERC721WithData token with correct abi and inputs', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const request: TokenBurn = {
@@ -1196,7 +1196,7 @@ describe('TokensService', () => {
     it('should get receipt of id successfully', async () => {
       const ctx = newContext();
       const headers = {
-        'x-fireflyrequestid': ctx.requestId,
+        'x-firefly-request-id': ctx.requestId,
       };
 
       const response: EventStreamReply = {
