@@ -14,13 +14,11 @@ import '@openzeppelin/contracts/utils/introspection/IERC165.sol';
 interface IERC721WithData is IERC165 {
     function mintWithData(
         address to,
-        uint256 tokenId,
         bytes calldata data
     ) external;
 
     function mintWithURI(
         address to,
-        uint256 tokenId,
         bytes calldata data,
         string memory tokenURI_
     ) external;

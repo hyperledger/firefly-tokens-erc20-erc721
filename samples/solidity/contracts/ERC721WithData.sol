@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Context.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
+import '@openzeppelin/contracts/utils/Counters.sol';
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import './IERC721WithData.sol';
 
@@ -24,7 +25,11 @@ import './IERC721WithData.sol';
  * This is a sample only and NOT a reference implementation.
  */
 contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
+    using Counters for Counters.Counter;
+
+    Counters.Counter private _tokenIdCounter;
     string private _baseTokenURI;
+
     // Optional mapping for token URIs
     mapping(uint256 => string) private _tokenURIs;
 
@@ -44,21 +49,20 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
             super.supportsInterface(interfaceId);
     }
 
-    function mintWithData(
-        address to,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override onlyOwner {
+    function mintWithData(address to, bytes calldata data) external override onlyOwner {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
         _safeMint(to, tokenId, data);
         _setTokenURI(tokenId, string(abi.encodePacked(_baseURI(), Strings.toString(tokenId))));
     }
 
     function mintWithURI(
         address to,
-        uint256 tokenId,
         bytes calldata data,
         string memory tokenURI_
     ) external override onlyOwner {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
         _safeMint(to, tokenId, data);
 
         // If there is no tokenURI passed, concatenate the tokenID to the base URI

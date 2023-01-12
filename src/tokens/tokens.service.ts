@@ -248,8 +248,7 @@ export class TokensService {
     address: string,
     dto: TokenPool,
   ): Promise<TokenPoolEvent> {
-    const withData = await this.mapper.supportsData(ctx, address, dto.type);
-    const schema = this.mapper.getTokenSchema(dto.type, withData);
+    const schema = await this.mapper.getTokenSchema(ctx, dto.type, address);
     const poolLocator: IPoolLocator = {
       address: address.toLowerCase(),
       type: dto.type,
@@ -283,9 +282,11 @@ export class TokensService {
   }
 
   private async createFromFactory(ctx: Context, dto: TokenPool): Promise<AsyncResponse> {
-    const supportsUri = await this.mapper.supportsFactoryWithUri(ctx, this.factoryAddress);
-    const { method, params } = this.mapper.getCreateMethodAndParams(dto, supportsUri);
-
+    const { method, params } = await this.mapper.getCreateMethodAndParams(
+      ctx,
+      this.factoryAddress,
+      dto,
+    );
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
@@ -311,7 +312,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = this.mapper.getAbi(poolLocator.schema);
+    const abi = await this.mapper.getAbi(ctx, poolLocator.schema, poolLocator.address);
     const possibleMethods = this.mapper.allInvokeMethods(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -404,19 +405,15 @@ export class TokensService {
     };
   }
 
-  private async getAbiForMint(ctx: Context, poolLocator: IValidPoolLocator, dto: TokenMint) {
-    const supportsUri =
-      dto.uri !== undefined && (await this.mapper.supportsMintWithUri(ctx, poolLocator.address));
-    return this.mapper.getAbi(poolLocator.schema, supportsUri);
-  }
-
   async mint(ctx: Context, dto: TokenMint): Promise<AsyncResponse> {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
     if (!validatePoolLocator(poolLocator)) {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.methods || (await this.getAbiForMint(ctx, poolLocator, dto));
+    const abi =
+      dto.interface?.methods ||
+      (await this.mapper.getAbi(ctx, poolLocator.schema, poolLocator.address));
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -440,7 +437,9 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
+    const abi =
+      dto.interface?.methods ||
+      (await this.mapper.getAbi(ctx, poolLocator.schema, poolLocator.address));
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -464,7 +463,9 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
+    const abi =
+      dto.interface?.methods ||
+      (await this.mapper.getAbi(ctx, poolLocator.schema, poolLocator.address));
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
@@ -488,7 +489,9 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const abi = dto.interface?.methods || this.mapper.getAbi(poolLocator.schema);
+    const abi =
+      dto.interface?.methods ||
+      (await this.mapper.getAbi(ctx, poolLocator.schema, poolLocator.address));
     const { method, params } = this.mapper.getMethodAndParams(
       abi,
       poolLocator.type === TokenType.FUNGIBLE,

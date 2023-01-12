@@ -63,11 +63,6 @@ const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';
 
-const abiMethodMap = {
-  ERC20WithData: ERC20WithDataABI.abi as IAbiMethod[],
-  ERC20NoData: ERC20NoDataABI.abi as IAbiMethod[],
-};
-
 export default (context: TestContext) => {
   const mockPoolQuery = (withData: boolean | undefined) => {
     if (withData !== undefined) {
@@ -196,7 +191,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20WithData.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
+        method: ERC20WithDataABI.abi.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
         params: ['0x123', '20', '0x00'],
       };
 
@@ -228,9 +223,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20WithData.find(
-          abi => abi.name === TRANSFER_WITH_DATA,
-        ) as IAbiMethod,
+        method: ERC20WithDataABI.abi.find(abi => abi.name === TRANSFER_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '0x123', '20', '0x00'],
       };
 
@@ -261,7 +254,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20WithData.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
+        method: ERC20WithDataABI.abi.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '20', '0x00'],
       };
 
@@ -293,9 +286,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20WithData.find(
-          abi => abi.name === APPROVE_WITH_DATA,
-        ) as IAbiMethod,
+        method: ERC20WithDataABI.abi.find(abi => abi.name === APPROVE_WITH_DATA) as IAbiMethod,
         params: ['2', '100', '0x00'],
       };
 
@@ -411,7 +402,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20NoData.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
+        method: ERC20NoDataABI.abi.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '20'],
       };
 
@@ -443,7 +434,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20NoData.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
+        method: ERC20NoDataABI.abi.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
         params: ['0x123', '20'],
       };
 
@@ -474,7 +465,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20NoData.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
+        method: ERC20NoDataABI.abi.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
         params: ['20'],
       };
 
@@ -506,7 +497,7 @@ export default (context: TestContext) => {
         },
         from: IDENTITY,
         to: CONTRACT_ADDRESS,
-        method: abiMethodMap.ERC20WithData.find(abi => abi.name === APPROVE_NO_DATA) as IAbiMethod,
+        method: ERC20WithDataABI.abi.find(abi => abi.name === APPROVE_NO_DATA) as IAbiMethod,
         params: ['2', '100'],
       };
 

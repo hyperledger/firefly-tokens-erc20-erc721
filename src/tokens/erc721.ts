@@ -228,7 +228,8 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       name: 'burnWithData',
       inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenBurn) => {
-        return [dto.from, getTokenID(dto), encodeHex(dto.data ?? '')];
+        checkAmount(dto);
+        return [dto.from, dto.tokenIndex, encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -236,7 +237,8 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       name: 'burn',
       inputs: [{ type: 'uint256' }],
       map: (dto: TokenBurn) => {
-        return [getTokenID(dto)];
+        checkAmount(dto);
+        return [dto.tokenIndex];
       },
     },
     {
@@ -244,7 +246,8 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       name: 'burn',
       inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenBurn) => {
-        return [dto.from, getTokenID(dto)];
+        checkAmount(dto);
+        return [dto.from, dto.tokenIndex];
       },
     },
   ],
@@ -253,25 +256,37 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
     {
       // Source: FireFly extension
       name: 'mintWithURI',
+      inputs: [{ type: 'address' }, { type: 'bytes' }, { type: 'string' }],
+      map: (dto: TokenMint) => {
+        checkAmount(dto);
+        return [dto.to, encodeHex(dto.data ?? ''), dto.uri ?? ''];
+      },
+    },
+    {
+      // Source: FireFly extension (without auto-index)
+      name: 'mintWithURI',
       inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }, { type: 'string' }],
       map: (dto: TokenMint) => {
-        return [dto.to, getTokenID(dto), encodeHex(dto.data ?? ''), dto.uri];
+        checkAmount(dto);
+        return [dto.to, dto.tokenIndex, encodeHex(dto.data ?? ''), dto.uri ?? ''];
       },
     },
     {
       // Source: FireFly extension
       name: 'mintWithData',
-      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
+      inputs: [{ type: 'address' }, { type: 'bytes' }],
       map: (dto: TokenMint) => {
-        return [dto.to, getTokenID(dto), encodeHex(dto.data ?? '')];
+        checkAmount(dto);
+        return [dto.to, encodeHex(dto.data ?? '')];
       },
     },
     {
-      // Source: OpenZeppelin extension
-      name: 'safeMint',
-      inputs: [{ type: 'address' }, { type: 'uint256' }],
+      // Source: FireFly extension (without auto-index)
+      name: 'mintWithData',
+      inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenMint) => {
-        return [dto.to, getTokenID(dto)];
+        checkAmount(dto);
+        return [dto.to, dto.tokenIndex, encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -279,7 +294,17 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       name: 'safeMint',
       inputs: [{ type: 'address' }],
       map: (dto: TokenMint) => {
+        checkAmount(dto);
         return [dto.to];
+      },
+    },
+    {
+      // Source: OpenZeppelin extension (without auto-index)
+      name: 'safeMint',
+      inputs: [{ type: 'address' }, { type: 'uint256' }],
+      map: (dto: TokenMint) => {
+        checkAmount(dto);
+        return [dto.to, dto.tokenIndex];
       },
     },
     {
@@ -287,7 +312,8 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       name: 'mint',
       inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenMint) => {
-        return [dto.to, getTokenID(dto)];
+        checkAmount(dto);
+        return [dto.to, dto.tokenIndex];
       },
     },
   ],
@@ -298,7 +324,8 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       name: 'transferWithData',
       inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenTransfer) => {
-        return [dto.from, dto.to, getTokenID(dto), encodeHex(dto.data ?? '')];
+        checkAmount(dto);
+        return [dto.from, dto.to, dto.tokenIndex, encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -306,7 +333,8 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       name: 'safeTransferFrom',
       inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenTransfer) => {
-        return [dto.from, dto.to, getTokenID(dto), encodeHex(dto.data ?? '')];
+        checkAmount(dto);
+        return [dto.from, dto.to, dto.tokenIndex, encodeHex(dto.data ?? '')];
       },
     },
     {
@@ -314,15 +342,15 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       name: 'safeTransferFrom',
       inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenTransfer) => {
-        return [dto.from, dto.to, getTokenID(dto)];
+        checkAmount(dto);
+        return [dto.from, dto.to, dto.tokenIndex];
       },
     },
   ],
 };
 
-function getTokenID(dto: TokenMint | TokenTransfer | TokenBurn): string | undefined {
+function checkAmount(dto: TokenMint | TokenTransfer | TokenBurn) {
   if (dto.amount !== undefined && dto.amount !== '1') {
     throw new BadRequestException('Amount for nonfungible tokens must be 1');
   }
-  return dto.tokenIndex;
 }
