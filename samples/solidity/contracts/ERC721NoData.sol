@@ -23,7 +23,10 @@ contract ERC721NoData is Context, Ownable, ERC721, ERC721Burnable {
 
     Counters.Counter private _tokenIdCounter;
 
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) {
+        // Start counting at 1
+        _tokenIdCounter.increment();
+    }
 
     function safeMint(address to) public onlyOwner {
         uint256 tokenId = _tokenIdCounter.current();

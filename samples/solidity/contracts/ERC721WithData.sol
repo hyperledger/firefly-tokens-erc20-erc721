@@ -39,11 +39,17 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         string memory baseTokenURI
     ) ERC721(name, symbol) {
         _baseTokenURI = baseTokenURI;
+        // Start counting at 1
+        _tokenIdCounter.increment();
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC721, IERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC721, IERC165)
+        returns (bool)
+    {
         return
             interfaceId == type(IERC721WithData).interfaceId ||
             super.supportsInterface(interfaceId);
@@ -83,12 +89,20 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         safeTransferFrom(from, to, tokenId, data);
     }
 
-    function burnWithData(address from, uint256 tokenId, bytes calldata data) external override {
+    function burnWithData(
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override {
         require(from == _msgSender(), 'ERC721WithData: caller is not owner');
         _burn(tokenId);
     }
 
-    function approveWithData(address to, uint256 tokenId, bytes calldata data) external override {
+    function approveWithData(
+        address to,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override {
         approve(to, tokenId);
     }
 
