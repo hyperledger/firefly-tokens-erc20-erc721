@@ -353,7 +353,6 @@ export default (context: TestContext) => {
 
     it('Mint token', async () => {
       const request: TokenMint = {
-        tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
@@ -527,7 +526,6 @@ export default (context: TestContext) => {
       };
 
       const request: TokenMint = {
-        tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
