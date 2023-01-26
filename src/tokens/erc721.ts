@@ -254,16 +254,17 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
 
   mint: [
     {
-      // Source: FireFly extension
+      // Source: FireFly extension (auto-index, with URI)
       name: 'mintWithURI',
       inputs: [{ type: 'address' }, { type: 'bytes' }, { type: 'string' }],
       map: (dto: TokenMint) => {
         checkAmount(dto);
+        verifyNoIndex(dto);
         return [dto.to, encodeHex(dto.data ?? ''), dto.uri ?? ''];
       },
     },
     {
-      // Source: FireFly extension (without auto-index)
+      // Source: FireFly extension (manual index, with URI)
       name: 'mintWithURI',
       inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }, { type: 'string' }],
       map: (dto: TokenMint) => {
@@ -272,34 +273,38 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
-      // Source: FireFly extension
+      // Source: FireFly extension (auto-index, no URI)
       name: 'mintWithData',
       inputs: [{ type: 'address' }, { type: 'bytes' }],
       map: (dto: TokenMint) => {
         checkAmount(dto);
+        verifyNoUri(dto);
+        verifyNoIndex(dto);
         return [dto.to, encodeHex(dto.data ?? '')];
       },
     },
     {
-      // Source: FireFly extension (without auto-index)
+      // Source: FireFly extension (manual index, no URI)
       name: 'mintWithData',
       inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes' }],
       map: (dto: TokenMint) => {
         checkAmount(dto);
+        verifyNoUri(dto);
         return [dto.to, dto.tokenIndex, encodeHex(dto.data ?? '')];
       },
     },
     {
-      // Source: OpenZeppelin extension (with URI)
+      // Source: OpenZeppelin extension (auto-index, with URI)
       name: 'safeMint',
       inputs: [{ type: 'address' }, { type: 'string' }],
       map: (dto: TokenMint) => {
         checkAmount(dto);
+        verifyNoIndex(dto);
         return [dto.to, dto.uri ?? ''];
       },
     },
     {
-      // Source: OpenZeppelin extension (with URI, without auto-index)
+      // Source: OpenZeppelin extension (manual index, with URI)
       name: 'safeMint',
       inputs: [{ type: 'address' }, { type: 'uint256' }, { type: 'string' }],
       map: (dto: TokenMint) => {
@@ -308,20 +313,23 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       },
     },
     {
-      // Source: OpenZeppelin extension
+      // Source: OpenZeppelin extension (auto-index, no URI)
       name: 'safeMint',
       inputs: [{ type: 'address' }],
       map: (dto: TokenMint) => {
         checkAmount(dto);
+        verifyNoUri(dto);
+        verifyNoIndex(dto);
         return [dto.to];
       },
     },
     {
-      // Source: OpenZeppelin extension (without auto-index)
+      // Source: OpenZeppelin extension (manual index, no URI)
       name: 'safeMint',
       inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenMint) => {
         checkAmount(dto);
+        verifyNoUri(dto);
         return [dto.to, dto.tokenIndex];
       },
     },
@@ -331,6 +339,7 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
       inputs: [{ type: 'address' }, { type: 'uint256' }],
       map: (dto: TokenMint) => {
         checkAmount(dto);
+        verifyNoUri(dto);
         return [dto.to, dto.tokenIndex];
       },
     },
@@ -370,5 +379,17 @@ export const DynamicMethods: Record<TokenOperation, MethodSignature[]> = {
 function checkAmount(dto: TokenMint | TokenTransfer | TokenBurn) {
   if (dto.amount !== undefined && dto.amount !== '1') {
     throw new BadRequestException('Amount for nonfungible tokens must be 1');
+  }
+}
+
+function verifyNoUri(dto: TokenMint) {
+  if (dto.uri !== undefined && dto.uri !== '') {
+    throw new BadRequestException('Setting URI is not supported by this contract');
+  }
+}
+
+function verifyNoIndex(dto: TokenMint) {
+  if (dto.tokenIndex !== undefined) {
+    throw new BadRequestException('Setting token index is not supported by this contract');
   }
 }
