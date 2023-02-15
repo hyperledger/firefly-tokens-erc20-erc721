@@ -9,11 +9,11 @@ import '@openzeppelin/contracts/utils/introspection/IERC165.sol';
  */
 
 interface ITokenFactory is IERC165 {
-  function create(
-    string memory name,
-    string memory symbol,
-    bool is_fungible,
-    bytes calldata data,
-    string memory uri
-  ) external;
-} 
+    function create(
+        string memory name,
+        string memory symbol,
+        bool is_fungible,
+        bytes calldata data,
+        string memory uri
+    ) external;
+}

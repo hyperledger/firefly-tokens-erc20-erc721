@@ -31,8 +31,7 @@ contract ERC20WithData is Context, Ownable, ERC165, ERC20, IERC20WithData {
         bytes4 interfaceId
     ) public view virtual override(ERC165, IERC165) returns (bool) {
         return
-            interfaceId == type(IERC20WithData).interfaceId ||
-            super.supportsInterface(interfaceId);
+            interfaceId == type(IERC20WithData).interfaceId || super.supportsInterface(interfaceId);
     }
 
     function mintWithData(
@@ -56,11 +55,7 @@ contract ERC20WithData is Context, Ownable, ERC165, ERC20, IERC20WithData {
         }
     }
 
-    function burnWithData(
-        address from,
-        uint256 amount,
-        bytes calldata data
-    ) external override {
+    function burnWithData(address from, uint256 amount, bytes calldata data) external override {
         require(from == _msgSender(), 'ERC20WithData: caller is not owner');
         _burn(from, amount);
     }
