@@ -83,7 +83,6 @@ const APPROVE_ALL_NO_DATA = 'setApprovalForAll';
 
 const MINT_WITH_DATA = 'mintWithData';
 const MINT_WITH_URI = 'mintWithURI';
-const SUPPORTS_INTERFACE = 'supportsInterface';
 const TRANSFER_WITH_DATA = 'transferWithData';
 const BURN_WITH_DATA = 'burnWithData';
 const APPROVE_WITH_DATA = 'approveWithData';

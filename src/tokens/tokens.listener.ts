@@ -130,11 +130,6 @@ export class TokenListener implements EventListener {
     const { data: output } = event;
     const decodedData = decodeHex(output.data ?? '');
 
-    if (event.address.toLowerCase() !== this.service.factoryAddress) {
-      this.logger.warn(`Ignoring token pool creation from unknown address: ${event.address}`);
-      return undefined;
-    }
-
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
     const decimals = output.is_fungible
       ? await this.mapper.getDecimals(ctx, output.contract_address)

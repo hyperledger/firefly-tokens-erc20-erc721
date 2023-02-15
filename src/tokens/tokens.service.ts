@@ -100,20 +100,24 @@ export class TokensService {
   async init(ctx: Context) {
     this.stream = await this.getStream(ctx);
     if (this.factoryAddress !== '') {
-      const eventABI = this.mapper.getCreateEvent();
-      const methodABI = this.mapper.getCreateMethod();
-      if (eventABI !== undefined && methodABI !== undefined) {
-        await this.eventstream.getOrCreateSubscription(
-          ctx,
-          this.baseUrl,
-          eventABI,
-          this.stream.id,
-          packSubscriptionName(this.factoryAddress, eventABI.name),
-          this.factoryAddress,
-          [methodABI],
-          '0',
-        );
-      }
+      await this.createFactorySubscription(ctx, this.factoryAddress);
+    }
+  }
+
+  private async createFactorySubscription(ctx: Context, address: string) {
+    const eventABI = this.mapper.getCreateEvent();
+    const methodABI = this.mapper.getCreateMethod();
+    if (eventABI !== undefined && methodABI !== undefined) {
+      await this.eventstream.getOrCreateSubscription(
+        ctx,
+        this.baseUrl,
+        eventABI,
+        this.stream.id,
+        packSubscriptionName(address, eventABI.name),
+        address,
+        [methodABI],
+        '0',
+      );
     }
   }
 
@@ -148,6 +152,7 @@ export class TokensService {
       return false;
     }
 
+    const createABI = this.mapper.getCreateEvent();
     const foundEvents = new Map<string, string[]>();
     for (const sub of subscriptions) {
       const parts = unpackSubscriptionName(sub.name);
@@ -158,7 +163,8 @@ export class TokensService {
         );
         return true;
       }
-      if (parts.poolLocator === this.factoryAddress) {
+      if (parts.event === createABI?.name) {
+        // Skip "create" subscriptions (assume they are factories)
         continue;
       }
       const key = packSubscriptionName(parts.poolLocator, '', parts.poolData);
@@ -230,17 +236,20 @@ export class TokensService {
   }
 
   async createPool(ctx: Context, dto: TokenPool): Promise<TokenPoolEvent | AsyncResponse> {
-    if (dto.config?.address !== undefined && dto.config.address !== '') {
-      this.logger.log(`Create token pool from existing: '${dto.config.address}'`);
-      return this.createFromExisting(ctx, dto.config.address, dto);
+    const contractAddress = dto.config?.address || undefined;
+    if (contractAddress !== undefined) {
+      this.logger.log(`Create token pool from existing: '${contractAddress}'`);
+      return this.createFromExisting(ctx, contractAddress, dto);
     }
-    if (this.factoryAddress === '') {
+
+    const factoryAddress = dto.config?.factoryAddress || this.factoryAddress || undefined;
+    if (factoryAddress === undefined) {
       throw new BadRequestException(
         'config.address was unspecified, and no token factory is configured!',
       );
     }
-    this.logger.log(`Create token pool from factory: '${this.factoryAddress}'`);
-    return this.createFromFactory(ctx, dto);
+    this.logger.log(`Create token pool from factory: '${factoryAddress}'`);
+    return this.createFromFactory(ctx, factoryAddress, dto);
   }
 
   private async createFromExisting(
@@ -281,16 +290,17 @@ export class TokensService {
     };
   }
 
-  private async createFromFactory(ctx: Context, dto: TokenPool): Promise<AsyncResponse> {
-    const { method, params } = await this.mapper.getCreateMethodAndParams(
-      ctx,
-      this.factoryAddress,
-      dto,
-    );
+  private async createFromFactory(
+    ctx: Context,
+    address: string,
+    dto: TokenPool,
+  ): Promise<AsyncResponse> {
+    await this.createFactorySubscription(ctx, address);
+    const { method, params } = await this.mapper.getCreateMethodAndParams(ctx, address, dto);
     const response = await this.blockchain.sendTransaction(
       ctx,
       dto.signer,
-      this.factoryAddress,
+      address,
       dto.requestId,
       method,
       params,

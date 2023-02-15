@@ -127,6 +127,10 @@ export class TokenPoolConfig {
 
   @ApiProperty()
   @IsOptional()
+  factoryAddress?: string;
+
+  @ApiProperty()
+  @IsOptional()
   blockNumber?: string;
 
   @ApiProperty()
