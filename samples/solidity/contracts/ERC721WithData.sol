@@ -43,19 +43,15 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         _tokenIdCounter.increment();
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC721, IERC165)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC721, IERC165) returns (bool) {
         return
             interfaceId == type(IERC721WithData).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
-    function mintWithData(address to, bytes calldata data) external override onlyOwner {
+    function mintWithData(address to, bytes calldata data) public virtual onlyOwner {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId, data);
@@ -66,7 +62,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         address to,
         bytes calldata data,
         string memory tokenURI_
-    ) external override onlyOwner {
+    ) public virtual onlyOwner {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId, data);
@@ -85,24 +81,16 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         address to,
         uint256 tokenId,
         bytes calldata data
-    ) external override {
+    ) public virtual {
         safeTransferFrom(from, to, tokenId, data);
     }
 
-    function burnWithData(
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override {
+    function burnWithData(address from, uint256 tokenId, bytes calldata data) public virtual {
         require(from == _msgSender(), 'ERC721WithData: caller is not owner');
         _burn(tokenId);
     }
 
-    function approveWithData(
-        address to,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override {
+    function approveWithData(address to, uint256 tokenId, bytes calldata data) public virtual {
         approve(to, tokenId);
     }
 
@@ -110,7 +98,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         address operator,
         bool approved,
         bytes calldata data
-    ) external override {
+    ) public virtual {
         setApprovalForAll(operator, approved);
     }
 

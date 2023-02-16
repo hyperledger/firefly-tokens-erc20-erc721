@@ -12,16 +12,9 @@ import '@openzeppelin/contracts/utils/introspection/IERC165.sol';
  * other on- and off-chain events.
  */
 interface IERC721WithData is IERC165 {
-    function mintWithData(
-        address to,
-        bytes calldata data
-    ) external;
+    function mintWithData(address to, bytes calldata data) external;
 
-    function mintWithURI(
-        address to,
-        bytes calldata data,
-        string memory tokenURI_
-    ) external;
+    function mintWithURI(address to, bytes calldata data, string memory tokenURI_) external;
 
     function transferWithData(
         address from,
@@ -30,17 +23,9 @@ interface IERC721WithData is IERC165 {
         bytes calldata data
     ) external;
 
-    function burnWithData(
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external;
+    function burnWithData(address from, uint256 tokenId, bytes calldata data) external;
 
-    function approveWithData(
-        address to,
-        uint256 tokenId,
-        bytes calldata data
-    ) external;
+    function approveWithData(address to, uint256 tokenId, bytes calldata data) external;
 
     function setApprovalForAllWithData(
         address operator,
@@ -48,5 +33,5 @@ interface IERC721WithData is IERC165 {
         bytes calldata data
     ) external;
 
-    function baseTokenUri() external returns(string memory);
+    function baseTokenUri() external returns (string memory);
 }
