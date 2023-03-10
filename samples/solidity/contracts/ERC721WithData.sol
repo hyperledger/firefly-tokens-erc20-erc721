@@ -118,7 +118,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         return uri;
     }
 
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal onlyOwner {
+    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal {
         require(_exists(tokenId), 'ERC721WithData: Token does not exist');
         _tokenURIs[tokenId] = _tokenURI;
     }
