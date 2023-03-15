@@ -235,7 +235,7 @@ describe('TokensService', () => {
     service = module.get(TokensService);
     service.configure(BASE_URL, TOPIC, '');
     blockchain = module.get(BlockchainConnectorService);
-    blockchain.configure(BASE_URL, '', '', '', []);
+    blockchain.configure(BASE_URL, '', '', '', [], 0, 0, 0, '', 0);
   });
 
   it('should be defined', () => {

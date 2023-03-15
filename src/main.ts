@@ -84,6 +84,13 @@ async function bootstrap() {
   const legacyERC20 = config.get<string>('USE_LEGACY_ERC20_SAMPLE', '').toLowerCase() === 'true';
   const legacyERC721 = config.get<string>('USE_LEGACY_ERC721_SAMPLE', '').toLowerCase() === 'true';
 
+  // Configuration for retries
+  const retryBackOffFactor = config.get<number>('RETRY_BACKOFF_FACTOR', 2);
+  const retryBackOffLimit = config.get<number>('RETRY_BACKOFF_LIMIT_MS', 10000);
+  const retryBackOffInitial = config.get<number>('RETRY_BACKOFF_INITIAL_MS', 250);
+  const retryRule = config.get<string>('RETRY_RULE', '.*ECONN.*');
+  const retriesMax = config.get<number>('RETRY_MAX_ATTEMPTS', 15);
+
   const passthroughHeaders: string[] = [];
   for (const h of passthroughHeaderString.split(',')) {
     passthroughHeaders.push(h.toLowerCase());
@@ -93,7 +100,18 @@ async function bootstrap() {
   app.get(TokensService).configure(ethConnectUrl, topic, factoryAddress);
   app
     .get(BlockchainConnectorService)
-    .configure(ethConnectUrl, fftmUrl, username, password, passthroughHeaders);
+    .configure(
+      ethConnectUrl,
+      fftmUrl,
+      username,
+      password,
+      passthroughHeaders,
+      retryBackOffFactor,
+      retryBackOffLimit,
+      retryBackOffInitial,
+      retryRule,
+      retriesMax,
+    );
   app.get(AbiMapperService).configure(legacyERC20, legacyERC721);
 
   if (autoInit.toLowerCase() !== 'false') {
