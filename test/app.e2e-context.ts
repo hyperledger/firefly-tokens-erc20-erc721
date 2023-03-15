@@ -71,7 +71,9 @@ export class TestContext {
 
     this.app.get(EventStreamProxyGateway).configure('url', TOPIC);
     this.app.get(TokensService).configure(BASE_URL, TOPIC, '');
-    this.app.get(BlockchainConnectorService).configure(BASE_URL, '', '', '', []);
+    this.app
+      .get(BlockchainConnectorService)
+      .configure(BASE_URL, '', '', '', [], 2, 1000, 250, '.*ECONN.*', 15);
 
     (this.app.getHttpServer() as Server).listen();
     this.server = request(this.app.getHttpServer());
