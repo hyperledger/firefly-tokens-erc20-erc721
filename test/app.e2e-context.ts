@@ -12,7 +12,7 @@ import { EventStreamService } from '../src/event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-proxy.gateway';
 import { TokensService } from '../src/tokens/tokens.service';
 import { requestIDMiddleware } from '../src/request-context/request-id.middleware';
-import { BlockchainConnectorService } from '../src/tokens/blockchain.service';
+import { BlockchainConnectorService, RetryConfiguration } from '../src/tokens/blockchain.service';
 
 export const BASE_URL = 'http://eth';
 export const INSTANCE_PATH = '/tokens';
@@ -69,11 +69,19 @@ export class TestContext {
     this.app.use(requestIDMiddleware);
     await this.app.init();
 
+    let blockchainRetryCfg: RetryConfiguration = {
+      retryBackOffFactor: 2,
+      retryBackOffLimit: 500,
+      retryBackOffInitial: 50,
+      retryCondition: '.*ECONN.*',
+      retriesMax: 15,
+    };
+
     this.app.get(EventStreamProxyGateway).configure('url', TOPIC);
     this.app.get(TokensService).configure(BASE_URL, TOPIC, '');
     this.app
       .get(BlockchainConnectorService)
-      .configure(BASE_URL, '', '', '', [], 2, 1000, 250, '.*ECONN.*', 15);
+      .configure(BASE_URL, '', '', '', [], blockchainRetryCfg);
 
     (this.app.getHttpServer() as Server).listen();
     this.server = request(this.app.getHttpServer());
