@@ -33,7 +33,7 @@ import {
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
 import { AbiMapperService } from './abimapper.service';
-import { BlockchainConnectorService } from './blockchain.service';
+import { BlockchainConnectorService, RetryConfiguration } from './blockchain.service';
 import {
   AsyncResponse,
   EthConnectAsyncResponse,
@@ -232,10 +232,18 @@ describe('TokensService', () => {
       .useValue(eventstream)
       .compile();
 
+    let blockchainRetryCfg: RetryConfiguration = {
+      retryBackOffFactor: 2,
+      retryBackOffLimit: 10000,
+      retryBackOffInitial: 100,
+      retryCondition: '.*ECONN.*',
+      retriesMax: 15,
+    };
+
     service = module.get(TokensService);
     service.configure(BASE_URL, TOPIC, '');
     blockchain = module.get(BlockchainConnectorService);
-    blockchain.configure(BASE_URL, '', '', '', [], 2, 1000, 250, '.*ECONN.*', 15);
+    blockchain.configure(BASE_URL, '', '', '', [], blockchainRetryCfg);
   });
 
   it('should be defined', () => {

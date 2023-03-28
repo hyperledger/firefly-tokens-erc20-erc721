@@ -25,7 +25,7 @@ import { EventStreamReply } from './event-stream/event-stream.interfaces';
 import { EventStreamService } from './event-stream/event-stream.service';
 import { requestIDMiddleware } from './request-context/request-id.middleware';
 import { RequestLoggingInterceptor } from './request-logging.interceptor';
-import { BlockchainConnectorService } from './tokens/blockchain.service';
+import { BlockchainConnectorService, RetryConfiguration } from './tokens/blockchain.service';
 import {
   TokenApprovalEvent,
   TokenBurnEvent,
@@ -84,12 +84,14 @@ async function bootstrap() {
   const legacyERC20 = config.get<string>('USE_LEGACY_ERC20_SAMPLE', '').toLowerCase() === 'true';
   const legacyERC721 = config.get<string>('USE_LEGACY_ERC721_SAMPLE', '').toLowerCase() === 'true';
 
-  // Configuration for retries
-  const retryBackOffFactor = config.get<number>('RETRY_BACKOFF_FACTOR', 2);
-  const retryBackOffLimit = config.get<number>('RETRY_BACKOFF_LIMIT_MS', 10000);
-  const retryBackOffInitial = config.get<number>('RETRY_BACKOFF_INITIAL_MS', 100);
-  const retryCondition = config.get<string>('RETRY_CONDITION', '.*ECONN.*');
-  const retriesMax = config.get<number>('RETRY_MAX_ATTEMPTS', 15);
+  // Configuration for blockchain call retries
+  const blockchainRetryCfg: RetryConfiguration = {
+    retryBackOffFactor: config.get<number>('RETRY_BACKOFF_FACTOR', 2),
+    retryBackOffLimit: config.get<number>('RETRY_BACKOFF_LIMIT_MS', 10000),
+    retryBackOffInitial: config.get<number>('RETRY_BACKOFF_INITIAL_MS', 100),
+    retryCondition: config.get<string>('RETRY_CONDITION', '.*ECONN.*'),
+    retriesMax: config.get<number>('RETRY_MAX_ATTEMPTS', 15),
+  };
 
   const passthroughHeaders: string[] = [];
   for (const h of passthroughHeaderString.split(',')) {
@@ -100,18 +102,7 @@ async function bootstrap() {
   app.get(TokensService).configure(ethConnectUrl, topic, factoryAddress);
   app
     .get(BlockchainConnectorService)
-    .configure(
-      ethConnectUrl,
-      fftmUrl,
-      username,
-      password,
-      passthroughHeaders,
-      retryBackOffFactor,
-      retryBackOffLimit,
-      retryBackOffInitial,
-      retryCondition,
-      retriesMax,
-    );
+    .configure(ethConnectUrl, fftmUrl, username, password, passthroughHeaders, blockchainRetryCfg);
   app.get(AbiMapperService).configure(legacyERC20, legacyERC721);
 
   if (autoInit.toLowerCase() !== 'false') {
