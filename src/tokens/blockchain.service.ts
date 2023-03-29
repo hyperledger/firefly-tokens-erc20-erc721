@@ -104,7 +104,7 @@ export class BlockchainConnectorService {
   private matchesRetryCondition(err: any): boolean {
     return (
       this.retryConfiguration.retryCondition != '' &&
-      err?.toString().match(this.retryConfiguration.retryCondition) !== null
+      `${err}`.match(this.retryConfiguration.retryCondition) !== null
     );
   }
 
@@ -153,7 +153,7 @@ export class BlockchainConnectorService {
     const url = this.baseUrl;
     const response = await this.wrapError(
       this.retryableCall<EthConnectReturn>(async (): Promise<AxiosResponse<EthConnectReturn>> => {
-        return await lastValueFrom(
+        return lastValueFrom(
           this.http.post(
             url,
             { headers: { type: queryHeader }, to, method, params },
@@ -178,7 +178,7 @@ export class BlockchainConnectorService {
     const response = await this.wrapError(
       this.retryableCall<EthConnectAsyncResponse>(
         async (): Promise<AxiosResponse<EthConnectAsyncResponse>> => {
-          return await lastValueFrom(
+          return lastValueFrom(
             this.http.post(
               url,
               { headers: { id, type: sendTransactionHeader }, from, to, method, params },
@@ -195,7 +195,7 @@ export class BlockchainConnectorService {
     const url = this.baseUrl;
     const response = await this.wrapError(
       this.retryableCall<EventStreamReply>(async (): Promise<AxiosResponse<EventStreamReply>> => {
-        return await lastValueFrom(
+        return lastValueFrom(
           this.http.get(new URL(`/reply/${id}`, url).href, {
             validateStatus: status => status < 300 || status === 404,
             ...this.requestOptions(ctx),

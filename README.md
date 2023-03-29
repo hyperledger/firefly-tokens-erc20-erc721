@@ -204,3 +204,5 @@ The configurable retry settings are:
 - `RETRY_MAX_ATTEMPTS` (default `15`)
 
 Setting `RETRY_CONDITION` to `""` disables retries. Setting `RETRY_MAX_ATTEMPTS` to `-1` causes it to retry indefinitely.
+
+Note, the token connector will make a total of `RETRY_MAX_ATTEMPTS` + 1 calls for a given retryable call (1 original attempt and `RETRY_MAX_ATTEMPTS` retries)
