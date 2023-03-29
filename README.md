@@ -29,8 +29,9 @@ are additional methods used by the token connector to guess at the contract ABI 
 but is the preferred method for most use cases.
 
 To leverage this capability in a running FireFly environment, you must:
+
 1. [Upload the token contract ABI to FireFly](https://hyperledger.github.io/firefly/tutorials/custom_contracts/ethereum.html)
-as a contract interface.
+   as a contract interface.
 2. Include the `interface` parameter when [creating the pool on FireFly](https://hyperledger.github.io/firefly/tutorials/tokens).
 
 This will cause FireFly to parse the interface and provide ABI details
@@ -119,7 +120,7 @@ that specific token. If omitted, the approval covers all tokens.
 
 The following APIs are not part of the fftokens standard, but are exposed under `/api/v1`:
 
-* `GET /receipt/:id` - Get receipt for a previous request
+- `GET /receipt/:id` - Get receipt for a previous request
 
 ## Running the service
 
@@ -179,3 +180,29 @@ $ npm run lint
 # formatting
 $ npm run format
 ```
+
+## Blockchain retry behaviour
+
+Most short-term outages should be handled by the blockchain connector. For example if the blockchain node returns `HTTP 429` due to rate limiting
+it is the blockchain connector's responsibility to use appropriate back-off retries to attempt to make the required blockchain call successfully.
+
+There are cases where the token connector may need to perform its own back-off retry for a blockchain action. For example if the blockchain connector
+microservice has crashed and is in the process of restarting just as the token connector is trying to query an NFT token URI to enrich a token event, if
+the token connector doesn't perform a retry then the event will be returned without the token URI populated.
+
+The token connector has configurable retry behaviour for all blockchain related calls. By default the connector will perform up to 15 retries with a back-off
+interval between each one. The default first retry interval is 100ms and doubles up to a maximum of 10s per retry interval. Retries are only performed where
+the error returned from the REST call matches a configurable regular expression retry condition. The default retry condition is `.*ECONN.*` which ensures
+retries take place for common TCP errors such as `ECONNRESET` and `ECONNREFUSED`.
+
+The configurable retry settings are:
+
+- `RETRY_BACKOFF_FACTOR` (default `2`)
+- `RETRY_BACKOFF_LIMIT_MS` (default `10000`)
+- `RETRY_BACKOFF_INITIAL_MS` (default `100`)
+- `RETRY_CONDITION` (default `.*ECONN.*`)
+- `RETRY_MAX_ATTEMPTS` (default `15`)
+
+Setting `RETRY_CONDITION` to `""` disables retries. Setting `RETRY_MAX_ATTEMPTS` to `-1` causes it to retry indefinitely.
+
+Note, the token connector will make a total of `RETRY_MAX_ATTEMPTS` + 1 calls for a given retryable call (1 original attempt and `RETRY_MAX_ATTEMPTS` retries)

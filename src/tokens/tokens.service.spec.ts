@@ -33,7 +33,7 @@ import {
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
 import { AbiMapperService } from './abimapper.service';
-import { BlockchainConnectorService } from './blockchain.service';
+import { BlockchainConnectorService, RetryConfiguration } from './blockchain.service';
 import {
   AsyncResponse,
   EthConnectAsyncResponse,
@@ -196,6 +196,14 @@ describe('TokensService', () => {
     );
   };
 
+  const mockECONNErrors = (count: number) => {
+    for (let i = 0; i < count; i++) {
+      http.post.mockImplementationOnce(() => {
+        throw new Error('connect ECONNREFUSED 10.1.2.3');
+      });
+    }
+  };
+
   beforeEach(async () => {
     http = {
       get: jest.fn(),
@@ -232,10 +240,18 @@ describe('TokensService', () => {
       .useValue(eventstream)
       .compile();
 
+    let blockchainRetryCfg: RetryConfiguration = {
+      retryBackOffFactor: 2,
+      retryBackOffLimit: 500,
+      retryBackOffInitial: 50,
+      retryCondition: '.*ECONN.*',
+      retriesMax: 15,
+    };
+
     service = module.get(TokensService);
     service.configure(BASE_URL, TOPIC, '');
     blockchain = module.get(BlockchainConnectorService);
-    blockchain.configure(BASE_URL, '', '', '', []);
+    blockchain.configure(BASE_URL, '', '', '', [], blockchainRetryCfg);
   });
 
   it('should be defined', () => {
@@ -1040,6 +1056,49 @@ describe('TokensService', () => {
       } as AsyncResponse);
 
       expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, { headers });
+    });
+
+    it('should mint ERC721WithData token with correct abi, custom uri, and inputs after 6 ECONNREFUSED retries', async () => {
+      const ctx = newContext();
+      const headers = {
+        'x-firefly-request-id': ctx.requestId,
+      };
+
+      const request: TokenMint = {
+        tokenIndex: '721',
+        signer: IDENTITY,
+        poolLocator: ERC721_WITH_DATA_V1_POOL_ID,
+        to: '0x123',
+        uri: 'ipfs://CID',
+      };
+
+      const response: EthConnectAsyncResponse = {
+        id: 'responseId',
+        sent: true,
+      };
+
+      const mockEthConnectRequest: EthConnectMsgRequest = {
+        headers: {
+          type: 'SendTransaction',
+        },
+        from: IDENTITY,
+        to: CONTRACT_ADDRESS,
+        method: ERC721WithDataV1ABI.abi.find(abi => abi.name === MINT_WITH_URI) as IAbiMethod,
+        params: ['0x123', '721', '0x00', 'ipfs://CID'],
+      };
+
+      http.post.mockReturnValueOnce(
+        new FakeObservable(<EthConnectReturn>{
+          output: true,
+        }),
+      );
+      mockECONNErrors(6);
+      http.post.mockReturnValueOnce(new FakeObservable(response));
+
+      await service.mint(ctx, request);
+
+      expect(http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, { headers });
+      expect(http.post).toHaveBeenCalledTimes(8); // Expect initial submit OK, 6 ECONN errors, final call OK = 8 POSTs
     });
 
     it('should mint ERC721WithData token with correct abi, custom uri, auto-indexing, and inputs', async () => {
