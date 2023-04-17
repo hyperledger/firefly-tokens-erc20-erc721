@@ -401,6 +401,9 @@ export class TokenPoolEvent extends tokenEventBase {
   decimals: number;
 
   @ApiProperty()
+  poolData?: string;
+
+  @ApiProperty()
   info: TokenPoolEventInfo;
 }
 
