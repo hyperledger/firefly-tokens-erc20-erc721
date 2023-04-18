@@ -13,6 +13,7 @@ import { EventStreamProxyGateway } from '../src/eventstream-proxy/eventstream-pr
 import { TokensService } from '../src/tokens/tokens.service';
 import { requestIDMiddleware } from '../src/request-context/request-id.middleware';
 import { BlockchainConnectorService, RetryConfiguration } from '../src/tokens/blockchain.service';
+import { LoggingAndMetricsInterceptor } from '../src/logging-and-metrics.interceptor';
 
 export const BASE_URL = 'http://eth';
 export const INSTANCE_PATH = '/tokens';
@@ -44,6 +45,12 @@ export class TestContext {
     getSubscription: jest.fn(),
   };
 
+  metrics = {
+    observeBatchInterval: jest.fn(),
+    setEventBatchSize: jest.fn(),
+    incBlockchainCalls: jest.fn(),
+  };
+
   async begin() {
     this.http = {
       get: jest.fn(),
@@ -61,6 +68,8 @@ export class TestContext {
       .useValue(this.http)
       .overrideProvider(EventStreamService)
       .useValue(this.eventstream)
+      .overrideProvider(LoggingAndMetricsInterceptor)
+      .useValue(this.metrics)
       .compile();
 
     this.app = moduleFixture.createNestApplication();

@@ -29,6 +29,7 @@ import { basicAuth } from '../utils';
 import { Context } from '../request-context/request-context.decorator';
 import { FFRequestIDHeader } from '../request-context/constants';
 import { EthConnectAsyncResponse, EthConnectReturn, IAbiMethod } from './tokens.interfaces';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 
 export interface RetryConfiguration {
   retryBackOffFactor: number;
@@ -53,7 +54,7 @@ export class BlockchainConnectorService {
 
   retryConfiguration: RetryConfiguration;
 
-  constructor(public http: HttpService) {}
+  constructor(public http: HttpService, protected metrics: LoggingAndMetricsInterceptor) {}
 
   configure(
     baseUrl: string,
@@ -151,6 +152,7 @@ export class BlockchainConnectorService {
 
   async query(ctx: Context, to: string, method?: IAbiMethod, params?: any[]) {
     const url = this.baseUrl;
+    this.metrics.incBlockchainCalls('query');
     const response = await this.wrapError(
       this.retryableCall<EthConnectReturn>(async (): Promise<AxiosResponse<EthConnectReturn>> => {
         return lastValueFrom(
@@ -175,6 +177,7 @@ export class BlockchainConnectorService {
   ) {
     const url = this.fftmUrl !== undefined && this.fftmUrl !== '' ? this.fftmUrl : this.baseUrl;
 
+    this.metrics.incBlockchainCalls('sendTransaction');
     const response = await this.wrapError(
       this.retryableCall<EthConnectAsyncResponse>(
         async (): Promise<AxiosResponse<EthConnectAsyncResponse>> => {
@@ -193,6 +196,7 @@ export class BlockchainConnectorService {
 
   async getReceipt(ctx: Context, id: string): Promise<EventStreamReply> {
     const url = this.baseUrl;
+    this.metrics.incBlockchainCalls('getReceipt');
     const response = await this.wrapError(
       this.retryableCall<EventStreamReply>(async (): Promise<AxiosResponse<EventStreamReply>> => {
         return lastValueFrom(
