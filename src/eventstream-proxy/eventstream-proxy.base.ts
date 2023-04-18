@@ -32,6 +32,7 @@ import {
   WebSocketMessageBatchData,
   WebSocketMessageWithId,
 } from './eventstream-proxy.interfaces';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 
 /**
  * Base class for a websocket gateway that listens for and proxies event stream messages.
@@ -55,8 +56,9 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     protected readonly logger: Logger,
     protected eventstream: EventStreamService,
     requireAuth = false,
+    protected metrics: LoggingAndMetricsInterceptor,
   ) {
-    super(logger, requireAuth);
+    super(logger, requireAuth, metrics);
   }
 
   configure(url?: string, topic?: string) {
@@ -126,6 +128,8 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   }
 
   private async processEvents(batch: EventBatch) {
+    this.logger.log('Recording batch size metric of ' + batch.events.length);
+    this.metrics.observeEventBatchSize(batch.events.length);
     const messages: WebSocketMessage[] = [];
     for (const event of batch.events) {
       this.logger.log(`Proxying event: ${JSON.stringify(event)}`);
