@@ -50,6 +50,7 @@ import {
   TokenType,
 } from './tokens.interfaces';
 import { TokensService } from './tokens.service';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
@@ -149,6 +150,11 @@ describe('TokensService', () => {
   };
   eventstream.getStreams.mockReturnValue([]);
 
+  const metrics = {
+    observeEventBatchSize: jest.fn(),
+    incBlockchainCalls: jest.fn(),
+  };
+
   const mockPoolQuery = (
     withData: boolean | undefined,
     withDecimals: boolean,
@@ -231,6 +237,10 @@ describe('TokensService', () => {
             addConnectionListener: jest.fn(),
             addEventListener: jest.fn(),
           },
+        },
+        {
+          provide: LoggingAndMetricsInterceptor,
+          useValue: metrics,
         },
       ],
     })

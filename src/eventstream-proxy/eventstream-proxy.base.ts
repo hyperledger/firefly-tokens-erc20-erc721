@@ -32,6 +32,7 @@ import {
   WebSocketMessageBatchData,
   WebSocketMessageWithId,
 } from './eventstream-proxy.interfaces';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 
 /**
  * Base class for a websocket gateway that listens for and proxies event stream messages.
@@ -50,13 +51,15 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   private currentClient: WebSocketEx | undefined;
   private subscriptionNames = new Map<string, string>();
   private queue = Promise.resolve();
+  private mostRecentBatchTimestamp = new Date();
 
   constructor(
     protected readonly logger: Logger,
     protected eventstream: EventStreamService,
     requireAuth = false,
+    protected metrics: LoggingAndMetricsInterceptor,
   ) {
-    super(logger, requireAuth);
+    super(logger, requireAuth, metrics);
   }
 
   configure(url?: string, topic?: string) {
@@ -126,6 +129,21 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   }
 
   private async processEvents(batch: EventBatch) {
+    this.logger.log('Recording batch size metric of ' + batch.events.length);
+
+    // Record metrics
+    this.metrics.setEventBatchSize(batch.events.length);
+    let timestamp = new Date();
+    this.logger.log(
+      'Recording batch interval of ' +
+        (timestamp.getTime() - this.mostRecentBatchTimestamp.getTime()) +
+        ' milliseconds',
+    );
+    this.metrics.observeBatchInterval(
+      timestamp.getTime() - this.mostRecentBatchTimestamp.getTime(),
+    );
+    this.mostRecentBatchTimestamp = timestamp;
+
     const messages: WebSocketMessage[] = [];
     const eventHandlers: Promise<WebSocketMessage | undefined>[] = [];
     for (const event of batch.events) {
