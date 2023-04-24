@@ -52,6 +52,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   private subscriptionNames = new Map<string, string>();
   private queue = Promise.resolve();
   private mostRecentBatchTimestamp = new Date();
+  private mostRecentACKTimestamp = new Date();
 
   constructor(
     protected readonly logger: Logger,
@@ -216,6 +217,17 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       this.logger.error('Received malformed ack');
       return;
     }
+
+    let timestamp = new Date();
+    this.logger.log(
+      'Recording batch ACK interval of ' +
+        (timestamp.getTime() - this.mostRecentACKTimestamp.getTime()) +
+        ' milliseconds',
+    );
+    this.metrics.observeBatchAckInterval(
+      timestamp.getTime() - this.mostRecentACKTimestamp.getTime(),
+    );
+    this.mostRecentACKTimestamp = timestamp;
 
     const inflight = this.awaitingAck.find(msg => msg.id === data.id);
     this.logger.log(`Received ack ${data.id} inflight=${!!inflight}`);

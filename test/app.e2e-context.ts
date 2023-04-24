@@ -47,6 +47,7 @@ export class TestContext {
 
   metrics = {
     observeBatchInterval: jest.fn(),
+    observeBatchAckInterval: jest.fn(),
     setEventBatchSize: jest.fn(),
     incBlockchainCalls: jest.fn(),
   };
