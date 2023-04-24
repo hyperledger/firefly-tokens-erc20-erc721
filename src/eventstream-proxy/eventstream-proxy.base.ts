@@ -130,7 +130,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   }
 
   private async processEvents(batch: EventBatch) {
-    this.logger.log(`Dispatching batch number=${batch.number} size=${batch.events.length}`);
+    this.logger.log(`Dispatching batch number=${batch.batchNumber} size=${batch.events.length}`);
 
     // Record metrics
     this.metrics.setEventBatchSize(batch.events.length);
