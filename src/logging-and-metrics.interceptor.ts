@@ -62,6 +62,11 @@ export const MetricProviders = [
     help: 'Interval between the arrival of batches of events, in milliseconds',
     buckets: [250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2500],
   }),
+  makeHistogramProvider({
+    name: 'ff_event_batch_ack_interval_ms',
+    help: 'Interval between the arrival of batch acknowledgements, in milliseconds',
+    buckets: [250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000],
+  }),
   makeCounterProvider({
     name: 'ff_blockchain_calls_total',
     help: 'Total calls to the blockchain connector',
@@ -85,6 +90,8 @@ export class LoggingAndMetricsInterceptor implements NestInterceptor {
     private eventBatchSize: Gauge<string>,
     @InjectMetric('ff_event_batch_interval_ms')
     private eventBatchInterval: Histogram<string>,
+    @InjectMetric('ff_event_batch_ack_interval_ms')
+    private eventBatchAckInterval: Histogram<string>,
     @InjectMetric('ff_blockchain_calls_total')
     private blockchainRequests: Counter<string>,
   ) {}
@@ -171,6 +178,10 @@ export class LoggingAndMetricsInterceptor implements NestInterceptor {
 
   observeBatchInterval(observedValue: number) {
     this.eventBatchInterval.observe(observedValue);
+  }
+
+  observeBatchAckInterval(observedValue: number) {
+    this.eventBatchAckInterval.observe(observedValue);
   }
 
   setEventBatchSize(value: number) {
