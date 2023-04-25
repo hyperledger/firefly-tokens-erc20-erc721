@@ -51,8 +51,8 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   private currentClient: WebSocketEx | undefined;
   private subscriptionNames = new Map<string, string>();
   private queue = Promise.resolve();
-  private mostRecentBatchTimestamp = new Date();
-  private mostRecentACKTimestamp = new Date();
+  private mostRecentCompletedBatchTimestamp = new Date();
+  private mostRecentDispatchedBatchTimestamp = new Date();
 
   constructor(
     protected readonly logger: Logger,
@@ -134,16 +134,9 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
     // Record metrics
     this.metrics.setEventBatchSize(batch.events.length);
-    let timestamp = new Date();
-    this.logger.log(
-      'Recording batch interval of ' +
-        (timestamp.getTime() - this.mostRecentBatchTimestamp.getTime()) +
-        ' milliseconds',
-    );
-    this.metrics.observeBatchInterval(
-      timestamp.getTime() - this.mostRecentBatchTimestamp.getTime(),
-    );
-    this.mostRecentBatchTimestamp = timestamp;
+    let batchIntervalMs = new Date().getTime() - this.mostRecentCompletedBatchTimestamp.getTime();
+    this.logger.log(`Recording batch interval of ${batchIntervalMs} milliseconds`);
+    this.metrics.observeBatchInterval(batchIntervalMs);
 
     const messages: WebSocketMessage[] = [];
     const eventHandlers: Promise<WebSocketMessage | undefined>[] = [];
@@ -184,6 +177,10 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     };
     this.awaitingAck.push(message);
     this.currentClient?.send(JSON.stringify(message));
+
+    // Set the most-recent batch dispatch time to now so when the next ACK comes back from FF
+    // we can set metrics accordingly
+    this.mostRecentDispatchedBatchTimestamp = new Date();
   }
 
   private async getSubscriptionName(ctx: Context, subId: string) {
@@ -218,16 +215,10 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       return;
     }
 
-    let timestamp = new Date();
-    this.logger.log(
-      'Recording batch ACK interval of ' +
-        (timestamp.getTime() - this.mostRecentACKTimestamp.getTime()) +
-        ' milliseconds',
-    );
-    this.metrics.observeBatchAckInterval(
-      timestamp.getTime() - this.mostRecentACKTimestamp.getTime(),
-    );
-    this.mostRecentACKTimestamp = timestamp;
+    let timeWaitingForACKms =
+      new Date().getTime() - this.mostRecentDispatchedBatchTimestamp.getTime();
+    this.logger.log(`Recording batch ACK interval of ${timeWaitingForACKms} milliseconds`);
+    this.metrics.observeBatchAckInterval(timeWaitingForACKms);
 
     const inflight = this.awaitingAck.find(msg => msg.id === data.id);
     this.logger.log(`Received ack ${data.id} inflight=${!!inflight}`);
@@ -245,5 +236,9 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
         this.socket.ack(inflight.batchNumber);
       }
     }
+
+    // Set the most-recent batch time to now - so when the next batch comes we can calculate
+    // time between sending our ACK to the current batch and receiving the new one
+    this.mostRecentCompletedBatchTimestamp = new Date();
   }
 }
