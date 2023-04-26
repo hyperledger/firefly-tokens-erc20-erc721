@@ -206,3 +206,13 @@ The configurable retry settings are:
 Setting `RETRY_CONDITION` to `""` disables retries. Setting `RETRY_MAX_ATTEMPTS` to `-1` causes it to retry indefinitely.
 
 Note, the token connector will make a total of `RETRY_MAX_ATTEMPTS` + 1 calls for a given retryable call (1 original attempt and `RETRY_MAX_ATTEMPTS` retries)
+
+## TLS
+
+Mutual TLS can be enabled by providing three environment variables:
+
+- `TLS_CA`
+- `TLS_CERT`
+- `TLS_KEY`
+
+Each should be a path to a file on disk. Providing all three environment variables will result in a token connector running with TLS enabled, and requiring all clients to provide client certificates signed by the certificate authority.

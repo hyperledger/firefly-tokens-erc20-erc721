@@ -25,7 +25,7 @@ import {
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import { EventStreamReply } from '../event-stream/event-stream.interfaces';
-import { basicAuth } from '../utils';
+import { getHttpRequestOptions } from '../utils';
 import { Context } from '../request-context/request-context.decorator';
 import { FFRequestIDHeader } from '../request-context/constants';
 import { EthConnectAsyncResponse, EthConnectReturn, IAbiMethod } from './tokens.interfaces';
@@ -80,7 +80,7 @@ export class BlockchainConnectorService {
       }
     }
     headers[FFRequestIDHeader] = ctx.requestId;
-    const config = basicAuth(this.username, this.password);
+    const config = getHttpRequestOptions(this.username, this.password);
     config.headers = headers;
     return config;
   }
