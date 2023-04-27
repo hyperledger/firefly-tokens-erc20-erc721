@@ -56,17 +56,13 @@ const approvalForAllEventSignature = 'ApprovalForAll(address,address,bool)';
 export class TokenListener implements EventListener {
   private readonly logger = new Logger(TokenListener.name);
 
-  constructor(
-    private service: TokensService,
-    private mapper: AbiMapperService,
-    private blockchain: BlockchainConnectorService,
-  ) {}
+  constructor(private mapper: AbiMapperService, private blockchain: BlockchainConnectorService) {}
 
   async onEvent(subName: string, event: Event, process: EventProcessor) {
     const signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
-        process(await this.transformTokenPoolCreationEvent(event));
+        process(await this.transformTokenPoolCreationEvent(subName, event));
         break;
       case transferEventSignature:
         process(await this.transformTransferEvent(subName, event));
@@ -124,10 +120,12 @@ export class TokenListener implements EventListener {
   }
 
   private async transformTokenPoolCreationEvent(
+    subName: string,
     event: TokenPoolCreationEvent,
   ): Promise<WebSocketMessage | undefined> {
     const ctx = newContext();
     const { data: output } = event;
+    const unpackedSub = unpackSubscriptionName(subName);
     const decodedData = decodeHex(output.data ?? '');
 
     const type = output.is_fungible ? TokenType.FUNGIBLE : TokenType.NONFUNGIBLE;
@@ -146,6 +144,7 @@ export class TokenListener implements EventListener {
       data: <TokenPoolEvent>{
         standard: type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
         interfaceFormat: InterfaceFormat.ABI,
+        poolData: unpackedSub.poolData,
         poolLocator: packPoolLocator(poolLocator),
         type,
         signer: event.inputSigner,
