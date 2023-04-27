@@ -26,7 +26,7 @@ export interface ConnectionListener {
 }
 
 export interface EventListener {
-  onEvent: (subName: string, event: Event, process: EventProcessor) => void | Promise<void>;
+  onEvent: (subName: string, event: Event) => undefined | Promise<WebSocketMessage | undefined>;
 }
 
 export interface WebSocketMessageWithId extends WebSocketMessage {

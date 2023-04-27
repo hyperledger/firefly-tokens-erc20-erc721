@@ -127,6 +127,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
   private async processEvents(batch: EventBatch) {
     const messages: WebSocketMessage[] = [];
+    const eventHandlers: Promise<WebSocketMessage | undefined>[] = [];
     for (const event of batch.events) {
       this.logger.log(`Proxying event: ${JSON.stringify(event)}`);
       const subName = await this.getSubscriptionName(newContext(), event.subId);
@@ -136,16 +137,24 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       }
 
       for (const listener of this.eventListeners) {
-        try {
-          await listener.onEvent(subName, event, (msg: WebSocketMessage | undefined) => {
-            if (msg !== undefined) {
-              messages.push(msg);
-            }
-          });
-        } catch (err) {
-          this.logger.error(`Error processing event: ${err}`);
-        }
+        // Some events require enrichment that could involve a call to the blockchain,
+        // so we don't want to do those synchronously. Create a promise for each onEvent()
+        // handler and when they're all complete we'll create the batch message
+        eventHandlers.push(Promise.resolve(listener.onEvent(subName, event)));
       }
+    }
+
+    // Now we need to await the promises in order so the messages stay in order
+    for (const nextProm of eventHandlers) {
+      await nextProm
+        .then((msg: WebSocketMessage | undefined) => {
+          if (msg !== undefined) {
+            messages.push(msg);
+          }
+        })
+        .catch(err => {
+          this.logger.error(`Error processing event: ${err}`);
+        });
     }
     const message: WebSocketMessageWithId = {
       id: uuidv4(),
