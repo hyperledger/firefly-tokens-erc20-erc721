@@ -146,15 +146,14 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
     // Now we need to await the promises in order so the messages stay in order
     for (const nextProm of eventHandlers) {
-      await nextProm
-        .then((msg: WebSocketMessage | undefined) => {
-          if (msg !== undefined) {
-            messages.push(msg);
-          }
-        })
-        .catch(err => {
-          this.logger.error(`Error processing event: ${err}`);
-        });
+      try {
+        const msg = await nextProm;
+        if (msg !== undefined) {
+          messages.push(msg);
+        }
+      } catch (err) {
+        this.logger.error(`Error processing event: ${err}`);
+      }
     }
     const message: WebSocketMessageWithId = {
       id: uuidv4(),

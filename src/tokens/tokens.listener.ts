@@ -66,9 +66,9 @@ export class TokenListener implements EventListener {
     const signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
-        return await this.transformTokenPoolCreationEvent(event);
+        return this.transformTokenPoolCreationEvent(event);
       case transferEventSignature:
-        return await this.transformTransferEvent(subName, event);
+        return this.transformTransferEvent(subName, event);
       case approvalEventSignature:
         return this.transformApprovalEvent(subName, event);
       case approvalForAllEventSignature:
