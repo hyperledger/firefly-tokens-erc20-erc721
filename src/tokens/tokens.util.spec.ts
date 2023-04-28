@@ -49,6 +49,9 @@ describe('Util', () => {
     ).toEqual(
       'fft:address=0x5bb034ca2fd1ac18e46978a7bbdbe4923e158d83&standard=ERC20WithData&type=fungible:mintWithData:ns1',
     );
+    expect(packSubscriptionName('0x123', 'create', 'ns1:test')).toEqual(
+      'fft:0x123:create:ns1%3Atest',
+    );
   });
 
   it('unpackSubscriptionName', () => {
@@ -66,6 +69,11 @@ describe('Util', () => {
       poolData: undefined,
       poolLocator: '0x123456',
       event: undefined,
+    });
+    expect(unpackSubscriptionName('fft:0x123:create:ns1%3Atest')).toEqual({
+      poolData: 'ns1:test',
+      poolLocator: '0x123',
+      event: 'create',
     });
   });
 

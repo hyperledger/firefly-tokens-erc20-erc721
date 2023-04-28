@@ -44,7 +44,7 @@ export function decodeHex(data: string) {
 
 export function packSubscriptionName(poolLocator: string, event: string, poolData?: string) {
   if (poolData !== undefined) {
-    return [SUBSCRIPTION_PREFIX, poolLocator, event, poolData].join(':');
+    return [SUBSCRIPTION_PREFIX, poolLocator, event, encodeURIComponent(poolData)].join(':');
   }
   return [SUBSCRIPTION_PREFIX, poolLocator, event].join(':');
 }
@@ -55,7 +55,7 @@ export function unpackSubscriptionName(data: string) {
     return {
       poolLocator: parts[1],
       event: parts[2],
-      poolData: parts[3],
+      poolData: decodeURIComponent(parts[3]),
     };
   } else if (parts.length === 3) {
     return {

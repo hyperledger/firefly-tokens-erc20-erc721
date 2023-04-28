@@ -306,6 +306,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
+        poolData: 'ns1',
         poolLocator: ERC20_NO_DATA_POOL_ID,
         standard: 'ERC20',
         interfaceFormat: InterfaceFormat.ABI,
@@ -530,6 +531,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
+        poolData: 'ns1',
         poolLocator: ERC20_WITH_DATA_POOL_ID,
         standard: 'ERC20',
         interfaceFormat: InterfaceFormat.ABI,
@@ -723,6 +725,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
+        poolData: 'ns1',
         poolLocator: ERC721_NO_DATA_POOL_ID,
         standard: 'ERC721',
         interfaceFormat: InterfaceFormat.ABI,
@@ -931,6 +934,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
+        poolData: 'ns1',
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         standard: 'ERC721',
         interfaceFormat: InterfaceFormat.ABI,

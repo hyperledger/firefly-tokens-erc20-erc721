@@ -85,7 +85,7 @@ export class TokensService {
     this.topic = topic;
     this.factoryAddress = factoryAddress.toLowerCase();
     this.proxy.addConnectionListener(this);
-    this.proxy.addEventListener(new TokenListener(this, this.mapper, this.blockchain));
+    this.proxy.addEventListener(new TokenListener(this.mapper, this.blockchain));
   }
 
   async onConnect() {
@@ -380,6 +380,7 @@ export class TokensService {
 
     const poolInfo = await this.queryPool(ctx, poolLocator);
     const tokenPoolEvent: TokenPoolEvent = {
+      poolData: dto.poolData,
       poolLocator: dto.poolLocator,
       standard: poolLocator.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
       interfaceFormat: InterfaceFormat.ABI,
