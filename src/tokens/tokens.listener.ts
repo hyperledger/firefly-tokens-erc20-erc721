@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2023 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -16,7 +16,7 @@
 
 import { Logger } from '@nestjs/common';
 import { Event } from '../event-stream/event-stream.interfaces';
-import { EventListener, EventProcessor } from '../eventstream-proxy/eventstream-proxy.interfaces';
+import { EventListener } from '../eventstream-proxy/eventstream-proxy.interfaces';
 import { WebSocketMessage } from '../websocket-events/websocket-events.base';
 import { Context, newContext } from '../request-context/request-context.decorator';
 import {
@@ -41,7 +41,6 @@ import {
   unpackSubscriptionName,
   validatePoolLocator,
 } from './tokens.util';
-import { TokensService } from './tokens.service';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService } from './blockchain.service';
 import { TokenURI as ERC721URI } from './erc721';
@@ -62,7 +61,7 @@ export class TokenListener implements EventListener {
     const signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
-        return this.transformTokenPoolCreationEvent(subName, event));
+        return this.transformTokenPoolCreationEvent(subName, event);
       case transferEventSignature:
         return this.transformTransferEvent(subName, event);
       case approvalEventSignature:
