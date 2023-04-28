@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2023 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -103,7 +103,7 @@ export class BlockchainConnectorService {
   // Check if retry condition matches the err that's been hit
   private matchesRetryCondition(err: any): boolean {
     return (
-      this.retryConfiguration.retryCondition != '' &&
+      this.retryConfiguration.retryCondition !== '' &&
       `${err}`.match(this.retryConfiguration.retryCondition) !== null
     );
   }
@@ -127,8 +127,8 @@ export class BlockchainConnectorService {
     let retries = 0;
     for (
       ;
-      this.retryConfiguration.retriesMax == -1 || retries <= this.retryConfiguration.retriesMax;
-      this.retryConfiguration.retriesMax == -1 || retries++ // Don't inc 'retries' if 'retriesMax' if set to -1 (infinite retries)
+      this.retryConfiguration.retriesMax === -1 || retries <= this.retryConfiguration.retriesMax;
+      this.retryConfiguration.retriesMax === -1 || retries++ // Don't inc 'retries' if 'retriesMax' if set to -1 (infinite retries)
     ) {
       try {
         return await blockchainFunction();

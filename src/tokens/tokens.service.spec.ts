@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2023 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -240,7 +240,7 @@ describe('TokensService', () => {
       .useValue(eventstream)
       .compile();
 
-    let blockchainRetryCfg: RetryConfiguration = {
+    const blockchainRetryCfg: RetryConfiguration = {
       retryBackOffFactor: 2,
       retryBackOffLimit: 500,
       retryBackOffInitial: 50,

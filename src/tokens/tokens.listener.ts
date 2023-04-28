@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2023 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -16,7 +16,7 @@
 
 import { Logger } from '@nestjs/common';
 import { Event } from '../event-stream/event-stream.interfaces';
-import { EventListener, EventProcessor } from '../eventstream-proxy/eventstream-proxy.interfaces';
+import { EventListener } from '../eventstream-proxy/eventstream-proxy.interfaces';
 import { WebSocketMessage } from '../websocket-events/websocket-events.base';
 import { Context, newContext } from '../request-context/request-context.decorator';
 import {
@@ -41,7 +41,6 @@ import {
   unpackSubscriptionName,
   validatePoolLocator,
 } from './tokens.util';
-import { TokensService } from './tokens.service';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService } from './blockchain.service';
 import { TokenURI as ERC721URI } from './erc721';
@@ -58,21 +57,17 @@ export class TokenListener implements EventListener {
 
   constructor(private mapper: AbiMapperService, private blockchain: BlockchainConnectorService) {}
 
-  async onEvent(subName: string, event: Event, process: EventProcessor) {
+  async onEvent(subName: string, event: Event) {
     const signature = this.trimEventSignature(event.signature);
     switch (signature) {
       case tokenCreateEventSignature:
-        process(await this.transformTokenPoolCreationEvent(subName, event));
-        break;
+        return this.transformTokenPoolCreationEvent(subName, event);
       case transferEventSignature:
-        process(await this.transformTransferEvent(subName, event));
-        break;
+        return this.transformTransferEvent(subName, event);
       case approvalEventSignature:
-        process(this.transformApprovalEvent(subName, event));
-        break;
+        return this.transformApprovalEvent(subName, event);
       case approvalForAllEventSignature:
-        process(this.transformApprovalForAllEvent(subName, event));
-        break;
+        return this.transformApprovalForAllEvent(subName, event);
       default:
         this.logger.error(`Unknown event signature: ${event.signature}`);
     }
