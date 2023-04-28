@@ -39,7 +39,7 @@ export const getHttpRequestOptions = (username: string, password: string) => {
   }
   const certs = getCertificates();
   if (certs) {
-    requestOptions.httpsAgent = new https.Agent(certs);
+    requestOptions.httpsAgent = new https.Agent({ ...certs, requestCert: true });
   }
   return requestOptions;
 };
