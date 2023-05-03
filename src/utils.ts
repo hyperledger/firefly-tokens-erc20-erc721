@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as https from 'https';
 import { NestApplicationOptions } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
+import { ClientOptions } from 'ws';
 
 interface Certificates {
   key: string;
@@ -27,6 +28,22 @@ const getCertificates = (): Certificates | undefined => {
     process.exit(-1);
   }
   return { key, cert, ca };
+};
+
+export const getWebsocketOptions = (username: string, password: string): ClientOptions => {
+  const requestOptions: ClientOptions = {};
+  if (username && username !== '' && password && password !== '') {
+    requestOptions.headers = {
+      Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+    };
+  }
+  const certs = getCertificates();
+  if (certs) {
+    requestOptions.ca = certs.ca;
+    requestOptions.cert = certs.cert;
+    requestOptions.key = certs.key;
+  }
+  return requestOptions;
 };
 
 export const getHttpRequestOptions = (username: string, password: string) => {
