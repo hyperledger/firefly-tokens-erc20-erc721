@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { HealthCheckService, HealthCheck, HttpHealthIndicator } from '@nestjs/terminus';
 import { BlockchainConnectorService } from '../tokens/blockchain.service';
-import { basicAuth } from '../utils';
+import { getHttpRequestOptions } from '../utils';
 
 @Controller('health')
 export class HealthController {
@@ -25,7 +25,7 @@ export class HealthController {
         this.http.pingCheck(
           'ethconnect',
           `${this.blockchain.baseUrl}/status`,
-          basicAuth(this.blockchain.username, this.blockchain.password),
+          getHttpRequestOptions(this.blockchain.username, this.blockchain.password),
         ),
     ]);
   }

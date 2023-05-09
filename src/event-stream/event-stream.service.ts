@@ -22,7 +22,7 @@ import WebSocket from 'ws';
 import { FFRequestIDHeader } from '../request-context/constants';
 import { Context } from '../request-context/request-context.decorator';
 import { IAbiMethod } from '../tokens/tokens.interfaces';
-import { basicAuth } from '../utils';
+import { getHttpRequestOptions, getWebsocketOptions } from '../utils';
 import {
   Event,
   EventBatch,
@@ -58,9 +58,7 @@ export class EventStreamSocket {
     this.disconnectDetected = false;
     this.closeRequested = false;
 
-    const auth =
-      this.username && this.password ? { auth: `${this.username}:${this.password}` } : undefined;
-    this.ws = new WebSocket(this.url, auth);
+    this.ws = new WebSocket(this.url, getWebsocketOptions(this.username, this.password));
     this.ws
       .on('open', () => {
         if (this.disconnectDetected) {
@@ -173,7 +171,7 @@ export class EventStreamService {
       }
     }
     headers[FFRequestIDHeader] = ctx.requestId;
-    const config = basicAuth(this.username, this.password);
+    const config = getHttpRequestOptions(this.username, this.password);
     config.headers = headers;
     return config;
   }
