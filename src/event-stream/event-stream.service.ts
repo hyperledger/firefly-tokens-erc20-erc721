@@ -315,6 +315,22 @@ export class EventStreamService {
     );
   }
 
+  async deleteSubscriptionByName(ctx: Context, streamId: string, name: string) {
+    const existingSubscriptions = await this.getSubscriptions(ctx);
+    const sub = existingSubscriptions.find(s => s.name === name && s.stream === streamId);
+    if (!sub) {
+      this.logger.log(`No subscription found for ${name}`);
+      return false;
+    }
+    await lastValueFrom(
+      this.http.delete(
+        new URL(`/subscriptions/${sub.id}`, this.baseUrl).href,
+        this.requestOptions(ctx),
+      ),
+    );
+    return true;
+  }
+
   connect(
     url: string,
     topic: string,

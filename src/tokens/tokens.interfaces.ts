@@ -221,9 +221,15 @@ export class TokenPoolActivate {
   @IsOptional()
   config?: TokenPoolConfig;
 
-  @ApiProperty({ description: requestIdDescription })
+  @ApiProperty()
   @IsOptional()
-  requestId?: string;
+  poolData?: string;
+}
+
+export class TokenPoolDeactivate {
+  @ApiProperty()
+  @IsNotEmpty()
+  poolLocator: string;
 
   @ApiProperty()
   @IsOptional()

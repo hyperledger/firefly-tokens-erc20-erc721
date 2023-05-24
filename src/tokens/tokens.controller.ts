@@ -28,6 +28,7 @@ import {
   TokenMint,
   TokenPool,
   TokenPoolActivate,
+  TokenPoolDeactivate,
   TokenPoolEvent,
   TokenTransfer,
 } from './tokens.interfaces';
@@ -70,11 +71,21 @@ export class TokensController {
   @Post('activatepool')
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Activate a token pool to begin receiving transfer events',
+    summary: 'Activate a token pool to begin receiving transfer and approval events',
   })
   @ApiBody({ type: TokenPoolActivate })
   activatePool(@RequestContext() ctx: Context, @Body() dto: TokenPoolActivate) {
     return this.service.activatePool(ctx, dto);
+  }
+
+  @Post('deactivatepool')
+  @HttpCode(204)
+  @ApiOperation({
+    summary: 'Deactivate a token pool to delete all listeners and stop receiving events',
+  })
+  @ApiBody({ type: TokenPoolDeactivate })
+  async deactivatePool(@RequestContext() ctx: Context, @Body() dto: TokenPoolDeactivate) {
+    await this.service.deactivatePool(ctx, dto);
   }
 
   @Post('checkinterface')

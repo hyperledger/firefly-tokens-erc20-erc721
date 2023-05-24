@@ -34,6 +34,7 @@ import {
   TokenPool,
   TokenPoolActivate,
   TokenPoolConfig,
+  TokenPoolDeactivate,
   TokenPoolEvent,
   TokenTransfer,
   TokenType,
@@ -316,6 +317,24 @@ export class TokensService {
     }
   }
 
+  private getEventAbis(poolLocator: IValidPoolLocator) {
+    const transferAbi = poolLocator.type === TokenType.FUNGIBLE ? ERC20Transfer : ERC721Transfer;
+    if (transferAbi?.name === undefined) {
+      throw new NotFoundException('Transfer event ABI not found');
+    }
+    const approvalAbi = poolLocator.type === TokenType.FUNGIBLE ? ERC20Approval : ERC721Approval;
+    if (approvalAbi?.name === undefined) {
+      throw new NotFoundException('Approval event ABI not found');
+    }
+    const approvalForAllAbi =
+      poolLocator.type === TokenType.FUNGIBLE ? undefined : ERC721ApprovalForAll;
+    return {
+      transferAbi,
+      approvalAbi,
+      approvalForAllAbi,
+    };
+  }
+
   async activatePool(ctx: Context, dto: TokenPoolActivate) {
     const poolLocator = unpackPoolLocator(dto.poolLocator);
     if (!validatePoolLocator(poolLocator)) {
@@ -327,26 +346,16 @@ export class TokensService {
       abi,
       poolLocator.type === TokenType.FUNGIBLE,
     );
-
+    const eventAbis = this.getEventAbis(poolLocator);
     const stream = await this.getStream(ctx);
-    const transferAbi = poolLocator.type === TokenType.FUNGIBLE ? ERC20Transfer : ERC721Transfer;
-    if (transferAbi?.name === undefined) {
-      throw new NotFoundException('Transfer event ABI not found');
-    }
-    const approvalAbi = poolLocator.type === TokenType.FUNGIBLE ? ERC20Approval : ERC721Approval;
-    if (approvalAbi?.name === undefined) {
-      throw new NotFoundException('Approval event ABI not found');
-    }
-    const approvalForAllAbi =
-      poolLocator.type === TokenType.FUNGIBLE ? undefined : ERC721ApprovalForAll;
 
     const promises = [
       this.eventstream.getOrCreateSubscription(
         ctx,
         this.baseUrl,
-        transferAbi,
+        eventAbis.transferAbi,
         stream.id,
-        packSubscriptionName(dto.poolLocator, transferAbi.name, dto.poolData),
+        packSubscriptionName(dto.poolLocator, eventAbis.transferAbi.name, dto.poolData),
         poolLocator.address,
         possibleMethods,
         this.getSubscriptionBlockNumber(dto.config),
@@ -354,22 +363,22 @@ export class TokensService {
       this.eventstream.getOrCreateSubscription(
         ctx,
         this.baseUrl,
-        approvalAbi,
+        eventAbis.approvalAbi,
         stream.id,
-        packSubscriptionName(dto.poolLocator, approvalAbi.name, dto.poolData),
+        packSubscriptionName(dto.poolLocator, eventAbis.approvalAbi.name, dto.poolData),
         poolLocator.address,
         possibleMethods,
         this.getSubscriptionBlockNumber(dto.config),
       ),
     ];
-    if (approvalForAllAbi?.name !== undefined) {
+    if (eventAbis.approvalForAllAbi?.name !== undefined) {
       promises.push(
         this.eventstream.getOrCreateSubscription(
           ctx,
           this.baseUrl,
-          approvalForAllAbi,
+          eventAbis.approvalForAllAbi,
           stream.id,
-          packSubscriptionName(dto.poolLocator, approvalForAllAbi.name, dto.poolData),
+          packSubscriptionName(dto.poolLocator, eventAbis.approvalForAllAbi.name, dto.poolData),
           poolLocator.address,
           possibleMethods,
           this.getSubscriptionBlockNumber(dto.config),
@@ -395,6 +404,42 @@ export class TokensService {
     };
 
     return tokenPoolEvent;
+  }
+
+  async deactivatePool(ctx: Context, dto: TokenPoolDeactivate) {
+    const poolLocator = unpackPoolLocator(dto.poolLocator);
+    if (!validatePoolLocator(poolLocator)) {
+      throw new BadRequestException('Invalid pool locator');
+    }
+
+    const stream = await this.getStream(ctx);
+    const eventAbis = this.getEventAbis(poolLocator);
+    const promises = [
+      this.eventstream.deleteSubscriptionByName(
+        ctx,
+        stream.id,
+        packSubscriptionName(dto.poolLocator, eventAbis.transferAbi.name, dto.poolData),
+      ),
+      this.eventstream.deleteSubscriptionByName(
+        ctx,
+        stream.id,
+        packSubscriptionName(dto.poolLocator, eventAbis.approvalAbi.name, dto.poolData),
+      ),
+    ];
+    if (eventAbis.approvalForAllAbi?.name !== undefined) {
+      promises.push(
+        this.eventstream.deleteSubscriptionByName(
+          ctx,
+          stream.id,
+          packSubscriptionName(dto.poolLocator, eventAbis.approvalForAllAbi.name, dto.poolData),
+        ),
+      );
+    }
+
+    const results = await Promise.all(promises);
+    if (results.every(deleted => !deleted)) {
+      throw new NotFoundException('No listeners found');
+    }
   }
 
   checkInterface(dto: CheckInterfaceRequest): CheckInterfaceResponse {
