@@ -17,6 +17,8 @@
 import { ClientRequest } from 'http';
 import { HttpService } from '@nestjs/axios';
 import {
+  ConflictException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -94,7 +96,13 @@ export class BlockchainConnectorService {
         this.logger.warn(
           `${request?.path} <-- HTTP ${response?.status} ${response?.statusText}: ${errorMessage}`,
         );
-        throw new InternalServerErrorException(errorMessage);
+        if (response?.status == HttpStatus.CONFLICT) {
+          // Pass a 409 through
+          throw new ConflictException(errorMessage);
+        } else {
+          // Otherwise always return a 500 if the blockchain connector request wasn't successful
+          throw new InternalServerErrorException(errorMessage);
+        }
       }
       throw err;
     });
