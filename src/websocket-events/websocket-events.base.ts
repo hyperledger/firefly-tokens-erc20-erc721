@@ -24,7 +24,7 @@ import {
 } from '@nestjs/websockets';
 import { nanoid } from 'nanoid';
 import WebSocket, { Server } from 'ws';
-import { LoggingAndMetricsInterceptor } from 'src/logging-and-metrics.interceptor';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 
 const PING_INTERVAL = 5000;
 

@@ -17,8 +17,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { EventStreamService } from '../event-stream/event-stream.service';
-import { EventStreamProxyGateway } from './eventstream-proxy.gateway';
 import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
+import { EventStreamProxyGateway } from './eventstream-proxy.gateway';
 
 describe('EventStreamProxyGateway', () => {
   let gateway: EventStreamProxyGateway;

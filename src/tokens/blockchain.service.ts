@@ -28,8 +28,8 @@ import { EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { getHttpRequestOptions } from '../utils';
 import { Context } from '../request-context/request-context.decorator';
 import { FFRequestIDHeader } from '../request-context/constants';
-import { EthConnectAsyncResponse, EthConnectReturn, IAbiMethod } from './tokens.interfaces';
 import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
+import { EthConnectAsyncResponse, EthConnectReturn, IAbiMethod } from './tokens.interfaces';
 
 export interface RetryConfiguration {
   retryBackOffFactor: number;

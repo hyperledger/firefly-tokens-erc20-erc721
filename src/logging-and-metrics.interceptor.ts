@@ -26,7 +26,6 @@ import {
 import { Request, Response } from 'express';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
-import { FFRequestIDHeader } from './request-context/constants';
 import { Counter, Histogram, Gauge } from 'prom-client';
 import {
   InjectMetric,
@@ -34,6 +33,7 @@ import {
   makeGaugeProvider,
   makeHistogramProvider,
 } from '@willsoto/nestjs-prometheus';
+import { FFRequestIDHeader } from './request-context/constants';
 
 const METRICS_ROUTE = '/metrics';
 

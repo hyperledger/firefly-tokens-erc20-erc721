@@ -17,13 +17,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TerminusModule } from '@nestjs/terminus';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { TokensModule } from './tokens/tokens.module';
 import { EventStreamModule } from './event-stream/event-stream.module';
 import { EventStreamProxyModule } from './eventstream-proxy/eventstream-proxy.module';
 import { HealthModule } from './health/health.module';
 import { HealthController } from './health/health.controller';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { LoggingAndMetricsInterceptor, MetricProviders } from './logging-and-metrics.interceptor';
 
 @Module({

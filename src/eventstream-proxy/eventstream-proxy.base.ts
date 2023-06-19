@@ -25,6 +25,7 @@ import {
   WebSocketEx,
   WebSocketMessage,
 } from '../websocket-events/websocket-events.base';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 import {
   AckMessageData,
   ConnectionListener,
@@ -32,7 +33,6 @@ import {
   WebSocketMessageBatchData,
   WebSocketMessageWithId,
 } from './eventstream-proxy.interfaces';
-import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 
 /**
  * Base class for a websocket gateway that listens for and proxies event stream messages.
@@ -134,7 +134,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
     // Record metrics
     this.metrics.setEventBatchSize(batch.events.length);
-    let batchIntervalMs = new Date().getTime() - this.mostRecentCompletedBatchTimestamp.getTime();
+    const batchIntervalMs = new Date().getTime() - this.mostRecentCompletedBatchTimestamp.getTime();
     this.logger.log(`Recording batch interval of ${batchIntervalMs} milliseconds`);
     this.metrics.observeBatchInterval(batchIntervalMs);
 
@@ -215,7 +215,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       return;
     }
 
-    let timeWaitingForACKms =
+    const timeWaitingForACKms =
       new Date().getTime() - this.mostRecentDispatchedBatchTimestamp.getTime();
     this.logger.log(`Recording batch ACK interval of ${timeWaitingForACKms} milliseconds`);
     this.metrics.observeBatchAckInterval(timeWaitingForACKms);

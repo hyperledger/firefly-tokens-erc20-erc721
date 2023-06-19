@@ -17,8 +17,8 @@
 import { Logger } from '@nestjs/common';
 import { WebSocketGateway } from '@nestjs/websockets';
 import { EventStreamService } from '../event-stream/event-stream.service';
-import { EventStreamProxyBase } from './eventstream-proxy.base';
 import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
+import { EventStreamProxyBase } from './eventstream-proxy.base';
 
 @WebSocketGateway({ path: '/api/ws' })
 export class EventStreamProxyGateway extends EventStreamProxyBase {

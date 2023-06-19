@@ -32,6 +32,7 @@ import {
 } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService, RetryConfiguration } from './blockchain.service';
 import {
@@ -50,7 +51,6 @@ import {
   TokenType,
 } from './tokens.interfaces';
 import { TokensService } from './tokens.service';
-import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 
 const BASE_URL = 'http://eth';
 const CONTRACT_ADDRESS = '0x123456';
