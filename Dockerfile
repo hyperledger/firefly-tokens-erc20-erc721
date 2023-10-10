@@ -35,8 +35,6 @@ WORKDIR /app
 COPY --from=build --chown=1001:0 /home/node/dist ./dist
 COPY --from=build --chown=1001:0 /home/node/package.json /home/node/package-lock.json ./
 
-RUN npm install --production \
-    && chgrp -R 0 /app/ \
-    && chmod -R g+rwX /app/
+RUN npm install --production
 EXPOSE 3000
 CMD ["node", "dist/src/main"]
