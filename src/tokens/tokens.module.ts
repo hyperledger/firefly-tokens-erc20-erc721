@@ -18,6 +18,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { EventStreamProxyModule } from '../eventstream-proxy/eventstream-proxy.module';
 import { EventStreamModule } from '../event-stream/event-stream.module';
+import { LoggingAndMetricsInterceptor, MetricProviders } from '../logging-and-metrics.interceptor';
 import { TokensController } from './tokens.controller';
 import { TokensService } from './tokens.service';
 import { AbiMapperService } from './abimapper.service';
@@ -31,7 +32,13 @@ import { BlockchainConnectorService } from './blockchain.service';
     EventStreamProxyModule,
   ],
   controllers: [TokensController],
-  providers: [TokensService, AbiMapperService, BlockchainConnectorService],
+  providers: [
+    ...MetricProviders,
+    LoggingAndMetricsInterceptor,
+    TokensService,
+    AbiMapperService,
+    BlockchainConnectorService,
+  ],
   exports: [TokensService, BlockchainConnectorService],
 })
 export class TokensModule {}

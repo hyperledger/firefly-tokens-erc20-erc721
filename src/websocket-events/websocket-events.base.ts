@@ -24,6 +24,7 @@ import {
 } from '@nestjs/websockets';
 import { nanoid } from 'nanoid';
 import WebSocket, { Server } from 'ws';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 
 const PING_INTERVAL = 5000;
 
@@ -61,7 +62,11 @@ export abstract class WebSocketEventsBase
 {
   @WebSocketServer() server: Server;
 
-  constructor(protected readonly logger: Logger, private requireAuth = false) {}
+  constructor(
+    protected readonly logger: Logger,
+    private requireAuth = false,
+    protected metrics: LoggingAndMetricsInterceptor,
+  ) {}
 
   afterInit(server: Server) {
     const interval = setInterval(() => this.ping(), PING_INTERVAL);

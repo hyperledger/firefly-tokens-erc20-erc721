@@ -32,6 +32,7 @@ import {
 } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
+import { LoggingAndMetricsInterceptor } from '../logging-and-metrics.interceptor';
 import { AbiMapperService } from './abimapper.service';
 import { BlockchainConnectorService, RetryConfiguration } from './blockchain.service';
 import {
@@ -149,6 +150,11 @@ describe('TokensService', () => {
   };
   eventstream.getStreams.mockReturnValue([]);
 
+  const metrics = {
+    observeEventBatchSize: jest.fn(),
+    incBlockchainCalls: jest.fn(),
+  };
+
   const mockPoolQuery = (
     withData: boolean | undefined,
     withDecimals: boolean,
@@ -231,6 +237,10 @@ describe('TokensService', () => {
             addConnectionListener: jest.fn(),
             addEventListener: jest.fn(),
           },
+        },
+        {
+          provide: LoggingAndMetricsInterceptor,
+          useValue: metrics,
         },
       ],
     })

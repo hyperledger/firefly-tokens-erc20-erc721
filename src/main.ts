@@ -24,7 +24,6 @@ import { AppModule } from './app.module';
 import { EventStreamReply } from './event-stream/event-stream.interfaces';
 import { EventStreamService } from './event-stream/event-stream.service';
 import { requestIDMiddleware } from './request-context/request-id.middleware';
-import { RequestLoggingInterceptor } from './request-logging.interceptor';
 import { BlockchainConnectorService, RetryConfiguration } from './tokens/blockchain.service';
 import {
   TokenApprovalEvent,
@@ -53,11 +52,10 @@ export function getApiConfig() {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, getNestOptions());
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', { exclude: ['/metrics'] });
   app.useWebSocketAdapter(new WsAdapter(app));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.enableShutdownHooks([ShutdownSignal.SIGTERM, ShutdownSignal.SIGQUIT, ShutdownSignal.SIGINT]);
-  app.useGlobalInterceptors(new RequestLoggingInterceptor());
   app.use(requestIDMiddleware);
 
   const apiConfig = getApiConfig();

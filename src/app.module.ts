@@ -17,11 +17,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TerminusModule } from '@nestjs/terminus';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { TokensModule } from './tokens/tokens.module';
 import { EventStreamModule } from './event-stream/event-stream.module';
 import { EventStreamProxyModule } from './eventstream-proxy/eventstream-proxy.module';
 import { HealthModule } from './health/health.module';
 import { HealthController } from './health/health.controller';
+import { LoggingAndMetricsInterceptor, MetricProviders } from './logging-and-metrics.interceptor';
 
 @Module({
   imports: [
@@ -31,7 +34,19 @@ import { HealthController } from './health/health.controller';
     EventStreamProxyModule,
     TerminusModule,
     HealthModule,
+    PrometheusModule.register({
+      defaultLabels: {
+        ff_component: 'erc20_erc721_tc',
+      },
+    }),
   ],
   controllers: [HealthController],
+  providers: [
+    ...MetricProviders,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingAndMetricsInterceptor,
+    },
+  ],
 })
 export class AppModule {}
