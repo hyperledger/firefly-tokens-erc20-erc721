@@ -18,12 +18,14 @@ import { Logger } from '@nestjs/common';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { v4 as uuidv4 } from 'uuid';
 import { Context, newContext } from '../request-context/request-context.decorator';
-import { EventBatch, EventStreamReply } from '../event-stream/event-stream.interfaces';
+import { EventBatch, EventStream, EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { EventStreamService, EventStreamSocket } from '../event-stream/event-stream.service';
 import {
+  WebSocketActionBase,
   WebSocketEventsBase,
   WebSocketEx,
   WebSocketMessage,
+  WebSocketStart,
 } from '../websocket-events/websocket-events.base';
 import {
   AckMessageData,
@@ -40,20 +42,20 @@ import {
  * @WebSocketGateway({ path: '/api/stream' })
  */
 export abstract class EventStreamProxyBase extends WebSocketEventsBase {
-  socket?: EventStreamSocket;
+  namespaceClients: Map<string, Set<WebSocketEx>> = new Map();
+  namespaceEventStreamSocket: Map<string, EventStreamSocket> = new Map();
   url?: string;
   topic?: string;
 
   private connectListeners: ConnectionListener[] = [];
   private eventListeners: EventListener[] = [];
   private awaitingAck: WebSocketMessageWithId[] = [];
-  private currentClient: WebSocketEx | undefined;
   private subscriptionNames = new Map<string, string>();
   private queue = Promise.resolve();
 
   constructor(
     protected readonly logger: Logger,
-    protected eventstream: EventStreamService,
+    protected eventStreamService: EventStreamService,
     requireAuth = false,
   ) {
     super(logger, requireAuth);
@@ -66,55 +68,75 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
   handleConnection(client: WebSocketEx) {
     super.handleConnection(client);
-    if (this.server.clients.size === 1) {
-      this.logger.log(`Initializing event stream proxy`);
-      Promise.all(this.connectListeners.map(l => l.onConnect()))
-        .then(() => {
-          this.setCurrentClient(client);
-          this.startListening();
-        })
-        .catch(err => {
-          this.logger.error(`Error initializing event stream proxy: ${err}`);
-        });
-    }
+    client.on('message', (message: string) => {
+      const action = JSON.parse(message) as WebSocketActionBase;
+      switch (action.type) {
+        case 'start':
+          const startAction = action as WebSocketStart;
+          this.startListening(client, startAction.namespace);
+          break;
+      }
+    });
   }
 
   private queueTask(task: () => void) {
     this.queue = this.queue.finally(task);
   }
 
-  private startListening() {
+  private async startListening(client: WebSocketEx, namespace: string) {
     if (this.url === undefined || this.topic === undefined) {
       return;
     }
-    this.socket = this.eventstream.connect(
-      this.url,
-      this.topic,
-      events => {
-        this.queueTask(() => this.processEvents(events));
-      },
-      receipt => {
-        this.broadcast('receipt', <EventStreamReply>receipt);
-      },
-    );
+    try {
+      if (!this.namespaceEventStreamSocket.has(namespace)) {
+        const eventStreamSocket = await this.eventStreamService.connect(
+          this.url,
+          this.topic,
+          namespace,
+          events => {
+            this.queueTask(() => this.processEvents(events, namespace));
+          },
+          receipt => {
+            this.broadcast('receipt', <EventStreamReply>receipt);
+          },
+        );
+        this.namespaceEventStreamSocket.set(namespace, eventStreamSocket);
+      }
+      let clientSet = this.namespaceClients.get(namespace);
+      if (!clientSet) {
+        clientSet = new Set<WebSocketEx>();
+      }
+      clientSet.add(client);
+      this.namespaceClients.set(namespace, clientSet);
+    } catch (e) {
+      this.logger.error(`Error connecting to event stream websocket: ${e.message}`);
+    }
   }
 
   handleDisconnect(client: WebSocketEx) {
     super.handleDisconnect(client);
-    if (this.server.clients.size === 0) {
-      this.stopListening();
-    } else if (client.id === this.currentClient?.id) {
-      for (const newClient of this.server.clients) {
-        this.setCurrentClient(newClient as WebSocketEx);
-        break;
-      }
-    }
-  }
 
-  private stopListening() {
-    this.socket?.close();
-    this.socket = undefined;
-    this.currentClient = undefined;
+    // Iterate over all the namespaces this client was subscribed to
+    this.namespaceClients.forEach((clientSet, namespace) => {
+      clientSet.delete(client);
+
+      // Nack any messages that are inflight for that namespace
+      const nackedMessageIds: Set<string> = new Set();
+      this.awaitingAck
+        .filter(msg => msg.namespace === namespace)
+        .map(msg => {
+          this.namespaceEventStreamSocket.get(namespace)?.nack(msg.batchNumber);
+          nackedMessageIds.add(msg.id);
+        });
+      this.awaitingAck = this.awaitingAck.filter(msg => nackedMessageIds.has(msg.id));
+
+      // If all clients for this namespace have disconnected, also close the connection to EVMConnect
+      if (clientSet.size == 0) {
+        this.namespaceEventStreamSocket.get(namespace)?.close();
+        this.namespaceEventStreamSocket.delete(namespace);
+        this.namespaceClients.delete(namespace);
+      }
+    });
   }
 
   addConnectionListener(listener: ConnectionListener) {
@@ -125,7 +147,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     this.eventListeners.push(listener);
   }
 
-  private async processEvents(batch: EventBatch) {
+  private async processEvents(batch: EventBatch, namespace: string) {
     const messages: WebSocketMessage[] = [];
     const eventHandlers: Promise<WebSocketMessage | undefined>[] = [];
     for (const event of batch.events) {
@@ -156,6 +178,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       }
     }
     const message: WebSocketMessageWithId = {
+      namespace: namespace,
       id: uuidv4(),
       event: 'batch',
       data: <WebSocketMessageBatchData>{
@@ -164,7 +187,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       batchNumber: batch.batchNumber,
     };
     this.awaitingAck.push(message);
-    this.currentClient?.send(JSON.stringify(message));
+    this.send(namespace, JSON.stringify(message));
   }
 
   private async getSubscriptionName(ctx: Context, subId: string) {
@@ -174,7 +197,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     }
 
     try {
-      const sub = await this.eventstream.getSubscription(ctx, subId);
+      const sub = await this.eventStreamService.getSubscription(ctx, subId);
       if (sub !== undefined) {
         this.subscriptionNames.set(subId, sub.name);
         return sub.name;
@@ -183,13 +206,6 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       this.logger.error(`Error looking up subscription: ${err}`);
     }
     return undefined;
-  }
-
-  private setCurrentClient(client: WebSocketEx) {
-    this.currentClient = client;
-    for (const message of this.awaitingAck) {
-      this.currentClient.send(JSON.stringify(message));
-    }
   }
 
   @SubscribeMessage('ack')
@@ -201,7 +217,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
     const inflight = this.awaitingAck.find(msg => msg.id === data.id);
     this.logger.log(`Received ack ${data.id} inflight=${!!inflight}`);
-    if (this.socket !== undefined && inflight !== undefined) {
+    if (this.namespaceEventStreamSocket !== undefined && inflight !== undefined) {
       this.awaitingAck = this.awaitingAck.filter(msg => msg.id !== data.id);
       if (
         // If nothing is left awaiting an ack - then we clearly need to ack
@@ -212,7 +228,22 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
           !this.awaitingAck.find(msg => msg.batchNumber === inflight.batchNumber))
       ) {
         this.logger.log(`In-flight batch complete (batchNumber=${inflight.batchNumber})`);
-        this.socket.ack(inflight.batchNumber);
+        this.namespaceEventStreamSocket.get(inflight.namespace)?.ack(inflight.batchNumber);
+      }
+    }
+  }
+
+  send(namespace, payload: string) {
+    const clients = this.namespaceClients.get(namespace);
+    if (clients) {
+      // Randomly select a connected client for this namespace to distribute load
+      const selected = Math.floor(Math.random() * clients.size);
+      let i = 0;
+      for (let client of clients.keys()) {
+        if (i++ == selected) {
+          client.send(payload);
+          return;
+        }
       }
     }
   }

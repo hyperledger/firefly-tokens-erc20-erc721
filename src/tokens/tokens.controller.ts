@@ -42,7 +42,7 @@ export class TokensController {
   @HttpCode(204)
   @ApiOperation({ summary: 'Perform one-time initialization (if not auto-initialized)' })
   init(@RequestContext() ctx: Context) {
-    return this.service.init(ctx);
+    // Do nothing. Endpoint retained for backwards compatibility with older tooling.
   }
 
   @Post('createpool')

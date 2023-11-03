@@ -30,6 +30,7 @@ export interface EventListener {
 }
 
 export interface WebSocketMessageWithId extends WebSocketMessage {
+  namespace: string;
   id: string;
   batchNumber: number | undefined;
 }

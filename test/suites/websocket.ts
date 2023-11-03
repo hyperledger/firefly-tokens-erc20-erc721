@@ -234,7 +234,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20MintTransferEvent], batchNumber: 12345 });
       })
@@ -290,7 +295,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20MintTransferEvent] });
       })
@@ -375,7 +385,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC721MintTransferEvent] });
       })
@@ -429,7 +444,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20TransferEvent] });
       })
@@ -516,7 +536,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC721TransferEvent] });
       })
@@ -569,7 +594,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20BurnEvent] });
       })
@@ -654,7 +684,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC721BurnEvent] });
       })
@@ -713,7 +748,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20ApprovalEvent] });
       })
@@ -772,7 +812,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC721ApprovalEvent] });
       })
@@ -831,7 +876,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockApprovalForAllEvent] });
       })
@@ -847,7 +897,12 @@ export default (context: TestContext) => {
   it('Success receipt', () => {
     return context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.receiptHandler).toBeDefined();
         context.receiptHandler(<EventStreamReply>{
           headers: {
@@ -873,7 +928,12 @@ export default (context: TestContext) => {
   it('Error receipt', () => {
     return context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.receiptHandler).toBeDefined();
         context.receiptHandler(<EventStreamReply>{
           headers: {
@@ -905,7 +965,12 @@ export default (context: TestContext) => {
 
     await context.server
       .ws('/api/ws')
-      .exec(() => {
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20MintTransferEvent] });
       })
@@ -918,25 +983,16 @@ export default (context: TestContext) => {
       })
       .close();
 
-    await context.server.ws('/api/ws').expectJson(message => {
-      expect(message.id).toBeDefined();
-      expect(message.event).toEqual('batch');
-      expect(message.data.events).toHaveLength(1);
-      expect(message.data.events[0].event).toEqual('token-mint');
-      return true;
-    });
-  });
+    context.resetConnectedPromise();
 
-  it('Client switchover', async () => {
-    context.eventstream.getSubscription.mockReturnValueOnce(<EventStreamSubscription>{
-      name: packSubscriptionName(CONTRACT_ADDRESS, '', 'default'),
-    });
-
-    const ws1 = context.server.ws('/api/ws');
-    const ws2 = context.server.ws('/api/ws');
-
-    await ws1
-      .exec(() => {
+    await context.server
+      .ws('/api/ws')
+      .sendJson({
+        type: 'start',
+        namespace: 'ns1',
+      })
+      .exec(async () => {
+        await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20MintTransferEvent] });
       })
@@ -946,15 +1002,6 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0].event).toEqual('token-mint');
         return true;
-      })
-      .close();
-
-    await ws2.expectJson(message => {
-      expect(message.id).toBeDefined();
-      expect(message.event).toEqual('batch');
-      expect(message.data.events).toHaveLength(1);
-      expect(message.data.events[0].event).toEqual('token-mint');
-      return true;
-    });
+      });
   });
 };

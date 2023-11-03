@@ -139,6 +139,10 @@ export class TokenPoolConfig {
 }
 
 export class TokenPool {
+  @ApiProperty()
+  @IsNotEmpty()
+  namespace: string;
+
   @ApiProperty({ enum: TokenType })
   @IsEnum(TokenType)
   type: TokenType;
@@ -215,6 +219,10 @@ export class BlockchainEvent {
 export class TokenPoolActivate {
   @ApiProperty()
   @IsNotEmpty()
+  namespace: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
   poolLocator: string;
 
   @ApiProperty()
@@ -227,6 +235,10 @@ export class TokenPoolActivate {
 }
 
 export class TokenPoolDeactivate {
+  @ApiProperty()
+  @IsNotEmpty()
+  namespace: string;
+
   @ApiProperty()
   @IsNotEmpty()
   poolLocator: string;
@@ -271,6 +283,10 @@ export class CheckInterfaceResponse implements TokenAbi {
 }
 
 export class TokenTransfer {
+  @ApiProperty()
+  @IsNotEmpty()
+  namespace: string;
+
   @ApiProperty()
   @IsNotEmpty()
   poolLocator: string;
@@ -332,6 +348,10 @@ export class TokenApprovalConfig {
 export class TokenApproval {
   @ApiProperty()
   @IsNotEmpty()
+  namespace: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
   poolLocator: string;
 
   @ApiProperty()
@@ -367,6 +387,10 @@ export class TokenApproval {
 
 class tokenEventBase {
   @ApiProperty()
+  @IsNotEmpty()
+  namespace: string;
+
+  @ApiProperty()
   poolLocator: string;
 
   @ApiProperty()
@@ -391,6 +415,10 @@ export class TokenPoolEventInfo {
 }
 
 export class TokenPoolEvent extends tokenEventBase {
+  @ApiProperty()
+  @IsNotEmpty()
+  namespace: string;
+
   @ApiProperty()
   type: TokenType;
 

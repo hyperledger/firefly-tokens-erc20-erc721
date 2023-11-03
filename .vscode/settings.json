@@ -5,7 +5,5 @@
   },
   "eslint.validate": ["javascript"],
   "solidity.defaultCompiler": "remote",
-  "cSpell.words": [
-    "fftm"
-  ]
+  "cSpell.words": ["eventstream", "fftm"]
 }

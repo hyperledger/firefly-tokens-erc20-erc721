@@ -20,7 +20,7 @@ import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import WebSocket from 'ws';
 import { FFRequestIDHeader } from '../request-context/constants';
-import { Context } from '../request-context/request-context.decorator';
+import { Context, newContext } from '../request-context/request-context.decorator';
 import { IAbiMethod } from '../tokens/tokens.interfaces';
 import { getHttpRequestOptions, getWebsocketOptions } from '../utils';
 import {
@@ -46,6 +46,7 @@ export class EventStreamSocket {
   constructor(
     private url: string,
     private topic: string,
+    private namespace: string,
     private username: string,
     private password: string,
     private handleEvents: (events: EventBatch) => void,
@@ -67,7 +68,7 @@ export class EventStreamSocket {
         } else {
           this.logger.log('Event stream websocket connected');
         }
-        this.produce({ type: 'listen', topic: this.topic });
+        this.produce({ type: 'listen', topic: `${this.topic}/${this.namespace}` });
         this.produce({ type: 'listenreplies' });
         this.ping();
       })
@@ -109,7 +110,11 @@ export class EventStreamSocket {
   }
 
   ack(batchNumber: number | undefined) {
-    this.produce({ type: 'ack', topic: this.topic, batchNumber });
+    this.produce({ type: 'ack', topic: `${this.topic}/${this.namespace}`, batchNumber });
+  }
+
+  nack(batchNumber: number | undefined) {
+    this.produce({ type: 'nack', topic: `${this.topic}/${this.namespace}`, batchNumber });
   }
 
   close() {
@@ -331,15 +336,20 @@ export class EventStreamService {
     return true;
   }
 
-  connect(
+  async connect(
     url: string,
     topic: string,
+    namespace: string,
     handleEvents: (events: EventBatch) => void,
     handleReceipt: (receipt: EventStreamReply) => void,
   ) {
+    const name = `${topic}/${namespace}`;
+    await this.createOrUpdateStream(newContext(), name, topic);
+
     return new EventStreamSocket(
       url,
       topic,
+      namespace,
       this.username,
       this.password,
       handleEvents,

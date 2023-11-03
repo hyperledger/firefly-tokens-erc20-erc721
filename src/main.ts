@@ -107,10 +107,6 @@ async function bootstrap() {
     .configure(ethConnectUrl, fftmUrl, username, password, passthroughHeaders, blockchainRetryCfg);
   app.get(AbiMapperService).configure(legacyERC20, legacyERC721);
 
-  if (autoInit.toLowerCase() !== 'false') {
-    await app.get(TokensService).init(newContext());
-  }
-
   const port = config.get<number>('PORT', 3000);
   console.log(`Listening on port ${port}`);
   await app.listen(port);

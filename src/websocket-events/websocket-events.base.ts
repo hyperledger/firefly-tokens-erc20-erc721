@@ -50,6 +50,14 @@ export interface WebSocketMessage {
   data: any;
 }
 
+export interface WebSocketActionBase {
+  type: 'start' | 'ack' | 'nack' | 'protocol_error';
+}
+
+export interface WebSocketStart extends WebSocketActionBase {
+  namespace: string;
+}
+
 /**
  * Base class for websocket gateways.
  *
