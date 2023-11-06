@@ -15,10 +15,9 @@
 // limitations under the License.
 
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { EventStream } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
-import { Context, newContext } from '../request-context/request-context.decorator';
+import { Context } from '../request-context/request-context.decorator';
 import {
   AsyncResponse,
   CheckInterfaceRequest,

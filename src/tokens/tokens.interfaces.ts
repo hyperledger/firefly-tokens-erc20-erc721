@@ -416,10 +416,6 @@ export class TokenPoolEventInfo {
 
 export class TokenPoolEvent extends tokenEventBase {
   @ApiProperty()
-  @IsNotEmpty()
-  namespace: string;
-
-  @ApiProperty()
   type: TokenType;
 
   @ApiProperty()

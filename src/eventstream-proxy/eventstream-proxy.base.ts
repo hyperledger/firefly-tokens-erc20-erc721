@@ -18,7 +18,7 @@ import { Logger } from '@nestjs/common';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { v4 as uuidv4 } from 'uuid';
 import { Context, newContext } from '../request-context/request-context.decorator';
-import { EventBatch, EventStream, EventStreamReply } from '../event-stream/event-stream.interfaces';
+import { EventBatch, EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { EventStreamService, EventStreamSocket } from '../event-stream/event-stream.service';
 import {
   WebSocketActionBase,
