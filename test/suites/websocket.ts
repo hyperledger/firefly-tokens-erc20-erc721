@@ -244,6 +244,10 @@ export default (context: TestContext) => {
         context.eventHandler({ events: [mockERC20MintTransferEvent], batchNumber: 12345 });
       })
       .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
+      })
+      .expectJson(message => {
         expect(message.id).toBeDefined();
         expect(message.event).toEqual('batch');
         expect(message.data.events).toHaveLength(1);
@@ -303,6 +307,10 @@ export default (context: TestContext) => {
         await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20MintTransferEvent] });
+      })
+      .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -395,6 +403,10 @@ export default (context: TestContext) => {
         context.eventHandler({ events: [mockERC721MintTransferEvent] });
       })
       .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
+      })
+      .expectJson(message => {
         expect(message.id).toBeDefined();
         expect(message.event).toEqual('batch');
         expect(message.data.events).toHaveLength(1);
@@ -452,6 +464,10 @@ export default (context: TestContext) => {
         await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20TransferEvent] });
+      })
+      .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -546,6 +562,10 @@ export default (context: TestContext) => {
         context.eventHandler({ events: [mockERC721TransferEvent] });
       })
       .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
+      })
+      .expectJson(message => {
         expect(message.id).toBeDefined();
         expect(message.event).toEqual('batch');
         expect(message.data.events).toHaveLength(1);
@@ -602,6 +622,10 @@ export default (context: TestContext) => {
         await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20BurnEvent] });
+      })
+      .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -694,6 +718,10 @@ export default (context: TestContext) => {
         context.eventHandler({ events: [mockERC721BurnEvent] });
       })
       .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
+      })
+      .expectJson(message => {
         expect(message.id).toBeDefined();
         expect(message.event).toEqual('batch');
         expect(message.data.events).toHaveLength(1);
@@ -756,6 +784,10 @@ export default (context: TestContext) => {
         await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20ApprovalEvent] });
+      })
+      .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -822,6 +854,10 @@ export default (context: TestContext) => {
         context.eventHandler({ events: [mockERC721ApprovalEvent] });
       })
       .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
+      })
+      .expectJson(message => {
         expect(message.id).toBeDefined();
         expect(message.event).toEqual('batch');
         expect(message.data.events).toHaveLength(1);
@@ -884,6 +920,10 @@ export default (context: TestContext) => {
         await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockApprovalForAllEvent] });
+      })
+      .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();
@@ -975,6 +1015,10 @@ export default (context: TestContext) => {
         context.eventHandler({ events: [mockERC20MintTransferEvent] });
       })
       .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
+      })
+      .expectJson(message => {
         expect(message.id).toBeDefined();
         expect(message.event).toEqual('batch');
         expect(message.data.events).toHaveLength(1);
@@ -995,6 +1039,10 @@ export default (context: TestContext) => {
         await context.connected;
         expect(context.eventHandler).toBeDefined();
         context.eventHandler({ events: [mockERC20MintTransferEvent] });
+      })
+      .expectJson(message => {
+        expect(message.event).toEqual('started');
+        expect(message.data.namespace).toEqual('ns1');
       })
       .expectJson(message => {
         expect(message.id).toBeDefined();

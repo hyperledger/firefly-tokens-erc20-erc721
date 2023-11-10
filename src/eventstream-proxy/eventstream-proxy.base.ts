@@ -68,7 +68,8 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
   handleConnection(client: WebSocketEx) {
     super.handleConnection(client);
-    client.on('message', (message: string) => {
+    client.on('message', async (message: string) => {
+      this.logger.debug(`WS => ${message}`);
       const action = JSON.parse(message) as WebSocketActionBase;
       switch (action.type) {
         case 'start':
@@ -108,6 +109,17 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       }
       clientSet.add(client);
       this.namespaceClients.set(namespace, clientSet);
+
+      // ack the start command
+      client.send(
+        JSON.stringify({
+          event: 'started',
+          data: {
+            namespace: namespace,
+          },
+        }),
+      );
+      this.logger.debug(`Started namespace '${namespace}'`);
     } catch (e) {
       this.logger.error(`Error connecting to event stream websocket: ${e.message}`);
     }
