@@ -24,7 +24,6 @@ import {
 } from '@nestjs/websockets';
 import { nanoid } from 'nanoid';
 import WebSocket, { Server } from 'ws';
-import { TokenPoolActivate } from 'src/tokens/tokens.interfaces';
 
 const PING_INTERVAL = 5000;
 
@@ -57,10 +56,6 @@ export interface WebSocketActionBase {
 
 export interface WebSocketStart extends WebSocketActionBase {
   namespace: string;
-}
-
-export interface WebSocketActivate extends WebSocketActionBase {
-  pool: TokenPoolActivate;
 }
 
 /**
