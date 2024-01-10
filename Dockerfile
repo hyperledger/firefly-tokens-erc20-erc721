@@ -7,7 +7,7 @@ ADD --chown=node:node . .
 RUN npm run build
 
 FROM node:16-alpine3.15 as solidity-build
-RUN apk add python3 alpine-sdk
+RUN apk add python3=3.9.18-r0 alpine-sdk=1.0-r1
 USER node
 WORKDIR /home/node
 ADD --chown=node:node ./samples/solidity/package*.json ./
@@ -16,7 +16,7 @@ ADD --chown=node:node ./samples/solidity .
 RUN npx hardhat compile
 
 FROM node:16-alpine3.15
-RUN apk add curl jq
+RUN apk add curl=8.5.0-r0 jq=1.6-r1
 RUN mkdir -p /app/contracts/source \
     && chgrp -R 0 /app/ \
     && chmod -R g+rwX /app/ \
