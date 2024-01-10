@@ -1,7 +1,7 @@
 {
   "solidity.compileUsingRemoteVersion": "v0.6.12+commit.27d51765",
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   },
   "eslint.validate": ["javascript"],
   "solidity.defaultCompiler": "remote",

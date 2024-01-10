@@ -89,10 +89,7 @@ export class TokensService {
     this.proxy.configure(wsUrl, this.topic);
   }
 
-  async onConnect() {
-    const wsUrl = new URL('/ws', this.baseUrl.replace('http', 'ws')).href;
-    this.proxy.configure(wsUrl, this.topic);
-  }
+  async onConnect() {}
 
   private async getOrCreateFactorySubscription(ctx: Context, address: string, namespace) {
     const eventABI = this.mapper.getCreateEvent();
