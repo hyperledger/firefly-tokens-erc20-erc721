@@ -84,6 +84,7 @@ export class EventStreamSocket {
         }
       })
       .on('message', (message: string) => {
+        this.logger.debug(`WS => ${message}`);
         this.handleMessage(JSON.parse(message));
       })
       .on('pong', () => {

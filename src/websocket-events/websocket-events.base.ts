@@ -94,6 +94,9 @@ export abstract class WebSocketEventsBase
     client.on('error', err => {
       this.logger.log(`WebSocket ${client.id}: error: ${err}`);
     });
+    client.on('message', msg => {
+      this.logger.debug(`WS => ${msg}`);
+    });
   }
 
   handleDisconnect(client: WebSocketEx) {
