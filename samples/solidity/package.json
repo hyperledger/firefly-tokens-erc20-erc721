@@ -12,6 +12,7 @@
   "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "dotenv": "^16.4.5",
     "hardhat": "^2.20.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
