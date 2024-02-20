@@ -253,7 +253,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockMintWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC20 token mint event with old locator', async () => {
@@ -318,7 +319,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockMintWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC721 token mint event', async () => {
@@ -412,7 +414,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockMintWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC20 token transfer event', async () => {
@@ -475,7 +478,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockTransferWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC721 token transfer event', async () => {
@@ -571,7 +575,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockTransferWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC20 token burn event', async () => {
@@ -633,7 +638,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockBurnWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC721 token burn event', async () => {
@@ -727,7 +733,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockBurnWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC20 token approval event', async () => {
@@ -795,7 +802,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockApprovalWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC721 token approval event', async () => {
@@ -863,7 +871,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockApprovalWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('ERC721 token approval for all event', async () => {
@@ -931,7 +940,8 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0]).toEqual(mockApprovalWebSocketMessage);
         return true;
-      });
+      })
+      .close();
   });
 
   it('Success receipt', () => {
@@ -962,7 +972,8 @@ export default (context: TestContext) => {
           },
         });
         return true;
-      });
+      })
+      .close();
   });
 
   it('Error receipt', () => {
@@ -995,7 +1006,8 @@ export default (context: TestContext) => {
           },
         });
         return true;
-      });
+      })
+      .close();
   });
 
   it('Disconnect and reconnect', async () => {
@@ -1050,6 +1062,7 @@ export default (context: TestContext) => {
         expect(message.data.events).toHaveLength(1);
         expect(message.data.events[0].event).toEqual('token-mint');
         return true;
-      });
+      })
+      .close();
   });
 };
