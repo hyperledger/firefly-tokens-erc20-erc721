@@ -200,7 +200,6 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       },
       batchNumber: batch.batchNumber,
     };
-    // this.awaitingAck.get(client.id)push(message);
     this.send(namespace, message);
   }
 

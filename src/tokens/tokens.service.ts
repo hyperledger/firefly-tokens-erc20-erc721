@@ -72,7 +72,7 @@ export class TokensService {
 
   baseUrl: string;
   topic: string;
-  stream: EventStream;
+  streamCache: Map<string, EventStream> = new Map();
   factoryAddress = '';
 
   constructor(
@@ -110,17 +110,19 @@ export class TokensService {
   }
 
   private async getStream(ctx: Context, namespace: string) {
-    const stream = this.stream;
+    let stream = this.streamCache.get(namespace);
     if (stream !== undefined) {
       return stream;
     }
     await this.migrationCheck(ctx);
-    this.logger.log('Creating stream with name ' + this.topic);
-    return this.eventstream.createOrUpdateStream(
+    this.logger.log('Creating stream with name ' + eventStreamName(this.topic, namespace));
+    stream = await this.eventstream.createOrUpdateStream(
       ctx,
       eventStreamName(this.topic, namespace),
       this.topic,
     );
+    this.streamCache.set(namespace, stream);
+    return stream;
   }
 
   /**
