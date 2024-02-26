@@ -15,7 +15,6 @@
 // limitations under the License.
 
 import { Logger } from '@nestjs/common';
-import { ConnectedSocket, MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { v4 as uuidv4 } from 'uuid';
 import { Context, newContext } from '../request-context/request-context.decorator';
 import { EventBatch, EventStreamReply } from '../event-stream/event-stream.interfaces';
@@ -47,7 +46,8 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   topic?: string;
 
   private eventListeners: EventListener[] = [];
-  private awaitingAck: WebSocketMessageWithId[] = [];
+  // Map of client IDs to all the messages for which we are awaiting an ack
+  private awaitingAck: Map<string, WebSocketMessageWithId[]> = new Map();
   private subscriptionNames = new Map<string, string>();
   private queue = Promise.resolve();
 
@@ -66,6 +66,11 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
 
   handleConnection(client: WebSocketEx) {
     super.handleConnection(client);
+
+    if (!this.awaitingAck.get(client.id)) {
+      this.awaitingAck.set(client.id, []);
+    }
+
     client.on('message', async (message: string) => {
       const action = JSON.parse(message) as WebSocketActionBase;
       switch (action.type) {
@@ -75,7 +80,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
           break;
         case 'ack':
           const ackAction = action as WebSocketAck;
-          this.handleAck(ackAction);
+          this.handleAck(client, ackAction);
       }
     });
   }
@@ -135,12 +140,13 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       // Nack any messages that are inflight for that namespace
       const nackedMessageIds: Set<string> = new Set();
       this.awaitingAck
-        .filter(msg => msg.namespace === namespace)
+        ?.get(client.id)
+        ?.filter(msg => msg.namespace === namespace)
         .map(msg => {
           this.namespaceEventStreamSocket.get(namespace)?.nack(msg.batchNumber);
           nackedMessageIds.add(msg.id);
         });
-      this.awaitingAck = this.awaitingAck.filter(msg => nackedMessageIds.has(msg.id));
+      this.awaitingAck.delete(client.id);
 
       // If all clients for this namespace have disconnected, also close the connection to EVMConnect
       if (clientSet.size == 0) {
@@ -194,8 +200,8 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       },
       batchNumber: batch.batchNumber,
     };
-    this.awaitingAck.push(message);
-    this.send(namespace, JSON.stringify(message));
+    // this.awaitingAck.get(client.id)push(message);
+    this.send(namespace, message);
   }
 
   private async getSubscriptionName(ctx: Context, subId: string) {
@@ -216,40 +222,49 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     return undefined;
   }
 
-  handleAck(data: WebSocketAck) {
+  handleAck(client: WebSocketEx, data: WebSocketAck) {
     if (data.id === undefined) {
       this.logger.error('Received malformed ack');
       return;
     }
 
-    const inflight = this.awaitingAck.find(msg => msg.id === data.id);
-    this.logger.log(`Received ack ${data.id} inflight=${!!inflight}`);
-    if (this.namespaceEventStreamSocket !== undefined && inflight !== undefined) {
-      this.awaitingAck = this.awaitingAck.filter(msg => msg.id !== data.id);
-      if (
-        // If nothing is left awaiting an ack - then we clearly need to ack
-        this.awaitingAck.length === 0 ||
-        // Or if we have a batch number associated with this ID, then we can only ack if there
-        // are no other messages in-flight with the same batch number.
-        (inflight.batchNumber !== undefined &&
-          !this.awaitingAck.find(msg => msg.batchNumber === inflight.batchNumber))
-      ) {
-        this.logger.log(`In-flight batch complete (batchNumber=${inflight.batchNumber})`);
-        this.namespaceEventStreamSocket.get(inflight.namespace)?.ack(inflight.batchNumber);
+    let awaitingAck = this.awaitingAck.get(client.id);
+
+    if (awaitingAck) {
+      const inflight = awaitingAck.find(msg => msg.id === data.id);
+      this.logger.log(`Received ack ${data.id} inflight=${!!inflight}`);
+      if (this.namespaceEventStreamSocket !== undefined && inflight !== undefined) {
+        // Remove the acked message id from the queue
+        awaitingAck = awaitingAck.filter(msg => msg.id !== data.id);
+        this.awaitingAck.set(client.id, awaitingAck);
+        if (
+          // If nothing is left awaiting an ack - then we clearly need to ack
+          awaitingAck.length === 0 ||
+          // Or if we have a batch number associated with this ID, then we can only ack if there
+          // are no other messages in-flight with the same batch number.
+          (inflight.batchNumber !== undefined &&
+            !awaitingAck.filter(msg => msg.batchNumber === inflight.batchNumber))
+        ) {
+          this.logger.log(`In-flight batch complete (batchNumber=${inflight.batchNumber})`);
+          this.namespaceEventStreamSocket.get(inflight.namespace)?.ack(inflight.batchNumber);
+        }
       }
+    } else {
+      this.logger.warn(`Received unrecognized ack from client ${client.id} for message ${data.id}`);
     }
   }
 
-  send(namespace, payload: string) {
+  send(namespace, payload: WebSocketMessageWithId) {
     const clients = this.namespaceClients.get(namespace);
     if (clients) {
       // Randomly select a connected client for this namespace to distribute load
       const selected = Math.floor(Math.random() * clients.size);
       let i = 0;
-      for (let client of clients.keys()) {
+      for (const client of clients.keys()) {
         if (i++ == selected) {
+          this.awaitingAck.get(client.id)?.push(payload);
           this.logger.verbose(`WS <= ${payload}`);
-          client.send(payload);
+          client.send(JSON.stringify(payload));
           return;
         }
       }
