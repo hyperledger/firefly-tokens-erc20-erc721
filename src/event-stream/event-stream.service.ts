@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -22,7 +22,7 @@ import WebSocket from 'ws';
 import { FFRequestIDHeader } from '../request-context/constants';
 import { Context, newContext } from '../request-context/request-context.decorator';
 import { IAbiMethod } from '../tokens/tokens.interfaces';
-import { getHttpRequestOptions, getWebsocketOptions } from '../utils';
+import { eventStreamName, getHttpRequestOptions, getWebsocketOptions } from '../utils';
 import {
   Event,
   EventBatch,
@@ -68,7 +68,7 @@ export class EventStreamSocket {
         } else {
           this.logger.log('Event stream websocket connected');
         }
-        this.produce({ type: 'listen', topic: `${this.topic}/${this.namespace}` });
+        this.produce({ type: 'listen', topic: eventStreamName(this.topic, this.namespace) });
         this.produce({ type: 'listenreplies' });
         this.ping();
       })
@@ -84,7 +84,7 @@ export class EventStreamSocket {
         }
       })
       .on('message', (message: string) => {
-        this.logger.debug(`WS => ${message}`);
+        this.logger.verbose(`WS => ${message}`);
         this.handleMessage(JSON.parse(message));
       })
       .on('pong', () => {
@@ -111,11 +111,11 @@ export class EventStreamSocket {
   }
 
   ack(batchNumber: number | undefined) {
-    this.produce({ type: 'ack', topic: `${this.topic}/${this.namespace}`, batchNumber });
+    this.produce({ type: 'ack', topic: eventStreamName(this.topic, this.namespace), batchNumber });
   }
 
   nack(batchNumber: number | undefined) {
-    this.produce({ type: 'nack', topic: `${this.topic}/${this.namespace}`, batchNumber });
+    this.produce({ type: 'nack', topic: eventStreamName(this.topic, this.namespace), batchNumber });
   }
 
   close() {
@@ -211,7 +211,7 @@ export class EventStreamService {
     this.logger.debug(`Checking for deprecated event steam with topic '${topic}'`);
     const deprecatedStream = existingStreams.find(s => s.name === topic);
     if (deprecatedStream) {
-      this.logger.debug(`Purging deprecated eventstream '${deprecatedStream.id}'`);
+      this.logger.log(`Purging deprecated eventstream '${deprecatedStream.id}'`);
       await lastValueFrom(
         this.http.delete(
           new URL(`/eventstreams/${deprecatedStream.id}`, this.baseUrl).href,
@@ -358,7 +358,7 @@ export class EventStreamService {
     handleEvents: (events: EventBatch) => void,
     handleReceipt: (receipt: EventStreamReply) => void,
   ) {
-    const name = `${topic}/${namespace}`;
+    const name = eventStreamName(topic, namespace);
     await this.createOrUpdateStream(newContext(), name, topic);
 
     return new EventStreamSocket(

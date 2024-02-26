@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -36,7 +36,10 @@ import { TokensService } from './tokens.service';
 
 @Controller()
 export class TokensController {
-  constructor(private service: TokensService, private blockchain: BlockchainConnectorService) {}
+  constructor(
+    private service: TokensService,
+    private blockchain: BlockchainConnectorService,
+  ) {}
 
   @Post('init')
   @HttpCode(204)

@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -58,6 +58,10 @@ export interface WebSocketStart extends WebSocketActionBase {
   namespace: string;
 }
 
+export interface WebSocketAck extends WebSocketActionBase {
+  id: string;
+}
+
 /**
  * Base class for websocket gateways.
  *
@@ -69,7 +73,10 @@ export abstract class WebSocketEventsBase
 {
   @WebSocketServer() server: Server;
 
-  constructor(protected readonly logger: Logger, private requireAuth = false) {}
+  constructor(
+    protected readonly logger: Logger,
+    private requireAuth = false,
+  ) {}
 
   afterInit(server: Server) {
     const interval = setInterval(() => this.ping(), PING_INTERVAL);
@@ -95,7 +102,7 @@ export abstract class WebSocketEventsBase
       this.logger.log(`WebSocket ${client.id}: error: ${err}`);
     });
     client.on('message', msg => {
-      this.logger.debug(`WS => ${msg}`);
+      this.logger.verbose(`WS => ${msg}`);
     });
   }
 

@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,6 +15,7 @@
 // limitations under the License.
 
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { EventStream } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
 import { Context } from '../request-context/request-context.decorator';
@@ -63,6 +64,7 @@ import {
   Symbol as ERC721Symbol,
   DynamicMethods as ERC721Methods,
 } from './erc721';
+import { eventStreamName } from '../utils';
 
 @Injectable()
 export class TokensService {
@@ -70,6 +72,7 @@ export class TokensService {
 
   baseUrl: string;
   topic: string;
+  stream: EventStream;
   factoryAddress = '';
 
   constructor(
@@ -83,15 +86,12 @@ export class TokensService {
     this.baseUrl = baseUrl;
     this.topic = topic;
     this.factoryAddress = factoryAddress.toLowerCase();
-    this.proxy.addConnectionListener(this);
     this.proxy.addEventListener(new TokenListener(this.mapper, this.blockchain));
     const wsUrl = new URL('/ws', this.baseUrl.replace('http', 'ws')).href;
     this.proxy.configure(wsUrl, this.topic);
   }
 
-  async onConnect() {}
-
-  private async getOrCreateFactorySubscription(ctx: Context, address: string, namespace) {
+  private async getOrCreateFactorySubscription(ctx: Context, address: string, namespace: string) {
     const eventABI = this.mapper.getCreateEvent();
     const methodABI = this.mapper.getCreateMethod();
     const stream = await this.getStream(ctx, namespace);
@@ -110,9 +110,17 @@ export class TokensService {
   }
 
   private async getStream(ctx: Context, namespace: string) {
+    const stream = this.stream;
+    if (stream !== undefined) {
+      return stream;
+    }
     await this.migrationCheck(ctx);
     this.logger.log('Creating stream with name ' + this.topic);
-    return this.eventstream.createOrUpdateStream(ctx, `${this.topic}/${namespace}`, this.topic);
+    return this.eventstream.createOrUpdateStream(
+      ctx,
+      eventStreamName(this.topic, namespace),
+      this.topic,
+    );
   }
 
   /**

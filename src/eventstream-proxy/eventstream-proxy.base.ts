@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,12 +15,13 @@
 // limitations under the License.
 
 import { Logger } from '@nestjs/common';
-import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
+import { ConnectedSocket, MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { v4 as uuidv4 } from 'uuid';
 import { Context, newContext } from '../request-context/request-context.decorator';
 import { EventBatch, EventStreamReply } from '../event-stream/event-stream.interfaces';
 import { EventStreamService, EventStreamSocket } from '../event-stream/event-stream.service';
 import {
+  WebSocketAck,
   WebSocketActionBase,
   WebSocketEventsBase,
   WebSocketEx,
@@ -28,8 +29,6 @@ import {
   WebSocketStart,
 } from '../websocket-events/websocket-events.base';
 import {
-  AckMessageData,
-  ConnectionListener,
   EventListener,
   WebSocketMessageBatchData,
   WebSocketMessageWithId,
@@ -47,7 +46,6 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
   url?: string;
   topic?: string;
 
-  private connectListeners: ConnectionListener[] = [];
   private eventListeners: EventListener[] = [];
   private awaitingAck: WebSocketMessageWithId[] = [];
   private subscriptionNames = new Map<string, string>();
@@ -75,6 +73,9 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
           const startAction = action as WebSocketStart;
           this.startListening(client, startAction.namespace);
           break;
+        case 'ack':
+          const ackAction = action as WebSocketAck;
+          this.handleAck(ackAction);
       }
     });
   }
@@ -150,10 +151,6 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     });
   }
 
-  addConnectionListener(listener: ConnectionListener) {
-    this.connectListeners.push(listener);
-  }
-
   addEventListener(listener: EventListener) {
     this.eventListeners.push(listener);
   }
@@ -219,8 +216,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     return undefined;
   }
 
-  @SubscribeMessage('ack')
-  handleAck(@MessageBody() data: AckMessageData) {
+  handleAck(data: WebSocketAck) {
     if (data.id === undefined) {
       this.logger.error('Received malformed ack');
       return;
@@ -252,7 +248,7 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
       let i = 0;
       for (let client of clients.keys()) {
         if (i++ == selected) {
-          this.logger.debug(`WS <= ${payload}`);
+          this.logger.verbose(`WS <= ${payload}`);
           client.send(payload);
           return;
         }
