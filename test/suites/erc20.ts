@@ -1,4 +1,4 @@
-// Copyright © 2021 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -89,10 +89,10 @@ export default (context: TestContext) => {
         }),
       );
   };
-
   describe('ERC20WithData', () => {
     it('Create pool - unrecognized fields', async () => {
       const request = {
+        namespace: 'ns1',
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -102,8 +102,8 @@ export default (context: TestContext) => {
         symbol: SYMBOL,
         isBestPool: true, // will be stripped but will not cause an error
       };
-
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
+        namespace: 'ns1',
         data: `{"tx":${TX}}`,
         poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
@@ -116,16 +116,14 @@ export default (context: TestContext) => {
           schema: ERC20_WITH_DATA_SCHEMA,
         },
       });
-
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
       const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
-
     it('Create pool - invalid type', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: 'funkible' as TokenType,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -134,19 +132,17 @@ export default (context: TestContext) => {
         name: NAME,
         symbol: SYMBOL,
       };
-
       const response = {
         statusCode: 400,
         message: ['type must be a valid enum value'],
         error: 'Bad Request',
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
       await context.server.post('/createpool').send(request).expect(400).expect(response);
     });
-
     it('Create pool - correct fields', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -155,8 +151,8 @@ export default (context: TestContext) => {
         name: NAME,
         symbol: SYMBOL,
       };
-
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
+        namespace: 'ns1',
         data: `{"tx":${TX}}`,
         poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_WITH_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
@@ -169,22 +165,19 @@ export default (context: TestContext) => {
           schema: ERC20_WITH_DATA_SCHEMA,
         },
       });
-
       mockPoolQuery(true);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
       const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
-
     it('Mint token', async () => {
       const request: TokenMint = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -194,29 +187,24 @@ export default (context: TestContext) => {
         method: ERC20WithDataABI.abi.find(abi => abi.name === MINT_WITH_DATA) as IAbiMethod,
         params: ['0x123', '20', '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Transfer token', async () => {
       const request: TokenTransfer = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_WITH_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -226,28 +214,23 @@ export default (context: TestContext) => {
         method: ERC20WithDataABI.abi.find(abi => abi.name === TRANSFER_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '0x123', '20', '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Burn token', async () => {
       const request: TokenBurn = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -257,29 +240,24 @@ export default (context: TestContext) => {
         method: ERC20WithDataABI.abi.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '20', '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Token approval', async () => {
       const request: TokenApproval = {
+        namespace: 'ns1',
         poolLocator: ERC20_WITH_DATA_POOL_ID,
         signer: IDENTITY,
         operator: '2',
         approved: true,
         config: { allowance: '100' },
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -289,24 +267,20 @@ export default (context: TestContext) => {
         method: ERC20WithDataABI.abi.find(abi => abi.name === APPROVE_WITH_DATA) as IAbiMethod,
         params: ['2', '100', '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: '1',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
   });
-
   describe('ERC20NoData', () => {
     it('Create pool - unrecognized fields', async () => {
       const request = {
+        namespace: 'ns1',
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -316,8 +290,8 @@ export default (context: TestContext) => {
         symbol: SYMBOL,
         isBestPool: true, // will be stripped but will not cause an error
       };
-
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
+        namespace: 'ns1',
         data: `{"tx":${TX}}`,
         poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
@@ -329,16 +303,14 @@ export default (context: TestContext) => {
           schema: ERC20_NO_DATA_SCHEMA,
         },
       });
-
       mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
       const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
-
     it('Create pool - invalid type', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: 'funkible' as TokenType,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -347,18 +319,16 @@ export default (context: TestContext) => {
         name: NAME,
         symbol: SYMBOL,
       };
-
       const response = {
         statusCode: 400,
         message: ['type must be a valid enum value'],
         error: 'Bad Request',
       };
-
       await context.server.post('/createpool').send(request).expect(400).expect(response);
     });
-
     it('Create pool - correct fields', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -367,8 +337,8 @@ export default (context: TestContext) => {
         name: NAME,
         symbol: SYMBOL,
       };
-
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
+        namespace: 'ns1',
         data: `{"tx":${TX}}`,
         poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC20_NO_DATA_SCHEMA}&type=${TokenType.FUNGIBLE}`,
         standard: 'ERC20',
@@ -380,22 +350,19 @@ export default (context: TestContext) => {
           schema: ERC20_NO_DATA_SCHEMA,
         },
       });
-
       mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
       const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
-
     it('Mint token', async () => {
       const request: TokenMint = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_NO_DATA_POOL_ID,
         to: '0x123',
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -405,29 +372,24 @@ export default (context: TestContext) => {
         method: ERC20NoDataABI.abi.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
         params: ['0x123', '20'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Transfer token', async () => {
       const request: TokenTransfer = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_NO_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -437,28 +399,23 @@ export default (context: TestContext) => {
         method: ERC20NoDataABI.abi.find(abi => abi.name === TRANSFER_NO_DATA) as IAbiMethod,
         params: ['0x123', '20'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Burn token', async () => {
       const request: TokenBurn = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -468,29 +425,24 @@ export default (context: TestContext) => {
         method: ERC20NoDataABI.abi.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
         params: ['20'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Token approval', async () => {
       const request: TokenApproval = {
+        namespace: 'ns1',
         poolLocator: ERC20_NO_DATA_POOL_ID,
         signer: IDENTITY,
         operator: '2',
         approved: true,
         config: { allowance: '100' },
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -500,20 +452,15 @@ export default (context: TestContext) => {
         method: ERC20WithDataABI.abi.find(abi => abi.name === APPROVE_NO_DATA) as IAbiMethod,
         params: ['2', '100'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: '1',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Burn token - custom ABI', async () => {
       const burnMethods = [
         {
@@ -548,8 +495,8 @@ export default (context: TestContext) => {
           outputs: [],
         },
       ];
-
       const request: TokenBurn = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_NO_DATA_POOL_ID,
@@ -559,7 +506,6 @@ export default (context: TestContext) => {
           methods: burnMethods,
         },
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -569,20 +515,15 @@ export default (context: TestContext) => {
         method: burnMethods[0],
         params: ['20'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Burn token - custom ABI, burn from other', async () => {
       const burnMethods = [
         {
@@ -617,8 +558,8 @@ export default (context: TestContext) => {
           outputs: [],
         },
       ];
-
       const request: TokenBurn = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_NO_DATA_POOL_ID,
@@ -628,7 +569,6 @@ export default (context: TestContext) => {
           methods: burnMethods,
         },
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -638,27 +578,21 @@ export default (context: TestContext) => {
         method: burnMethods[1],
         params: ['0x2', '20'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Check interface', async () => {
       const request: CheckInterfaceRequest = {
         poolLocator: ERC20_NO_DATA_POOL_ID,
         format: InterfaceFormat.ABI,
         methods: ERC20NoDataABI.abi,
       };
-
       const response: CheckInterfaceResponse = {
         approval: {
           format: InterfaceFormat.ABI,
@@ -682,7 +616,6 @@ export default (context: TestContext) => {
           ],
         },
       };
-
       await context.server.post('/checkinterface').send(request).expect(200).expect(response);
     });
   });

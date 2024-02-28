@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -18,7 +18,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { EventStream } from '../event-stream/event-stream.interfaces';
 import { EventStreamService } from '../event-stream/event-stream.service';
 import { EventStreamProxyGateway } from '../eventstream-proxy/eventstream-proxy.gateway';
-import { Context, newContext } from '../request-context/request-context.decorator';
+import { Context } from '../request-context/request-context.decorator';
 import {
   AsyncResponse,
   CheckInterfaceRequest,
@@ -64,6 +64,7 @@ import {
   Symbol as ERC721Symbol,
   DynamicMethods as ERC721Methods,
 } from './erc721';
+import { eventStreamName } from '../utils';
 
 @Injectable()
 export class TokensService {
@@ -71,7 +72,7 @@ export class TokensService {
 
   baseUrl: string;
   topic: string;
-  stream: EventStream;
+  streamCache: Map<string, EventStream> = new Map();
   factoryAddress = '';
 
   constructor(
@@ -85,35 +86,21 @@ export class TokensService {
     this.baseUrl = baseUrl;
     this.topic = topic;
     this.factoryAddress = factoryAddress.toLowerCase();
-    this.proxy.addConnectionListener(this);
     this.proxy.addEventListener(new TokenListener(this.mapper, this.blockchain));
-  }
-
-  async onConnect() {
     const wsUrl = new URL('/ws', this.baseUrl.replace('http', 'ws')).href;
-    const stream = await this.getStream(newContext());
-    this.proxy.configure(wsUrl, stream.name);
+    this.proxy.configure(wsUrl, this.topic);
   }
 
-  /**
-   * One-time initialization of event stream and base subscription.
-   */
-  async init(ctx: Context) {
-    this.stream = await this.getStream(ctx);
-    if (this.factoryAddress !== '') {
-      await this.createFactorySubscription(ctx, this.factoryAddress);
-    }
-  }
-
-  private async createFactorySubscription(ctx: Context, address: string) {
+  private async getOrCreateFactorySubscription(ctx: Context, address: string, namespace: string) {
     const eventABI = this.mapper.getCreateEvent();
     const methodABI = this.mapper.getCreateMethod();
-    if (eventABI !== undefined && methodABI !== undefined) {
+    const stream = await this.getStream(ctx, namespace);
+    if (eventABI !== undefined && methodABI !== undefined && stream !== undefined) {
       await this.eventstream.getOrCreateSubscription(
         ctx,
         this.baseUrl,
         eventABI,
-        this.stream.id,
+        stream.id,
         packSubscriptionName(address, eventABI.name),
         address,
         [methodABI],
@@ -122,15 +109,20 @@ export class TokensService {
     }
   }
 
-  private async getStream(ctx: Context) {
-    const stream = this.stream;
+  private async getStream(ctx: Context, namespace: string) {
+    let stream = this.streamCache.get(namespace);
     if (stream !== undefined) {
       return stream;
     }
     await this.migrationCheck(ctx);
-    this.logger.log('Creating stream with name ' + this.topic);
-    this.stream = await this.eventstream.createOrUpdateStream(ctx, this.topic, this.topic);
-    return this.stream;
+    this.logger.log('Creating stream with name ' + eventStreamName(this.topic, namespace));
+    stream = await this.eventstream.createOrUpdateStream(
+      ctx,
+      eventStreamName(this.topic, namespace),
+      this.topic,
+    );
+    this.streamCache.set(namespace, stream);
+    return stream;
   }
 
   /**
@@ -276,6 +268,7 @@ export class TokensService {
     }
 
     return {
+      namespace: dto.namespace,
       data: dto.data,
       poolLocator: packPoolLocator(poolLocator),
       standard: dto.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
@@ -296,7 +289,7 @@ export class TokensService {
     address: string,
     dto: TokenPool,
   ): Promise<AsyncResponse> {
-    await this.createFactorySubscription(ctx, address);
+    await this.getOrCreateFactorySubscription(ctx, address, dto.namespace);
     const { method, params } = await this.mapper.getCreateMethodAndParams(ctx, address, dto);
     const response = await this.blockchain.sendTransaction(
       ctx,
@@ -347,7 +340,7 @@ export class TokensService {
       poolLocator.type === TokenType.FUNGIBLE,
     );
     const eventAbis = this.getEventAbis(poolLocator);
-    const stream = await this.getStream(ctx);
+    const stream = await this.getStream(ctx, dto.namespace);
 
     const promises = [
       this.eventstream.getOrCreateSubscription(
@@ -389,6 +382,7 @@ export class TokensService {
 
     const poolInfo = await this.queryPool(ctx, poolLocator);
     const tokenPoolEvent: TokenPoolEvent = {
+      namespace: dto.namespace,
       poolData: dto.poolData,
       poolLocator: dto.poolLocator,
       standard: poolLocator.type === TokenType.FUNGIBLE ? 'ERC20' : 'ERC721',
@@ -412,7 +406,7 @@ export class TokensService {
       throw new BadRequestException('Invalid pool locator');
     }
 
-    const stream = await this.getStream(ctx);
+    const stream = await this.getStream(ctx, dto.namespace);
     const eventAbis = this.getEventAbis(poolLocator);
     const promises = [
       this.eventstream.deleteSubscriptionByName(

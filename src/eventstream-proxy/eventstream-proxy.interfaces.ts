@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -30,12 +30,9 @@ export interface EventListener {
 }
 
 export interface WebSocketMessageWithId extends WebSocketMessage {
+  namespace: string;
   id: string;
   batchNumber: number | undefined;
-}
-
-export interface AckMessageData {
-  id?: string;
 }
 
 export interface WebSocketMessageBatchData {

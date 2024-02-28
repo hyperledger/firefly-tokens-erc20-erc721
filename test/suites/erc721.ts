@@ -1,4 +1,4 @@
-// Copyright © 2021 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -83,7 +83,6 @@ export default (context: TestContext) => {
         }),
       );
   };
-
   const mockURIQuery = (withURI: boolean) => {
     context.http.post.mockReturnValueOnce(
       new FakeObservable(<EthConnectReturn>{
@@ -91,10 +90,10 @@ export default (context: TestContext) => {
       }),
     );
   };
-
   describe('ERC721WithData', () => {
     it('Create pool - correct fields', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -103,7 +102,6 @@ export default (context: TestContext) => {
         name: NAME,
         symbol: SYMBOL,
       };
-
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
         poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
@@ -116,17 +114,15 @@ export default (context: TestContext) => {
           schema: ERC721_WITH_DATA_SCHEMA,
         },
       });
-
       mockURIQuery(true);
       mockPoolQuery(undefined);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
       const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
-
     it('Create pool - base URI', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -135,7 +131,6 @@ export default (context: TestContext) => {
         name: NAME,
         symbol: SYMBOL,
       };
-
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
         poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_WITH_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
@@ -148,22 +143,19 @@ export default (context: TestContext) => {
           schema: ERC721_WITH_DATA_SCHEMA,
         },
       });
-
       mockURIQuery(true);
       mockPoolQuery(undefined);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
       const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
-
     it('Mint token', async () => {
       const request: TokenMint = {
+        namespace: 'ns1',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -173,29 +165,24 @@ export default (context: TestContext) => {
         method: ERC721WithDataV2ABI.abi.find(abi => abi.name === MINT_WITH_URI) as IAbiMethod,
         params: ['0x123', '0x00', ''],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Transfer token', async () => {
       const request: TokenTransfer = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -205,28 +192,23 @@ export default (context: TestContext) => {
         method: ERC721WithDataV2ABI.abi.find(abi => abi.name === TRANSFER_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '0x123', '721', '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Burn token', async () => {
       const request: TokenBurn = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         from: IDENTITY,
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -236,29 +218,24 @@ export default (context: TestContext) => {
         method: ERC721WithDataV2ABI.abi.find(abi => abi.name === BURN_WITH_DATA) as IAbiMethod,
         params: [IDENTITY, '721', '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Token approval for all', async () => {
       const request: TokenApproval = {
+        namespace: 'ns1',
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         signer: IDENTITY,
         operator: '2',
         approved: true,
         config: {},
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -270,29 +247,24 @@ export default (context: TestContext) => {
         ) as IAbiMethod,
         params: ['2', true, '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: '1',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Token approval for one', async () => {
       const request: TokenApproval = {
+        namespace: 'ns1',
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         signer: IDENTITY,
         operator: '2',
         approved: true,
         config: { tokenIndex: '5' },
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -302,24 +274,20 @@ export default (context: TestContext) => {
         method: ERC721WithDataV2ABI.abi.find(abi => abi.name === APPROVE_WITH_DATA) as IAbiMethod,
         params: ['2', '5', '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: '1',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
   });
-
   describe('ERC721NoData', () => {
     it('Create pool - correct fields', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -328,7 +296,6 @@ export default (context: TestContext) => {
         name: NAME,
         symbol: SYMBOL,
       };
-
       const expectedResponse = expect.objectContaining(<TokenPoolEvent>{
         data: `{"tx":${TX}}`,
         poolLocator: `address=${CONTRACT_ADDRESS}&schema=${ERC721_NO_DATA_SCHEMA}&type=${TokenType.NONFUNGIBLE}`,
@@ -341,23 +308,20 @@ export default (context: TestContext) => {
           schema: ERC721_NO_DATA_SCHEMA,
         },
       });
-
       mockURIQuery(false);
       mockURIQuery(false);
       mockPoolQuery(false);
       context.http.get = jest.fn(() => new FakeObservable(expectedResponse));
-
       const response = await context.server.post('/createpool').send(request).expect(200);
       expect(response.body).toEqual(expectedResponse);
     });
-
     it('Mint token', async () => {
       const request: TokenMint = {
+        namespace: 'ns1',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -367,29 +331,24 @@ export default (context: TestContext) => {
         method: ERC721NoDataABI.abi.find(abi => abi.name === MINT_NO_DATA) as IAbiMethod,
         params: ['0x123'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Transfer token', async () => {
       const request: TokenTransfer = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
         from: IDENTITY,
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -401,28 +360,23 @@ export default (context: TestContext) => {
         ) as IAbiMethod,
         params: [IDENTITY, '0x123', '721', '0x00'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/transfer').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Burn token', async () => {
       const request: TokenBurn = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
         from: IDENTITY,
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -432,29 +386,24 @@ export default (context: TestContext) => {
         method: ERC721NoDataABI.abi.find(abi => abi.name === BURN_NO_DATA) as IAbiMethod,
         params: ['721'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/burn').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Token approval for all', async () => {
       const request: TokenApproval = {
+        namespace: 'ns1',
         poolLocator: ERC721_NO_DATA_POOL_ID,
         signer: IDENTITY,
         operator: '2',
         approved: true,
         config: {},
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -464,29 +413,24 @@ export default (context: TestContext) => {
         method: ERC721NoDataABI.abi.find(abi => abi.name === APPROVE_FOR_ALL_NO_DATA) as IAbiMethod,
         params: ['2', true],
       };
-
       const response: EthConnectAsyncResponse = {
         id: '1',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Token approval for one', async () => {
       const request: TokenApproval = {
+        namespace: 'ns1',
         poolLocator: ERC721_NO_DATA_POOL_ID,
         signer: IDENTITY,
         operator: '2',
         approved: true,
         config: { tokenIndex: '5' },
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -496,20 +440,15 @@ export default (context: TestContext) => {
         method: ERC721NoDataABI.abi.find(abi => abi.name === APPROVE_NO_DATA) as IAbiMethod,
         params: ['2', '5'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: '1',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/approval').send(request).expect(202).expect({ id: '1' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Mint token - custom ABI', async () => {
       const safeMintAutoIndex = {
         name: 'safeMint',
@@ -524,8 +463,8 @@ export default (context: TestContext) => {
         ],
         outputs: [],
       };
-
       const request: TokenMint = {
+        namespace: 'ns1',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
@@ -534,7 +473,6 @@ export default (context: TestContext) => {
           methods: [safeMintAutoIndex],
         },
       };
-
       const mockEthConnectRequest: EthConnectMsgRequest = {
         headers: {
           type: 'SendTransaction',
@@ -544,27 +482,21 @@ export default (context: TestContext) => {
         method: safeMintAutoIndex,
         params: ['0x123'],
       };
-
       const response: EthConnectAsyncResponse = {
         id: 'responseId',
         sent: true,
       };
-
       context.http.post = jest.fn(() => new FakeObservable(response));
-
       await context.server.post('/mint').send(request).expect(202).expect({ id: 'responseId' });
-
       expect(context.http.post).toHaveBeenCalledTimes(1);
       expect(context.http.post).toHaveBeenCalledWith(BASE_URL, mockEthConnectRequest, OPTIONS);
     });
-
     it('Check interface', async () => {
       const request: CheckInterfaceRequest = {
         poolLocator: ERC721_NO_DATA_POOL_ID,
         format: InterfaceFormat.ABI,
         methods: ERC721NoDataABI.abi,
       };
-
       const response: CheckInterfaceResponse = {
         approval: {
           format: InterfaceFormat.ABI,
@@ -593,7 +525,6 @@ export default (context: TestContext) => {
           ],
         },
       };
-
       await context.server.post('/checkinterface').send(request).expect(200).expect(response);
     });
   });

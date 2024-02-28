@@ -69,3 +69,7 @@ export const getNestOptions = (): NestApplicationOptions => {
   }
   return options;
 };
+
+export const eventStreamName = (topic: string, namespace: string) => {
+  return `${topic}/${namespace}`;
+};

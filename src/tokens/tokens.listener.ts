@@ -1,4 +1,4 @@
-// Copyright © 2023 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -55,7 +55,10 @@ const approvalForAllEventSignature = 'ApprovalForAll(address,address,bool)';
 export class TokenListener implements EventListener {
   private readonly logger = new Logger(TokenListener.name);
 
-  constructor(private mapper: AbiMapperService, private blockchain: BlockchainConnectorService) {}
+  constructor(
+    private mapper: AbiMapperService,
+    private blockchain: BlockchainConnectorService,
+  ) {}
 
   async onEvent(subName: string, event: Event) {
     const signature = this.trimEventSignature(event.signature);
