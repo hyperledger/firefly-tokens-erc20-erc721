@@ -74,13 +74,15 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
     client.on('message', async (message: string) => {
       const action = JSON.parse(message) as WebSocketActionBase;
       switch (action.type) {
-        case 'start':
+        case 'start': {
           const startAction = action as WebSocketStart;
           this.startListening(client, startAction.namespace);
           break;
-        case 'ack':
+        }
+        case 'ack': {
           const ackAction = action as WebSocketAck;
           this.handleAck(client, ackAction);
+        }
       }
     });
   }
