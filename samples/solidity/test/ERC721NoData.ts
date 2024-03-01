@@ -36,7 +36,7 @@ describe('ERC721NoData - Unit Tests', async function () {
     // Signer B mint to Signer B (Not allowed)
     await expect(
       deployedERC721NoData.connect(signerB).safeMint(signerB.address),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC721NoData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC721NoData.balanceOf(signerB.address)).to.equal(0);
   });
@@ -56,7 +56,7 @@ describe('ERC721NoData - Unit Tests', async function () {
     // Signer B mint token to Signer B (Not allowed)
     await expect(
       deployedERC721NoData.connect(signerB).safeMint(signerB.address),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC721NoData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC721NoData.balanceOf(signerB.address)).to.equal(0);
   });
@@ -136,7 +136,7 @@ describe('ERC721NoData - Unit Tests', async function () {
       deployedERC721NoData
         .connect(deployerSignerA)
         ['safeTransferFrom(address,address,uint256)'](signerB.address, signerC.address, 1),
-    ).to.be.revertedWith('ERC721: caller is not token owner or approved');
+    ).to.be.revertedWithCustomError(deployedERC721NoData, 'ERC721InsufficientApproval');
 
     expect(await deployedERC721NoData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC721NoData.balanceOf(signerB.address)).to.equal(2);
@@ -213,12 +213,14 @@ describe('ERC721NoData - Unit Tests', async function () {
       .to.emit(deployedERC721NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, signerC.address, 3);
     // Signer B attempts to burn token from Signer A wallet (not allowed)
-    await expect(deployedERC721NoData.connect(signerB).burn(1)).to.be.revertedWith(
-      'ERC721: caller is not token owner or approved',
+    await expect(deployedERC721NoData.connect(signerB).burn(1)).to.be.revertedWithCustomError(
+      deployedERC721NoData,
+      'ERC721InsufficientApproval',
     );
     // Signer C attempts to burn token from Signer B wallet (not allowed)
-    await expect(deployedERC721NoData.connect(signerC).burn(2)).to.be.revertedWith(
-      'ERC721: caller is not token owner or approved',
+    await expect(deployedERC721NoData.connect(signerC).burn(2)).to.be.revertedWithCustomError(
+      deployedERC721NoData,
+      'ERC721InsufficientApproval',
     );
 
     expect(await deployedERC721NoData.balanceOf(deployerSignerA.address)).to.equal(1);

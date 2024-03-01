@@ -58,7 +58,7 @@ describe('ERC721WithData - Unit Tests', async function () {
     // Signer B mint token to Signer B (Not allowed)
     await expect(
       deployedERC721WithData.connect(signerB).mintWithData(signerB.address, '0x00'),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC721WithData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(0);
   });
@@ -137,7 +137,7 @@ describe('ERC721WithData - Unit Tests', async function () {
       deployedERC721WithData
         .connect(deployerSignerA)
         .transferWithData(signerB.address, signerC.address, 1, '0x00'),
-    ).to.be.revertedWith('ERC721: caller is not token owner or approved');
+    ).to.be.revertedWithCustomError(deployedERC721WithData, 'ERC721InsufficientApproval');
 
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(2);

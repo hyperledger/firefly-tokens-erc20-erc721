@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
-import { expect } from "chai";
-import { ethers } from "hardhat";
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 import { ERC20NoData } from '../typechain-types';
 
 describe('ERC20NoData - Unit Tests', async function () {
@@ -43,9 +43,9 @@ describe('ERC20NoData - Unit Tests', async function () {
   it('Mint - Non-deployer of contract should not be able to mint tokens', async function () {
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
     // Signer B mint to Signer B (Not allowed)
-    await expect(deployedERC20NoData.connect(signerB).mint(signerB.address, 20)).to.be.revertedWith(
-      'Ownable: caller is not the owner',
-    );
+    await expect(
+      deployedERC20NoData.connect(signerB).mint(signerB.address, 20),
+    ).to.be.revertedWithCustomError(deployedERC20NoData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
   });
@@ -162,11 +162,11 @@ describe('ERC20NoData - Unit Tests', async function () {
     // Signer B attempts to burn tokens from Signer A wallet (not allowed)
     await expect(
       deployedERC20NoData.connect(signerB).burnFrom(deployerSignerA.address, 10),
-    ).to.be.revertedWith('ERC20: insufficient allowance');
+    ).to.be.revertedWithCustomError(deployedERC20NoData, 'ERC20InsufficientAllowance');
     // Signer A attempts to burn tokens from Signer B wallet (not allowed)
     await expect(
       deployedERC20NoData.connect(deployerSignerA).burnFrom(signerB.address, 10),
-    ).to.be.revertedWith('ERC20: insufficient allowance');
+    ).to.be.revertedWithCustomError(deployedERC20NoData, 'ERC20InsufficientAllowance');
 
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(20);
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(20);

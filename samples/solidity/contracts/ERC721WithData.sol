@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Context.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
-import '@openzeppelin/contracts/utils/Counters.sol';
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import './IERC721WithData.sol';
 
@@ -25,9 +24,7 @@ import './IERC721WithData.sol';
  * This is a sample only and NOT a reference implementation.
  */
 contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
-    using Counters for Counters.Counter;
-
-    Counters.Counter private _tokenIdCounter;
+    uint256 private _nextTokenId = 1;
     string private _baseTokenURI;
 
     // Optional mapping for token URIs
@@ -37,10 +34,8 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         string memory name,
         string memory symbol,
         string memory baseTokenURI
-    ) ERC721(name, symbol) {
+    ) ERC721(name, symbol) Ownable(msg.sender) {
         _baseTokenURI = baseTokenURI;
-        // Start counting at 1
-        _tokenIdCounter.increment();
     }
 
     function supportsInterface(
@@ -52,8 +47,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
     }
 
     function mintWithData(address to, bytes calldata data) public virtual onlyOwner {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
+        uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId, data);
         _setTokenURI(tokenId, string(abi.encodePacked(_baseURI(), Strings.toString(tokenId))));
     }
@@ -63,8 +57,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
         bytes calldata data,
         string memory tokenURI_
     ) public virtual onlyOwner {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
+        uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId, data);
 
         // If there is no tokenURI passed, concatenate the tokenID to the base URI
@@ -112,14 +105,13 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), 'ERC721WithData: Token does not exist');
-
+        _requireOwned(tokenId);
         string memory uri = _tokenURIs[tokenId];
         return uri;
     }
 
     function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal {
-        require(_exists(tokenId), 'ERC721WithData: Token does not exist');
+        _requireOwned(tokenId);
         _tokenURIs[tokenId] = _tokenURI;
     }
 

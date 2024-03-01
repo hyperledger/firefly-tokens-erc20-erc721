@@ -25,7 +25,7 @@ import './IERC20WithData.sol';
  * This is a sample only and NOT a reference implementation.
  */
 contract ERC20WithData is Context, Ownable, ERC165, ERC20, IERC20WithData {
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) Ownable(msg.sender) {}
 
     function supportsInterface(
         bytes4 interfaceId
