@@ -1,7 +1,8 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { TokenFactory, InterfaceCheck } from '../typechain';
+import { TokenFactory, InterfaceCheck } from '../typechain-types';
+import { EventLog } from 'ethers';
 
 describe('TokenFactory - Unit Tests', function () {
   const contractName = 'testName';
@@ -18,7 +19,7 @@ describe('TokenFactory - Unit Tests', function () {
     Factory = await ethers.getContractFactory('TokenFactory');
     // Deploy token factory with Signer A
     deployedTokenFactory = await Factory.connect(deployerSignerA).deploy();
-    await deployedTokenFactory.deployed();
+    await deployedTokenFactory.waitForDeployment();
   });
 
   it('Verify interface ID', async function () {
@@ -31,7 +32,11 @@ describe('TokenFactory - Unit Tests', function () {
     const tx = await deployedTokenFactory.create(contractName, contractSymbol, true, '0x00', '');
     expect(tx).to.emit(deployedTokenFactory, 'TokenPoolCreation');
     const receipt = await tx.wait();
-    const event = receipt.events?.find(e => e.event === 'TokenPoolCreation');
+    expect(receipt).to.not.be.null;
+    const event = receipt?.logs?.find(e => {
+      const el = e as EventLog
+      return el.eventName === 'TokenPoolCreation'
+    }) as EventLog;
     expect(event).to.exist;
     if (event) {
       expect(event.args).to.have.length(5);
@@ -44,7 +49,11 @@ describe('TokenFactory - Unit Tests', function () {
     const tx = await deployedTokenFactory.create(contractName, contractSymbol, false, '0x00', '');
     expect(tx).to.emit(deployedTokenFactory, 'TokenPoolCreation');
     const receipt = await tx.wait();
-    const event = receipt.events?.find(e => e.event === 'TokenPoolCreation');
+    expect(receipt).to.not.be.null;
+    const event = receipt?.logs?.find(e => {
+      const el = e as EventLog
+      return el.eventName === 'TokenPoolCreation'
+    }) as EventLog;
     expect(event).to.exist;
     if (event) {
       expect(event.args).to.have.length(5);
@@ -57,7 +66,11 @@ describe('TokenFactory - Unit Tests', function () {
     const tx = await deployedTokenFactory.create(contractName, contractSymbol, false, '0x00', 'testURI');
     expect(tx).to.emit(deployedTokenFactory, 'TokenPoolCreation');
     const receipt = await tx.wait();
-    const event = receipt.events?.find(e => e.event === 'TokenPoolCreation');
+    expect(receipt).to.not.be.null;
+    const event = receipt?.logs?.find(e => {
+      const el = e as EventLog
+      return el.eventName === 'TokenPoolCreation'
+    }) as EventLog;
     expect(event).to.exist;
     if (event) {
       expect(event.args).to.have.length(5);
