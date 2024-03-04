@@ -35,7 +35,7 @@ describe('ERC721WithData - Unit Tests', async function () {
   it('Create - Should create a new ERC721 instance with default state', async function () {
     expect(await deployedERC721WithData.name()).to.equal(contractName);
     expect(await deployedERC721WithData.symbol()).to.equal(contractSymbol);
-    expect(await deployedERC721WithData.baseTokenUri()).to.equal('firefly://token/');
+    expect(await deployedERC721WithData.baseTokenUri()).to.equal('');
   });
 
   it('Mint - Should mint successfully with a custom URI', async function () {
@@ -73,7 +73,6 @@ describe('ERC721WithData - Unit Tests', async function () {
       .to.emit(deployedERC721WithData, 'Transfer')
       .withArgs(ZERO_ADDRESS, deployerSignerA.address, 1);
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(1);
-    expect(await deployedERC721WithData.tokenURI(1)).to.equal('firefly://token/1');
     // Signer A transfer token to Signer B
     await expect(
       deployedERC721WithData
@@ -243,38 +242,6 @@ describe('ERC721WithData - Unit Tests', async function () {
     await expect(
       deployedERC721WithData.connect(signerC).burnWithData(signerB.address, 2, '0x00'),
     ).to.be.revertedWith('ERC721WithData: caller is not owner');
-
-    expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(1);
-    expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(1);
-    expect(await deployedERC721WithData.balanceOf(signerC.address)).to.equal(1);
-  });
-
-  it("URI - Minted token URIs should be 'firefly://token/<tokenId>'", async function () {
-    expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(0);
-    expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(0);
-    expect(await deployedERC721WithData.balanceOf(signerC.address)).to.equal(0);
-    // Signer A mints token to itself
-    await expect(
-      deployedERC721WithData.connect(deployerSignerA).mintWithData(deployerSignerA.address, '0x00'),
-    )
-      .to.emit(deployedERC721WithData, 'Transfer')
-      .withArgs(ZERO_ADDRESS, deployerSignerA.address, 1);
-    // Signer A mints token to Signer B
-    await expect(
-      deployedERC721WithData.connect(deployerSignerA).mintWithData(signerB.address, '0x00'),
-    )
-      .to.emit(deployedERC721WithData, 'Transfer')
-      .withArgs(ZERO_ADDRESS, signerB.address, 2);
-    // Signer A mints token to Signer C
-    await expect(
-      deployedERC721WithData.connect(deployerSignerA).mintWithData(signerC.address, '0x00'),
-    )
-      .to.emit(deployedERC721WithData, 'Transfer')
-      .withArgs(ZERO_ADDRESS, signerC.address, 3);
-
-    expect(await deployedERC721WithData.tokenURI(1)).to.equal('firefly://token/1');
-    expect(await deployedERC721WithData.tokenURI(2)).to.equal('firefly://token/2');
-    expect(await deployedERC721WithData.tokenURI(3)).to.equal('firefly://token/3');
 
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(1);
     expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(1);

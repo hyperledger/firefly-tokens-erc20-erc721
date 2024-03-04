@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Context.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol';
 import './IERC721WithData.sol';
 
 /**
@@ -23,12 +23,9 @@ import './IERC721WithData.sol';
  *
  * This is a sample only and NOT a reference implementation.
  */
-contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
+contract ERC721WithData is Context, Ownable, ERC721URIStorage, IERC721WithData {
     uint256 private _nextTokenId = 1;
     string private _baseTokenURI;
-
-    // Optional mapping for token URIs
-    mapping(uint256 => string) private _tokenURIs;
 
     constructor(
         string memory name,
@@ -40,7 +37,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC721, IERC165) returns (bool) {
+    ) public view virtual override(ERC721URIStorage, IERC165) returns (bool) {
         return
             interfaceId == type(IERC721WithData).interfaceId ||
             super.supportsInterface(interfaceId);
@@ -96,23 +93,7 @@ contract ERC721WithData is Context, Ownable, ERC721, IERC721WithData {
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
-        bytes memory tempURITest = bytes(_baseTokenURI);
-        if (tempURITest.length == 0) {
-            return 'firefly://token/';
-        } else {
-            return _baseTokenURI;
-        }
-    }
-
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        _requireOwned(tokenId);
-        string memory uri = _tokenURIs[tokenId];
-        return uri;
-    }
-
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal {
-        _requireOwned(tokenId);
-        _tokenURIs[tokenId] = _tokenURI;
+        return _baseTokenURI;
     }
 
     function baseTokenUri() public view virtual override returns (string memory) {
