@@ -47,7 +47,7 @@ describe('ERC20WithData - Unit Tests', async function () {
     // Signer B mint to Signer B (Not allowed)
     await expect(
       deployedERC20WithData.connect(signerB).mintWithData(signerB.address, 20, '0x00'),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC20WithData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(0);
   });
@@ -57,7 +57,7 @@ describe('ERC20WithData - Unit Tests', async function () {
     // Signer B mint to Signer B (Not allowed)
     await expect(
       deployedERC20WithData.connect(signerB).mintWithData(signerB.address, 20, '0x00'),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC20WithData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(0);
   });
@@ -142,7 +142,7 @@ describe('ERC20WithData - Unit Tests', async function () {
       deployedERC20WithData
         .connect(deployerSignerA)
         .transferWithData(signerB.address, signerC.address, 11, '0x00'),
-    ).to.be.revertedWith('ERC20: insufficient allowance');
+    ).to.be.revertedWithCustomError(deployedERC20WithData, 'ERC20InsufficientAllowance');
 
     expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(20);
