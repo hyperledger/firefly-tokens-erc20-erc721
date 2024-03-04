@@ -129,7 +129,7 @@ The easiest way to run this service is as part of a stack created via
 
 To run manually, you first need to run an Ethereum blockchain node and an instance of
 [firefly-ethconnect](https://github.com/hyperledger/firefly-ethconnect), and deploy the
-[ERC20 smart contract](solidity/contracts/ERC20MixedFungible.sol).
+[ERC20 smart contract](samples/solidity/contracts/ERC20NoData.sol).
 
 Then, adjust your configuration to point at the deployed contract by editing [.env](.env)
 or by setting the environment values directly in your shell.
