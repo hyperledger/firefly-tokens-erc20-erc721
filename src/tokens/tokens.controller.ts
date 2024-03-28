@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -36,13 +36,16 @@ import { TokensService } from './tokens.service';
 
 @Controller()
 export class TokensController {
-  constructor(private service: TokensService, private blockchain: BlockchainConnectorService) {}
+  constructor(
+    private service: TokensService,
+    private blockchain: BlockchainConnectorService,
+  ) {}
 
   @Post('init')
   @HttpCode(204)
   @ApiOperation({ summary: 'Perform one-time initialization (if not auto-initialized)' })
   init(@RequestContext() ctx: Context) {
-    return this.service.init(ctx);
+    // Do nothing. Endpoint retained for backwards compatibility with older tooling.
   }
 
   @Post('createpool')

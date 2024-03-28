@@ -18,7 +18,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
  * This is a sample only and NOT a reference implementation.
  */
 contract ERC20NoData is Context, Ownable, ERC20, ERC20Burnable {
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) Ownable(msg.sender) {}
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);

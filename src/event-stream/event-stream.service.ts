@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -20,9 +20,9 @@ import { AxiosRequestConfig } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import WebSocket from 'ws';
 import { FFRequestIDHeader } from '../request-context/constants';
-import { Context } from '../request-context/request-context.decorator';
+import { Context, newContext } from '../request-context/request-context.decorator';
 import { IAbiMethod } from '../tokens/tokens.interfaces';
-import { getHttpRequestOptions, getWebsocketOptions } from '../utils';
+import { eventStreamName, getHttpRequestOptions, getWebsocketOptions } from '../utils';
 import {
   Event,
   EventBatch,
@@ -46,6 +46,7 @@ export class EventStreamSocket {
   constructor(
     private url: string,
     private topic: string,
+    private namespace: string,
     private username: string,
     private password: string,
     private handleEvents: (events: EventBatch) => void,
@@ -67,7 +68,7 @@ export class EventStreamSocket {
         } else {
           this.logger.log('Event stream websocket connected');
         }
-        this.produce({ type: 'listen', topic: this.topic });
+        this.produce({ type: 'listen', topic: eventStreamName(this.topic, this.namespace) });
         this.produce({ type: 'listenreplies' });
         this.ping();
       })
@@ -83,6 +84,7 @@ export class EventStreamSocket {
         }
       })
       .on('message', (message: string) => {
+        this.logger.verbose(`WS => ${message}`);
         this.handleMessage(JSON.parse(message));
       })
       .on('pong', () => {
@@ -109,7 +111,11 @@ export class EventStreamSocket {
   }
 
   ack(batchNumber: number | undefined) {
-    this.produce({ type: 'ack', topic: this.topic, batchNumber });
+    this.produce({ type: 'ack', topic: eventStreamName(this.topic, this.namespace), batchNumber });
+  }
+
+  nack(batchNumber: number | undefined) {
+    this.produce({ type: 'nack', topic: eventStreamName(this.topic, this.namespace), batchNumber });
   }
 
   close() {
@@ -193,13 +199,27 @@ export class EventStreamService {
       batchSize: 50,
       batchTimeoutMS: 500,
       type: 'websocket',
-      websocket: { topic },
+      websocket: { topic: name },
       blockedReryDelaySec: 30, // intentional due to spelling error in ethconnect
       inputs: true,
       timestamps: true,
     };
 
     const existingStreams = await this.getStreams(ctx);
+
+    // Check to see if there is a deprecated stream that we should remove
+    this.logger.debug(`Checking for deprecated event steam with topic '${topic}'`);
+    const deprecatedStream = existingStreams.find(s => s.name === topic);
+    if (deprecatedStream) {
+      this.logger.log(`Purging deprecated eventstream '${deprecatedStream.id}'`);
+      await lastValueFrom(
+        this.http.delete(
+          new URL(`/eventstreams/${deprecatedStream.id}`, this.baseUrl).href,
+          this.requestOptions(ctx),
+        ),
+      );
+    }
+
     const stream = existingStreams.find(s => s.name === streamDetails.name);
     if (stream) {
       const patchedStreamRes = await lastValueFrom(
@@ -331,15 +351,20 @@ export class EventStreamService {
     return true;
   }
 
-  connect(
+  async connect(
     url: string,
     topic: string,
+    namespace: string,
     handleEvents: (events: EventBatch) => void,
     handleReceipt: (receipt: EventStreamReply) => void,
   ) {
+    const name = eventStreamName(topic, namespace);
+    await this.createOrUpdateStream(newContext(), name, topic);
+
     return new EventStreamSocket(
       url,
       topic,
+      namespace,
       this.username,
       this.password,
       handleEvents,

@@ -1,6 +1,6 @@
 import { Server } from 'http';
 import { Observer } from 'rxjs';
-import { AxiosResponse } from 'axios';
+import { AxiosResponse, AxiosHeaders } from 'axios';
 import { HttpService } from '@nestjs/axios';
 import request from 'superwstest';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -27,16 +27,28 @@ export class TestContext {
   };
   eventHandler: (events: EventBatch) => void;
   receiptHandler: (receipt: EventStreamReply) => void;
+  connected: Promise<void>;
+  private resolveConnected: () => void;
+  private rejectConnected: () => void;
+
+  resetConnectedPromise() {
+    this.connected = new Promise<void>((resolve, reject) => {
+      this.resolveConnected = resolve;
+      this.rejectConnected = reject;
+    });
+  }
 
   eventstream = {
     connect: (
       url: string,
       topic: string,
+      namespace: string,
       handleEvents: (events: EventBatch) => void,
       handleReceipt: (receipt: EventStreamReply) => void,
     ) => {
       this.eventHandler = handleEvents;
       this.receiptHandler = handleReceipt;
+      this.resolveConnected();
     },
 
     getStreams: jest.fn(),
@@ -85,6 +97,7 @@ export class TestContext {
 
     (this.app.getHttpServer() as Server).listen();
     this.server = request(this.app.getHttpServer());
+    this.resetConnectedPromise();
   }
 
   async end() {
@@ -101,7 +114,7 @@ export class FakeObservable<T> {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {},
+        config: { headers: new AxiosHeaders() },
         data: this.data,
       });
     observer?.complete && observer?.complete();

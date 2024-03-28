@@ -1,13 +1,12 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { ERC20NoData } from '../typechain';
+import { ERC20NoData } from '../typechain-types';
 
-describe('ERC20NoData - Unit Tests', function () {
+describe('ERC20NoData - Unit Tests', async function () {
   const contractName = 'testName';
   const contractSymbol = 'testSymbol';
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-  const ONE_ADDRESS = '0x1111111111111111111111111111111111111111';
   let deployedERC20NoData: ERC20NoData;
   let Factory;
 
@@ -23,7 +22,7 @@ describe('ERC20NoData - Unit Tests', function () {
       contractName,
       contractSymbol,
     );
-    await deployedERC20NoData.deployed();
+    await deployedERC20NoData.waitForDeployment();
   });
 
   it('Create - Should create a new ERC20 instance with default state', async function () {
@@ -44,19 +43,11 @@ describe('ERC20NoData - Unit Tests', function () {
   it('Mint - Non-deployer of contract should not be able to mint tokens', async function () {
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
     // Signer B mint to Signer B (Not allowed)
-    await expect(deployedERC20NoData.connect(signerB).mint(signerB.address, 20)).to.be.revertedWith(
-      'Ownable: caller is not the owner',
-    );
+    await expect(
+      deployedERC20NoData.connect(signerB).mint(signerB.address, 20),
+    ).to.be.revertedWithCustomError(deployedERC20NoData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
-  });
-
-  it('Mint - Non-signing address should not be able to mint tokens', async function () {
-    expect(await deployedERC20NoData.balanceOf(ONE_ADDRESS)).to.equal(0);
-    // Non-signer mint to non-signer (Not allowed)
-    await expect(deployedERC20NoData.connect(ONE_ADDRESS).mint(ONE_ADDRESS, 20)).to.be.reverted;
-
-    expect(await deployedERC20NoData.balanceOf(ONE_ADDRESS)).to.equal(0);
   });
 
   it('Transfer - Signer should transfer tokens to another signer', async function () {
@@ -171,11 +162,11 @@ describe('ERC20NoData - Unit Tests', function () {
     // Signer B attempts to burn tokens from Signer A wallet (not allowed)
     await expect(
       deployedERC20NoData.connect(signerB).burnFrom(deployerSignerA.address, 10),
-    ).to.be.revertedWith('ERC20: insufficient allowance');
+    ).to.be.revertedWithCustomError(deployedERC20NoData, 'ERC20InsufficientAllowance');
     // Signer A attempts to burn tokens from Signer B wallet (not allowed)
     await expect(
       deployedERC20NoData.connect(deployerSignerA).burnFrom(signerB.address, 10),
-    ).to.be.revertedWith('ERC20: insufficient allowance');
+    ).to.be.revertedWithCustomError(deployedERC20NoData, 'ERC20InsufficientAllowance');
 
     expect(await deployedERC20NoData.balanceOf(deployerSignerA.address)).to.equal(20);
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(20);

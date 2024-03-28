@@ -1,13 +1,12 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { ERC721NoData } from '../typechain';
+import { ERC721NoData } from '../typechain-types';
 
-describe('ERC721NoData - Unit Tests', function () {
+describe('ERC721NoData - Unit Tests', async function () {
   const contractName = 'testName';
   const contractSymbol = 'testSymbol';
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-  const ONE_ADDRESS = '0x1111111111111111111111111111111111111111';
   let deployedERC721NoData: ERC721NoData;
   let Factory;
 
@@ -23,7 +22,7 @@ describe('ERC721NoData - Unit Tests', function () {
       contractName,
       contractSymbol,
     );
-    await deployedERC721NoData.deployed();
+    await deployedERC721NoData.waitForDeployment();
   });
 
   it('Create - Should create a new ERC721 instance with default state', async function () {
@@ -37,7 +36,7 @@ describe('ERC721NoData - Unit Tests', function () {
     // Signer B mint to Signer B (Not allowed)
     await expect(
       deployedERC721NoData.connect(signerB).safeMint(signerB.address),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC721NoData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC721NoData.balanceOf(signerB.address)).to.equal(0);
   });
@@ -57,17 +56,9 @@ describe('ERC721NoData - Unit Tests', function () {
     // Signer B mint token to Signer B (Not allowed)
     await expect(
       deployedERC721NoData.connect(signerB).safeMint(signerB.address),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC721NoData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC721NoData.balanceOf(signerB.address)).to.equal(0);
-  });
-
-  it('Mint - Non-signing address should not be able to mint tokens', async function () {
-    expect(await deployedERC721NoData.balanceOf(ONE_ADDRESS)).to.equal(0);
-    // Non-signer mint token to non-signer (Not allowed)
-    await expect(deployedERC721NoData.connect(ONE_ADDRESS).safeMint(ONE_ADDRESS)).to.be.reverted;
-
-    expect(await deployedERC721NoData.balanceOf(ONE_ADDRESS)).to.equal(0);
   });
 
   it('Transfer+Burn - Signer should transfer tokens to another signer, who may then burn', async function () {
@@ -145,7 +136,7 @@ describe('ERC721NoData - Unit Tests', function () {
       deployedERC721NoData
         .connect(deployerSignerA)
         ['safeTransferFrom(address,address,uint256)'](signerB.address, signerC.address, 1),
-    ).to.be.revertedWith('ERC721: caller is not token owner nor approved');
+    ).to.be.revertedWithCustomError(deployedERC721NoData, 'ERC721InsufficientApproval');
 
     expect(await deployedERC721NoData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC721NoData.balanceOf(signerB.address)).to.equal(2);
@@ -222,12 +213,14 @@ describe('ERC721NoData - Unit Tests', function () {
       .to.emit(deployedERC721NoData, 'Transfer')
       .withArgs(ZERO_ADDRESS, signerC.address, 3);
     // Signer B attempts to burn token from Signer A wallet (not allowed)
-    await expect(deployedERC721NoData.connect(signerB).burn(1)).to.be.revertedWith(
-      'ERC721: caller is not token owner nor approved',
+    await expect(deployedERC721NoData.connect(signerB).burn(1)).to.be.revertedWithCustomError(
+      deployedERC721NoData,
+      'ERC721InsufficientApproval',
     );
     // Signer C attempts to burn token from Signer B wallet (not allowed)
-    await expect(deployedERC721NoData.connect(signerC).burn(2)).to.be.revertedWith(
-      'ERC721: caller is not token owner nor approved',
+    await expect(deployedERC721NoData.connect(signerC).burn(2)).to.be.revertedWithCustomError(
+      deployedERC721NoData,
+      'ERC721InsufficientApproval',
     );
 
     expect(await deployedERC721NoData.balanceOf(deployerSignerA.address)).to.equal(1);

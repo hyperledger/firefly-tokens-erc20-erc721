@@ -1,13 +1,12 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { ERC20WithData, InterfaceCheck } from '../typechain';
+import { ERC20WithData, InterfaceCheck } from '../typechain-types';
 
-describe('ERC20WithData - Unit Tests', function () {
+describe('ERC20WithData - Unit Tests', async function () {
   const contractName = 'testName';
   const contractSymbol = 'testSymbol';
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-  const ONE_ADDRESS = '0x1111111111111111111111111111111111111111';
   let deployedERC20WithData: ERC20WithData;
   let Factory;
 
@@ -23,7 +22,7 @@ describe('ERC20WithData - Unit Tests', function () {
       contractName,
       contractSymbol,
     );
-    await deployedERC20WithData.deployed();
+    await deployedERC20WithData.waitForDeployment();
   });
 
   it('Verify interface ID', async function () {
@@ -48,7 +47,7 @@ describe('ERC20WithData - Unit Tests', function () {
     // Signer B mint to Signer B (Not allowed)
     await expect(
       deployedERC20WithData.connect(signerB).mintWithData(signerB.address, 20, '0x00'),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC20WithData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(0);
   });
@@ -58,18 +57,9 @@ describe('ERC20WithData - Unit Tests', function () {
     // Signer B mint to Signer B (Not allowed)
     await expect(
       deployedERC20WithData.connect(signerB).mintWithData(signerB.address, 20, '0x00'),
-    ).to.be.revertedWith('Ownable: caller is not the owner');
+    ).to.be.revertedWithCustomError(deployedERC20WithData, 'OwnableUnauthorizedAccount');
 
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(0);
-  });
-
-  it('Mint - Non-signing address should not be able to mint tokens', async function () {
-    expect(await deployedERC20WithData.balanceOf(ONE_ADDRESS)).to.equal(0);
-    // Non-signer mint to non-signer (Not allowed)
-    await expect(deployedERC20WithData.connect(ONE_ADDRESS).mintWithData(ONE_ADDRESS, 20, '0x00'))
-      .to.be.reverted;
-
-    expect(await deployedERC20WithData.balanceOf(ONE_ADDRESS)).to.equal(0);
   });
 
   it('Transfer+Burn - Signer should transfer tokens to another signer, who may then burn', async function () {
@@ -152,7 +142,7 @@ describe('ERC20WithData - Unit Tests', function () {
       deployedERC20WithData
         .connect(deployerSignerA)
         .transferWithData(signerB.address, signerC.address, 11, '0x00'),
-    ).to.be.revertedWith('ERC20: insufficient allowance');
+    ).to.be.revertedWithCustomError(deployedERC20WithData, 'ERC20InsufficientAllowance');
 
     expect(await deployedERC20WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(20);

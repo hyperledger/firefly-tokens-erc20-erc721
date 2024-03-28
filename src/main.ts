@@ -1,4 +1,4 @@
-// Copyright © 2022 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -78,7 +78,6 @@ async function bootstrap() {
   const ethConnectUrl = config.get<string>('ETHCONNECT_URL', '');
   const fftmUrl = config.get<string>('FFTM_URL', ''); // Optional. Currently used only for SendTransaction API calls when set
   const topic = config.get<string>('ETHCONNECT_TOPIC', 'tokenERC20ERC721');
-  const autoInit = config.get<string>('AUTO_INIT', 'true');
   const username = config.get<string>('ETHCONNECT_USERNAME', '');
   const password = config.get<string>('ETHCONNECT_PASSWORD', '');
   const factoryAddress = config.get<string>('FACTORY_CONTRACT_ADDRESS', '');
@@ -106,10 +105,6 @@ async function bootstrap() {
     .get(BlockchainConnectorService)
     .configure(ethConnectUrl, fftmUrl, username, password, passthroughHeaders, blockchainRetryCfg);
   app.get(AbiMapperService).configure(legacyERC20, legacyERC721);
-
-  if (autoInit.toLowerCase() !== 'false') {
-    await app.get(TokensService).init(newContext());
-  }
 
   const port = config.get<number>('PORT', 3000);
   console.log(`Listening on port ${port}`);

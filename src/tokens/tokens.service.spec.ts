@@ -1,4 +1,4 @@
-// Copyright © 2023 Kaleido, Inc.
+// Copyright © 2024 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -230,6 +230,7 @@ describe('TokensService', () => {
           useValue: {
             addConnectionListener: jest.fn(),
             addEventListener: jest.fn(),
+            configure: jest.fn(),
           },
         },
       ],
@@ -263,6 +264,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -276,6 +278,7 @@ describe('TokensService', () => {
 
       await service.createPool(ctx, request).then(resp => {
         expect(resp).toEqual({
+          namespace: 'ns1',
           data: `{"tx":${TX}}`,
           poolLocator: ERC20_NO_DATA_POOL_ID,
           standard: 'ERC20',
@@ -296,6 +299,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPoolActivate = {
+        namespace: 'ns1',
         poolLocator: ERC20_NO_DATA_POOL_ID,
         poolData: 'ns1',
       };
@@ -306,6 +310,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
+        namespace: 'ns1',
         poolData: 'ns1',
         poolLocator: ERC20_NO_DATA_POOL_ID,
         standard: 'ERC20',
@@ -350,6 +355,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenMint = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_NO_DATA_POOL_ID,
@@ -385,6 +391,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenTransfer = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_NO_DATA_POOL_ID,
@@ -421,6 +428,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenBurn = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_NO_DATA_POOL_ID,
@@ -455,6 +463,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -468,6 +477,7 @@ describe('TokensService', () => {
 
       await service.createPool(ctx, request).then(resp => {
         expect(resp).toEqual({
+          namespace: 'ns1',
           data: `{"tx":${TX}}`,
           poolLocator: ERC20_WITH_DATA_POOL_ID,
           standard: 'ERC20',
@@ -488,6 +498,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.FUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -501,6 +512,7 @@ describe('TokensService', () => {
 
       await service.createPool(ctx, request).then(resp => {
         expect(resp).toEqual({
+          namespace: 'ns1',
           data: `{"tx":${TX}}`,
           poolLocator: ERC20_WITH_DATA_POOL_ID,
           standard: 'ERC20',
@@ -521,6 +533,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPoolActivate = {
+        namespace: 'ns1',
         poolLocator: ERC20_WITH_DATA_POOL_ID,
         poolData: 'ns1',
       };
@@ -531,6 +544,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
+        namespace: 'ns1',
         poolData: 'ns1',
         poolLocator: ERC20_WITH_DATA_POOL_ID,
         standard: 'ERC20',
@@ -575,6 +589,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenMint = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_WITH_DATA_POOL_ID,
@@ -610,6 +625,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenTransfer = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_WITH_DATA_POOL_ID,
@@ -646,6 +662,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenBurn = {
+        namespace: 'ns1',
         amount: '20',
         signer: IDENTITY,
         poolLocator: ERC20_WITH_DATA_POOL_ID,
@@ -680,6 +697,7 @@ describe('TokensService', () => {
 
     it('should return ERC721NoData pool details successfully', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -695,6 +713,7 @@ describe('TokensService', () => {
 
       await service.createPool(ctx, request).then(resp => {
         expect(resp).toEqual({
+          namespace: 'ns1',
           data: `{"tx":${TX}}`,
           poolLocator: ERC721_NO_DATA_POOL_ID,
           standard: 'ERC721',
@@ -715,6 +734,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPoolActivate = {
+        namespace: 'ns1',
         poolLocator: ERC721_NO_DATA_POOL_ID,
         poolData: 'ns1',
       };
@@ -725,6 +745,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
+        namespace: 'ns1',
         poolData: 'ns1',
         poolLocator: ERC721_NO_DATA_POOL_ID,
         standard: 'ERC721',
@@ -767,6 +788,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenMint = {
+        namespace: 'ns1',
         amount: '2',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
@@ -784,6 +806,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenMint = {
+        namespace: 'ns1',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
         to: '0x123',
@@ -818,6 +841,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenTransfer = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
@@ -856,6 +880,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenBurn = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_NO_DATA_POOL_ID,
@@ -890,6 +915,7 @@ describe('TokensService', () => {
 
     it('should return ERC721WithData pool details successfully - implicit withData config', async () => {
       const request: TokenPool = {
+        namespace: 'ns1',
         type: TokenType.NONFUNGIBLE,
         requestId: REQUEST,
         signer: IDENTITY,
@@ -904,6 +930,7 @@ describe('TokensService', () => {
 
       await service.createPool(ctx, request).then(resp => {
         expect(resp).toEqual({
+          namespace: 'ns1',
           data: `{"tx":${TX}}`,
           poolLocator: ERC721_WITH_DATA_POOL_ID,
           standard: 'ERC721',
@@ -924,6 +951,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPoolActivate = {
+        namespace: 'ns1',
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         poolData: 'ns1',
       };
@@ -934,6 +962,7 @@ describe('TokensService', () => {
       };
 
       const response: TokenPoolEvent = {
+        namespace: 'ns1',
         poolData: 'ns1',
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         standard: 'ERC721',
@@ -975,6 +1004,7 @@ describe('TokensService', () => {
     it('should not mint ERC721WithData token due to invalid amount', async () => {
       const ctx = newContext();
       const request: TokenMint = {
+        namespace: 'ns1',
         amount: '2',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
@@ -992,6 +1022,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenMint = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_V1_POOL_ID,
@@ -1030,6 +1061,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenMint = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_V1_POOL_ID,
@@ -1069,6 +1101,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenMint = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_V1_POOL_ID,
@@ -1112,6 +1145,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenMint = {
+        namespace: 'ns1',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
         to: '0x123',
@@ -1149,6 +1183,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenTransfer = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
@@ -1185,6 +1220,7 @@ describe('TokensService', () => {
       };
 
       const request: TokenBurn = {
+        namespace: 'ns1',
         tokenIndex: '721',
         signer: IDENTITY,
         poolLocator: ERC721_WITH_DATA_POOL_ID,
@@ -1219,6 +1255,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPoolActivate = {
+        namespace: 'ns1',
         poolLocator: 'address=0x123&standard=notAStandard&type=fungible',
         poolData: 'ns1',
       };
@@ -1231,6 +1268,7 @@ describe('TokensService', () => {
       const ctx = newContext();
 
       const request: TokenPoolActivate = {
+        namespace: 'ns1',
         poolLocator: 'address=0x123&type=fungible',
         poolData: 'ns1',
       };
