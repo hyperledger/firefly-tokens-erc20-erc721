@@ -7,7 +7,7 @@ ADD --chown=node:node . .
 RUN npm run build
 
 FROM node:20-alpine3.17 as solidity-build
-RUN apk add python3=3.10.13-r0 alpine-sdk=1.0-r1
+RUN apk add python3=3.10.14-r1 alpine-sdk=1.0-r1
 USER node
 WORKDIR /home/node
 ADD --chown=node:node ./samples/solidity/package*.json ./
