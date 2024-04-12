@@ -21,13 +21,16 @@ export class HealthController {
   @HealthCheck()
   readiness() {
     return this.health.check([
-      () =>
-        this.http.pingCheck('ethconnect', `${this.blockchain.baseUrl}/status`, {
-          auth: {
-            username: this.blockchain.username,
-            password: this.blockchain.password,
-          },
-        }),
+      () => {
+        const httpOptions = getHttpRequestOptions(
+          this.blockchain.username,
+          this.blockchain.password,
+        );
+        return this.http.pingCheck('ethconnect', `${this.blockchain.baseUrl}/status`, {
+          auth: httpOptions.auth,
+          httpAgent: httpOptions.httpAgent,
+        });
+      },
     ]);
   }
 }

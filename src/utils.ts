@@ -46,7 +46,7 @@ export const getWebsocketOptions = (username: string, password: string): ClientO
   return requestOptions;
 };
 
-export const getHttpRequestOptions = (username: string, password: string) => {
+export const getHttpRequestOptions = (username: string, password: string):AxiosRequestConfig => {
   const requestOptions: AxiosRequestConfig = {};
   if (username !== '' && password !== '') {
     requestOptions.auth = {
