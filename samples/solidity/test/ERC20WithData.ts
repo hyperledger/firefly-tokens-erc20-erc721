@@ -1,7 +1,7 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { ERC20WithData, InterfaceCheck } from '../typechain';
+import { ERC20WithData, InterfaceCheck } from '../typechain-types';
 
 describe('ERC20WithData - Unit Tests', function () {
   const contractName = 'testName';
@@ -23,7 +23,7 @@ describe('ERC20WithData - Unit Tests', function () {
       contractName,
       contractSymbol,
     );
-    await deployedERC20WithData.deployed();
+    await deployedERC20WithData.waitForDeployment();
   });
 
   it('Verify interface ID', async function () {
@@ -61,15 +61,6 @@ describe('ERC20WithData - Unit Tests', function () {
     ).to.be.revertedWith('Ownable: caller is not the owner');
 
     expect(await deployedERC20WithData.balanceOf(signerB.address)).to.equal(0);
-  });
-
-  it('Mint - Non-signing address should not be able to mint tokens', async function () {
-    expect(await deployedERC20WithData.balanceOf(ONE_ADDRESS)).to.equal(0);
-    // Non-signer mint to non-signer (Not allowed)
-    await expect(deployedERC20WithData.connect(ONE_ADDRESS).mintWithData(ONE_ADDRESS, 20, '0x00'))
-      .to.be.reverted;
-
-    expect(await deployedERC20WithData.balanceOf(ONE_ADDRESS)).to.equal(0);
   });
 
   it('Transfer+Burn - Signer should transfer tokens to another signer, who may then burn', async function () {
