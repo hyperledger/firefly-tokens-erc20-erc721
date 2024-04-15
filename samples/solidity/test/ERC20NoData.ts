@@ -1,7 +1,7 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { ERC20NoData } from '../typechain';
+import { ERC20NoData } from '../typechain-types';
 
 describe('ERC20NoData - Unit Tests', function () {
   const contractName = 'testName';
@@ -23,7 +23,7 @@ describe('ERC20NoData - Unit Tests', function () {
       contractName,
       contractSymbol,
     );
-    await deployedERC20NoData.deployed();
+    await deployedERC20NoData.waitForDeployment();
   });
 
   it('Create - Should create a new ERC20 instance with default state', async function () {
@@ -49,14 +49,6 @@ describe('ERC20NoData - Unit Tests', function () {
     );
 
     expect(await deployedERC20NoData.balanceOf(signerB.address)).to.equal(0);
-  });
-
-  it('Mint - Non-signing address should not be able to mint tokens', async function () {
-    expect(await deployedERC20NoData.balanceOf(ONE_ADDRESS)).to.equal(0);
-    // Non-signer mint to non-signer (Not allowed)
-    await expect(deployedERC20NoData.connect(ONE_ADDRESS).mint(ONE_ADDRESS, 20)).to.be.reverted;
-
-    expect(await deployedERC20NoData.balanceOf(ONE_ADDRESS)).to.equal(0);
   });
 
   it('Transfer - Signer should transfer tokens to another signer', async function () {

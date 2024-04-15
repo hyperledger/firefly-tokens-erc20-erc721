@@ -1,7 +1,7 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { ERC721WithData, InterfaceCheck } from '../typechain';
+import { ERC721WithData, InterfaceCheck } from '../typechain-types';
 
 describe('ERC721WithData - Unit Tests', function () {
   const contractName = 'testName';
@@ -24,7 +24,7 @@ describe('ERC721WithData - Unit Tests', function () {
       contractSymbol,
       '',
     );
-    await deployedERC721WithData.deployed();
+    await deployedERC721WithData.waitForDeployment();
   });
 
   it('Verify interface ID', async function () {
@@ -62,15 +62,6 @@ describe('ERC721WithData - Unit Tests', function () {
     ).to.be.revertedWith('Ownable: caller is not the owner');
 
     expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(0);
-  });
-
-  it('Mint - Non-signing address should not be able to mint tokens', async function () {
-    expect(await deployedERC721WithData.balanceOf(ONE_ADDRESS)).to.equal(0);
-    // Non-signer mint token to non-signer (Not allowed)
-    await expect(deployedERC721WithData.connect(ONE_ADDRESS).mintWithData(ONE_ADDRESS, '0x00')).to
-      .be.reverted;
-
-    expect(await deployedERC721WithData.balanceOf(ONE_ADDRESS)).to.equal(0);
   });
 
   it('Transfer - Signer should transfer tokens to another signer', async function () {
@@ -147,7 +138,7 @@ describe('ERC721WithData - Unit Tests', function () {
       deployedERC721WithData
         .connect(deployerSignerA)
         .transferWithData(signerB.address, signerC.address, 1, '0x00'),
-    ).to.be.revertedWith('ERC721: caller is not token owner nor approved');
+    ).to.be.revertedWith('ERC721: caller is not token owner or approved');
 
     expect(await deployedERC721WithData.balanceOf(deployerSignerA.address)).to.equal(0);
     expect(await deployedERC721WithData.balanceOf(signerB.address)).to.equal(2);
