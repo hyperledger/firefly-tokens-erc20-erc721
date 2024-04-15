@@ -137,7 +137,7 @@ export default (context: TestContext) => {
 
       const response = {
         statusCode: 400,
-        message: ['type must be a valid enum value'],
+        message: ['type must be one of the following values: fungible, nonfungible'],
         error: 'Bad Request',
       };
 
@@ -350,7 +350,7 @@ export default (context: TestContext) => {
 
       const response = {
         statusCode: 400,
-        message: ['type must be a valid enum value'],
+        message: ['type must be one of the following values: fungible, nonfungible'],
         error: 'Bad Request',
       };
 
