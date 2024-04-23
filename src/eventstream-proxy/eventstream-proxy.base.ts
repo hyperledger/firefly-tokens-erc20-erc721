@@ -107,6 +107,12 @@ export abstract class EventStreamProxyBase extends WebSocketEventsBase {
           receipt => {
             this.broadcast('receipt', <EventStreamReply>receipt);
           },
+          () => {
+            // When the connection is closed to EVMConnect
+            // Close the connection to FireFly as well
+            // FireFly will resend on connection the start event for the eventstreams we need to listen to
+            client.close()
+          }
         );
         this.namespaceEventStreamSocket.set(namespace, eventStreamSocket);
       }

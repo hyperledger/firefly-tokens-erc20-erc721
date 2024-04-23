@@ -51,6 +51,7 @@ export class EventStreamSocket {
     private password: string,
     private handleEvents: (events: EventBatch) => void,
     private handleReceipt: (receipt: EventStreamReply) => void,
+    private handleClose: () => void,
   ) {
     this.init();
   }
@@ -77,6 +78,7 @@ export class EventStreamSocket {
           this.logger.log('Event stream websocket closed');
         } else {
           this.disconnectDetected = true;
+          this.handleClose()
           this.logger.error(
             `Event stream websocket disconnected, attempting to reconnect in ${RECONNECT_TIME}ms`,
           );
@@ -357,6 +359,7 @@ export class EventStreamService {
     namespace: string,
     handleEvents: (events: EventBatch) => void,
     handleReceipt: (receipt: EventStreamReply) => void,
+    handleClose: () => void,
   ) {
     const name = eventStreamName(topic, namespace);
     await this.createOrUpdateStream(newContext(), name, topic);
@@ -369,6 +372,7 @@ export class EventStreamService {
       this.password,
       handleEvents,
       handleReceipt,
+      handleClose
     );
   }
 }
