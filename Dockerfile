@@ -1,3 +1,5 @@
+ARG BASE_IMAGE
+
 FROM node:20-alpine3.17 as build
 USER node
 WORKDIR /home/node
@@ -23,7 +25,7 @@ RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/
 RUN trivy fs --format spdx-json --output /sbom.spdx.json /SBOM
 RUN trivy sbom /sbom.spdx.json --severity UNKNOWN,HIGH,CRITICAL --exit-code 1
 
-FROM node:20-alpine3.17
+FROM $BASE_IMAGE
 RUN apk add curl=8.5.0-r0 jq=1.6-r2
 RUN mkdir -p /app/contracts/source \
     && chgrp -R 0 /app/ \

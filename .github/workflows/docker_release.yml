@@ -20,6 +20,7 @@ jobs:
             --label tag=${GITHUB_REF##*/} \
             --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721:${GITHUB_REF##*/} \
             --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721:head \
+            --build-arg BASE_IAMGE=node:20-alpine3.17 \
             .
 
       - name: Tag release

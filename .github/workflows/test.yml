@@ -35,4 +35,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Docker build
-        run: docker build --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721 .
+        run: docker build --build-arg BASE_IAMGE=node:20-alpine3.17 --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721 .
