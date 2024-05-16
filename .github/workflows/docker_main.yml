@@ -24,7 +24,7 @@ jobs:
             --label commit=$GITHUB_SHA \
             --label build_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
             --label tag=${{ steps.build_tag_generator.outputs.BUILD_TAG }} \
-            --build-arg BASE_IAMGE=node:20-alpine3.17 \
+            --build-arg BASE_IMAGE=node:20-alpine3.17 \
             --tag ghcr.io/hyperledger/firefly-tokens-erc20-erc721:${{ steps.build_tag_generator.outputs.BUILD_TAG }} .
 
       - name: Tag release
