@@ -1,4 +1,7 @@
-FROM node:20-alpine3.17 as build
+ARG BASE_IMAGE
+ARG BUILD_IMAGE
+
+FROM ${BUILD_IMAGE} as build
 USER node
 WORKDIR /home/node
 ADD --chown=node:node package*.json ./
@@ -6,7 +9,7 @@ RUN npm install
 ADD --chown=node:node . .
 RUN npm run build
 
-FROM node:20-alpine3.17 as solidity-build
+FROM ${BUILD_IMAGE} as solidity-build
 RUN apk add python3=3.10.14-r1 alpine-sdk=1.0-r1
 USER node
 WORKDIR /home/node
@@ -23,7 +26,7 @@ RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/
 RUN trivy fs --format spdx-json --output /sbom.spdx.json /SBOM
 RUN trivy sbom /sbom.spdx.json --severity UNKNOWN,HIGH,CRITICAL --exit-code 1
 
-FROM node:20-alpine3.17
+FROM $BASE_IMAGE
 RUN apk add curl=8.5.0-r0 jq=1.6-r2
 RUN mkdir -p /app/contracts/source \
     && chgrp -R 0 /app/ \
