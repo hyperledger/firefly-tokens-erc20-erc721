@@ -1,6 +1,7 @@
 ARG BASE_IMAGE
+ARG BUILD_IMAGE
 
-FROM node:20-alpine3.17 as build
+FROM ${BUILD_IMAGE} as build
 USER node
 WORKDIR /home/node
 ADD --chown=node:node package*.json ./
@@ -8,7 +9,7 @@ RUN npm install
 ADD --chown=node:node . .
 RUN npm run build
 
-FROM node:20-alpine3.17 as solidity-build
+FROM ${BUILD_IMAGE} as solidity-build
 RUN apk add python3=3.10.14-r1 alpine-sdk=1.0-r1
 USER node
 WORKDIR /home/node
