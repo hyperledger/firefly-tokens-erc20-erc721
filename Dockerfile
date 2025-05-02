@@ -27,7 +27,7 @@ RUN trivy fs --format spdx-json --output /sbom.spdx.json /SBOM
 RUN trivy sbom /sbom.spdx.json --severity UNKNOWN,HIGH,CRITICAL --exit-code 1
 
 FROM $BASE_IMAGE
-RUN apk add curl=8.9.0-r0 jq=1.6-r2
+RUN apk add curl=~8.12 jq=~1.7
 RUN mkdir -p /app/contracts/source \
     && chgrp -R 0 /app/ \
     && chmod -R g+rwX /app/ \
