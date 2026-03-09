@@ -25,7 +25,7 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/platform-express": "^11.1.15",
     "@nestjs/platform-ws": "^11.0.0",
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/terminus": "^11.0.0",
